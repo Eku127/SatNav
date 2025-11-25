@@ -1,0 +1,12 @@
+# SatNav dependencies
+# Note: No gym dependency - simplified implementation
+
+numpy>=1.19.0
+omegaconf>=2.1.0
+pyyaml>=5.4.0
+attrs>=21.0.0
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
