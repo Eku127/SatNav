@@ -68,7 +68,15 @@ class Env:
             self._dataset = dataset
         
         # Initialize simulator
-        self._sim = SatSimWrapper(sim_config)
+        # Extract scenes_dir from dataset config if available
+        scenes_dir = None
+        if dataset_config is not None:
+            if isinstance(dataset_config, DictConfig):
+                scenes_dir = getattr(dataset_config, "SCENES_DIR", None)
+            else:
+                scenes_dir = dataset_config.get("SCENES_DIR")
+        
+        self._sim = SatSimWrapper(sim_config, scenes_dir=scenes_dir)
         
         # Initialize task
         # here we use VLNTask as default task

@@ -475,11 +475,11 @@ class TestSatNavDataset:
         assert len(dataset.episodes) == 0
 
     def test_load_dataset_from_config_file(self):
-        """Test loading dataset using config file (test_config.yaml)."""
+        """Test loading dataset using config file (satnav_config_example.yaml)."""
         from satnav.core.config import load_config
         
         # Load config from test_data directory
-        config_file = Path(__file__).parent / "test_data" / "test_config.yaml"
+        config_file = Path(__file__).parent / "test_data" / "satnav_config_example.yaml"
         if not config_file.exists():
             pytest.skip(f"Config file not found: {config_file}")
         
@@ -508,10 +508,13 @@ class TestSatNavDataset:
         assert len(dataset.episodes) == 2
         assert dataset.episodes[0].episode_id == "example_001"
         assert dataset.episodes[1].episode_id == "example_002"
+        # Verify scene_id matches the test data
+        assert "map" in dataset.episodes[0].scene_id
+        assert "map" in dataset.episodes[1].scene_id
         
         # Verify config values are accessible
         assert config.ENVIRONMENT.MAX_EPISODE_STEPS == 500
-        assert config.TASK.TYPE == "VLN-v0"
+        assert config.TASK.TYPE == "VLN"  # Updated to match actual config
         assert config.TASK.SUCCESS_DISTANCE == 3.0
         assert "DISTANCE_TO_GOAL" in config.TASK.MEASUREMENTS
         assert "SUCCESS" in config.TASK.MEASUREMENTS

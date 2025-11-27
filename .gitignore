@@ -162,3 +162,4 @@ Thumbs.db
 configs/local_*.yaml
 *.local.yaml
 
+*.tif

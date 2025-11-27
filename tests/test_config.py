@@ -72,9 +72,9 @@ SIMULATOR:
         """
         # Check if the actual project has a configs directory
         from pathlib import Path
-        # Try to load test_config.yaml which should exist in tests/test_data directory
+        # Try to load satnav_config_example.yaml which should exist in tests/test_data directory
         test_data_dir = Path(__file__).parent / "test_data"
-        test_file = test_data_dir / "test_config.yaml"
+        test_file = test_data_dir / "satnav_config_example.yaml"
         
         if test_file.exists():
             # Load using absolute path
@@ -82,7 +82,7 @@ SIMULATOR:
             # Verify it loaded correctly (check for expected keys)
             assert hasattr(config, "ENVIRONMENT") or hasattr(config, "SIMULATOR") or hasattr(config, "TASK")
         else:
-            # If test_config.yaml doesn't exist, create a temporary one for testing
+            # If satnav_config_example.yaml doesn't exist, create a temporary one for testing
             temp_file = default_configs_dir / "temp_test_default.yaml"
             try:
                 temp_file.write_text("SIMULATOR:\n  TURN_ANGLE: 15\n")

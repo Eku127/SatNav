@@ -16,7 +16,7 @@ from satnav.task.vln_task import VLNTask
 
 
 # Path to test config and data
-TEST_CONFIG_PATH = Path(__file__).parent / "test_data" / "test_config.yaml"
+TEST_CONFIG_PATH = Path(__file__).parent / "test_data" / "satnav_config_example.yaml"
 EXAMPLE_DATASET_PATH = Path(__file__).parent / "test_data" / "satnav_dataset_example.json"
 
 

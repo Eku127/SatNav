@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """SatSim wrapper implementation for SatNav."""
 
+import os
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from omegaconf import DictConfig
 
 from satnav.core.simulator import AgentState, Observations, Simulator
-from satnav.core.utils import geodesic_distance, geodesic_distance_with_altitude
+from satnav.core.utils import geodesic_distance_with_altitude
+from satnav.sims.satsim import SatSim
 
 
 class SatSimWrapper(Simulator):
     """Wrapper for the satsim satellite map simulator.
     
     This class wraps the satsim simulator and implements the Simulator interface.
-    Currently, all methods raise NotImplementedError as the actual satsim engine
-    is not yet implemented. This provides a complete interface definition for
-    future implementation.
+    It handles scene path resolution and delegates all operations to the SatSim engine.
     
     The simulator uses geographic coordinates (longitude, latitude, altitude)
     and roll angle (heading) for agent state. RGB observations are generated
@@ -24,7 +24,7 @@ class SatSimWrapper(Simulator):
     and camera HFOV.
     """
     
-    def __init__(self, config: Union[DictConfig, dict]) -> None:
+    def __init__(self, config: Union[DictConfig, dict], scenes_dir: Optional[str] = None) -> None:
         """Initialize the simulator wrapper.
         
         Args:
@@ -35,55 +35,64 @@ class SatSimWrapper(Simulator):
                     - WIDTH: Image width in pixels
                     - HEIGHT: Image height in pixels
                     - HFOV: Horizontal field of view in degrees
+            scenes_dir: Optional directory containing scene datasets. If None,
+                scene_id is assumed to be a full path.
         """
         # Store config
+        self.config = config
+        
+        # Extract scenes_dir from config if available
+        if scenes_dir is None:
+            if isinstance(config, DictConfig):
+                # Try to get scenes_dir from parent config if available
+                # This handles the case where full config is passed
+                if hasattr(config, "DATASET"):
+                    scenes_dir = getattr(config.DATASET, "SCENES_DIR", None)
+            else:
+                # Check if config contains DATASET
+                if "DATASET" in config and isinstance(config["DATASET"], dict):
+                    scenes_dir = config["DATASET"].get("SCENES_DIR")
+        
+        self._scenes_dir = scenes_dir
+        
+        # Initialize SatSim engine with SIMULATOR config
         if isinstance(config, DictConfig):
-            self.config = config
-            self.forward_step_size = getattr(config, "FORWARD_STEP_SIZE", 0.25)
-            self.turn_angle = getattr(config, "TURN_ANGLE", 15.0)
-            rgb_config = getattr(config, "RGB_SENSOR", {})
-            self.rgb_width = getattr(rgb_config, "WIDTH", 224)
-            self.rgb_height = getattr(rgb_config, "HEIGHT", 224)
-            self.rgb_hfov = getattr(rgb_config, "HFOV", 90.0)
+            sim_config = getattr(config, "SIMULATOR", config)
         else:
-            self.config = config
-            self.forward_step_size = config.get("FORWARD_STEP_SIZE", 0.25)
-            self.turn_angle = config.get("TURN_ANGLE", 15.0)
-            rgb_config = config.get("RGB_SENSOR", {})
-            self.rgb_width = rgb_config.get("WIDTH", 224)
-            self.rgb_height = rgb_config.get("HEIGHT", 224)
-            self.rgb_hfov = rgb_config.get("HFOV", 90.0)
+            sim_config = config.get("SIMULATOR", config)
         
-        # Current agent state (will be set by reset/set_agent_state)
-        self._agent_state: Optional[AgentState] = None
+        self._satsim = SatSim(sim_config)
         
-        # Current scene ID
+        # Current scene ID (for reference)
         self._scene_id: Optional[str] = None
-        
-        # TODO: Initialize satsim engine when available
-        # self._satsim = SatSim(config)
     
     def reset(self, scene_id: str) -> Observations:
         """Reset the simulator and load a new scene.
         
         Args:
-            scene_id: Identifier for the scene to load.
+            scene_id: Identifier for the scene to load. If scenes_dir is set,
+                this will be combined with scenes_dir to form the full path.
+                Otherwise, scene_id is treated as a full path.
             
         Returns:
-            Initial observations from the simulator (currently empty dict).
-            
-        Raises:
-            NotImplementedError: satsim engine not yet implemented.
+            Initial observations from the simulator. Returns empty dict if
+            agent state has not been set yet (should be set via set_agent_state).
         """
         self._scene_id = scene_id
         
-        # TODO: Call satsim.reset(scene_id) to load satellite map scene
-        # TODO: Set initial agent state from satsim
-        # For now, raise NotImplementedError
-        raise NotImplementedError(
-            "satsim.reset() not yet implemented. "
-            "This method should load the satellite map scene and initialize the agent state."
-        )
+        # Combine scene path
+        scene_path = self._combine_scene_path(scene_id)
+        
+        # Load scene in SatSim
+        self._satsim.load_scene(scene_path)
+        
+        # Return initial observations if agent state is set, otherwise return empty dict
+        # Agent state should be set via set_agent_state() after reset()
+        try:
+            return self._satsim.get_observations()
+        except RuntimeError:
+            # Agent state not set yet, return empty observations
+            return {}
     
     def step(self, action: Union[int, str, Dict[str, Any]]) -> Observations:
         """Execute an action in the simulator.
@@ -96,17 +105,8 @@ class SatSimWrapper(Simulator):
                 
         Returns:
             Observations after executing the action.
-            
-        Raises:
-            NotImplementedError: satsim engine not yet implemented.
         """
-        # TODO: Parse action and call satsim.step(action)
-        # TODO: Update agent state
-        # TODO: Return observations
-        raise NotImplementedError(
-            "satsim.step() not yet implemented. "
-            "This method should execute the action and update the agent state."
-        )
+        return self._satsim.step(action)
     
     def get_agent_state(self) -> AgentState:
         """Get the current state of the agent.
@@ -115,17 +115,10 @@ class SatSimWrapper(Simulator):
             Current agent state containing position and rotation.
             
         Raises:
-            NotImplementedError: satsim engine not yet implemented.
             RuntimeError: If agent state has not been initialized.
         """
-        if self._agent_state is None:
-            raise RuntimeError(
-                "Agent state not initialized. Call reset() or set_agent_state() first."
-            )
-        
-        # TODO: Get state from satsim engine
-        # For now, return stored state (if available)
-        return self._agent_state
+        position, rotation = self._satsim.get_agent_state()
+        return AgentState(position=position, rotation=rotation)
     
     def set_agent_state(
         self,
@@ -137,27 +130,8 @@ class SatSimWrapper(Simulator):
         Args:
             position: New position as [longitude, latitude, altitude].
             rotation: New rotation as roll angle in degrees (0-360, 0 = North).
-            
-        Raises:
-            NotImplementedError: satsim engine not yet implemented.
         """
-        # Convert position to numpy array
-        position = np.array(position, dtype=np.float32)
-        
-        if len(position) != 3:
-            raise ValueError(
-                f"Position must have 3 elements [longitude, latitude, altitude], "
-                f"got {len(position)} elements"
-            )
-        
-        # Normalize rotation to [0, 360)
-        rotation = rotation % 360.0
-        
-        # Update stored state
-        self._agent_state = AgentState(position=position, rotation=rotation)
-        
-        # TODO: Call satsim.set_agent_state(position, rotation)
-        # For now, just store the state
+        self._satsim.set_agent_state(position, rotation)
     
     def get_observations(self) -> Dict[str, Any]:
         """Get current observations from all sensors.
@@ -173,27 +147,8 @@ class SatSimWrapper(Simulator):
         Returns:
             Dictionary containing observations from all sensors:
                 - "rgb": RGB image as numpy array (H, W, 3) uint8
-            
-        Raises:
-            NotImplementedError: satsim engine not yet implemented.
-            RuntimeError: If agent state has not been initialized.
         """
-        if self._agent_state is None:
-            raise RuntimeError(
-                "Agent state not initialized. Call reset() or set_agent_state() first."
-            )
-        
-        # TODO: Get RGB observation from satsim
-        # The satsim should:
-        # 1. Calculate ground coverage based on altitude and HFOV
-        # 2. Crop satellite map image centered at (longitude, latitude)
-        # 3. Rotate image according to roll angle
-        # 4. Return RGB image as (H, W, 3) uint8 array
-        
-        raise NotImplementedError(
-            "satsim.get_observations() not yet implemented. "
-            "This method should crop and return RGB image from satellite map."
-        )
+        return self._satsim.get_observations()
     
     def geodesic_distance(
         self,
@@ -225,21 +180,9 @@ class SatSimWrapper(Simulator):
             position: Position to check as [longitude, latitude, altitude].
             
         Returns:
-            True if the position is navigable, False otherwise.
-            
-        Raises:
-            NotImplementedError: satsim engine not yet implemented.
+            True if the position is navigable (within scene bounds), False otherwise.
         """
-        # TODO: Call satsim.is_navigable(position)
-        # The satsim should check if the position is:
-        # - Within valid geographic bounds
-        # - Not in restricted areas (water, buildings, etc.)
-        # - At a valid altitude
-        
-        raise NotImplementedError(
-            "satsim.is_navigable() not yet implemented. "
-            "This method should check if a position is navigable."
-        )
+        return self._satsim.is_navigable(position)
     
     def sample_navigable_point(self) -> List[float]:
         """Sample a random navigable point in the current scene.
@@ -248,24 +191,42 @@ class SatSimWrapper(Simulator):
             A navigable position as [longitude, latitude, altitude].
             
         Raises:
-            NotImplementedError: satsim engine not yet implemented.
             RuntimeError: If scene has not been loaded.
+            NotImplementedError: This method is not yet implemented in SatSim.
         """
         if self._scene_id is None:
             raise RuntimeError(
                 "Scene not loaded. Call reset(scene_id) first."
             )
         
-        # TODO: Call satsim.sample_navigable_point()
-        # The satsim should:
-        # 1. Get valid navigable regions in the current scene
-        # 2. Sample a random point from these regions
-        # 3. Return [longitude, latitude, altitude]
-        
+        # TODO: Implement sampling in SatSim
         raise NotImplementedError(
-            "satsim.sample_navigable_point() not yet implemented. "
+            "sample_navigable_point() not yet implemented. "
             "This method should sample a random navigable point in the scene."
         )
+    
+    def _combine_scene_path(self, scene_id: str) -> str:
+        """Combine scenes_dir with scene_id to form full path.
+        
+        Args:
+            scene_id: Scene identifier (may be relative or absolute path).
+            
+        Returns:
+            Full path to scene file.
+        """
+        if self._scenes_dir is None:
+            # If no scenes_dir, assume scene_id is already a full path
+            return scene_id
+        
+        # Check if scene_id is already an absolute path or contains path separators
+        # (meaning it's already a full path from dataset)
+        if os.path.isabs(scene_id) or os.sep in scene_id or '/' in scene_id:
+            # scene_id is already a full path, use it directly
+            return scene_id
+        
+        # Combine scenes_dir with scene_id
+        scene_path = os.path.join(self._scenes_dir, scene_id)
+        return scene_path
     
     @property
     def sensor_suite(self):
@@ -276,9 +237,9 @@ class SatSimWrapper(Simulator):
         """
         return {
             "rgb": {
-                "width": self.rgb_width,
-                "height": self.rgb_height,
-                "hfov": self.rgb_hfov,
+                "width": self._satsim._camera.width,
+                "height": self._satsim._camera.height,
+                "hfov": self._satsim._camera.hfov,
             }
         }
     

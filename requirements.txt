@@ -6,6 +6,12 @@ omegaconf>=2.1.0
 pyyaml>=5.4.0
 attrs>=21.0.0
 
+# SatSim dependencies
+rasterio>=1.3.0  # TIF file handling and reprojection
+pyproj>=3.4.0  # Coordinate transformations (WGS84 <-> EPSG:3857)
+scipy>=1.7.0  # Image rotation
+opencv-python>=4.5.0  # Image resizing
+
 # Testing dependencies
 pytest>=7.0.0
 pytest-cov>=4.0.0

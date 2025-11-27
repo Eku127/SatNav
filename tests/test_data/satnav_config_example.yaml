@@ -21,4 +21,4 @@ DATASET:
   TYPE: SatNav
   SPLIT: test
   DATA_PATH: tests/test_data/satnav_dataset_example.json
-  SCENES_DIR: data/scene_datasets/
+  SCENES_DIR: tests/test_data/
