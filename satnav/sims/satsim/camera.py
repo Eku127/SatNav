@@ -33,6 +33,20 @@ class SatelliteCamera:
         
         # Calculate aspect ratio
         self.aspect_ratio = width / height
+        
+        # Pre-compute margin factor for boundary checking optimization
+        # The margin (safety distance from map edge) is linearly proportional to altitude:
+        #   margin = altitude * margin_factor
+        # where margin_factor = sqrt(tan^2(HFOV/2) * (1 + aspect_ratio^2))
+        # 
+        # This factor represents the maximum distance from camera center to any corner
+        # of the view rectangle when rotated. By ensuring agent stays at least this
+        # distance away from map edges, we guarantee that camera view will never exceed
+        # map bounds regardless of rotation angle.
+        tan_half_hfov = math.tan(math.radians(self.hfov / 2.0))
+        self._margin_factor = math.sqrt(
+            tan_half_hfov ** 2 * (1 + self.aspect_ratio ** 2)
+        )
     
     def get_view_bounds(
         self,
@@ -95,6 +109,29 @@ class SatelliteCamera:
         
         return (left, right, bottom, top)
     
+    def get_margin(self, altitude: float) -> float:
+        """Get the safety margin (minimum distance from map edge) for given altitude.
+        
+        The margin represents the maximum distance from camera center to any corner
+        of the view rectangle when rotated. This ensures that if the agent stays at
+        least this distance away from map edges, the camera view will never exceed
+        map bounds regardless of rotation angle.
+        
+        Args:
+            altitude: Agent altitude in meters.
+            
+        Returns:
+            Safety margin in meters (Web Mercator).
+            
+        Note:
+            Margin is linearly proportional to altitude:
+            margin = altitude * margin_factor
+            where margin_factor is pre-computed in __init__ based on camera parameters.
+        """
+        if altitude < 0:
+            altitude = 0.0
+        return altitude * self._margin_factor
+    
     def render_image(
         self,
         sat_tif: rasterio.DatasetReader,
@@ -122,56 +159,74 @@ class SatelliteCamera:
         Raises:
             ValueError: If view bounds exceed image bounds.
         """
-        # Get view bounds for rotated view
+        # Get view bounds for rotated view (to check if within map bounds)
         left, right, bottom, top = self.get_view_bounds(
             position_mercator, altitude, rotation
         )
         
-        # Get view bounds for unrotated view (for proper cropping)
+        # Get view bounds for unrotated view (for cropping)
+        # We always crop an unrotated region, then rotate the image
         _left, _right, _bottom, _top = self.get_view_bounds(
             position_mercator, altitude, 0.0
         )
         
-        # Check bounds
+        # Check bounds (use rotated bounds to ensure we don't exceed map)
         bounds = sat_tif.bounds
         if left < bounds.left or right > bounds.right or bottom < bounds.bottom or top > bounds.top:
             raise ValueError("Camera view bounds exceed image bounds")
         
-        # Expand bounds to include rotated view
-        left = min(left, _left)
-        right = max(right, _right)
-        bottom = min(bottom, _bottom)
-        top = max(top, _top)
+        # Expand unrotated bounds to include rotated view (for proper cropping)
+        # We need a larger region to crop from, then rotate
+        expanded_left = min(_left, left)
+        expanded_right = max(_right, right)
+        expanded_bottom = min(_bottom, bottom)
+        expanded_top = max(_top, top)
         
-        # Create windows for cropping
-        window = from_bounds(left, bottom, right, top, transform=sat_tif.transform)
-        _window = from_bounds(_left, _bottom, _right, _top, transform=sat_tif.transform)
+        # Create window for cropping (expanded bounds)
+        window = from_bounds(
+            expanded_left, expanded_bottom, expanded_right, expanded_top,
+            transform=sat_tif.transform
+        )
+        unrotated_window = from_bounds(
+            _left, _bottom, _right, _top,
+            transform=sat_tif.transform
+        )
         
         # Read images
-        img1 = sat_tif.read(window=window)  # (bands, h1, w1)
-        img2 = sat_tif.read(window=_window)  # (bands, h2, w2)
+        img_expanded = sat_tif.read(window=window)  # Expanded region
+        img_unrotated = sat_tif.read(window=unrotated_window)  # Unrotated view size
         
-        _, h1, w1 = img1.shape
-        _, h2, w2 = img2.shape
+        _, h_expanded, w_expanded = img_expanded.shape
+        _, h_unrotated, w_unrotated = img_unrotated.shape
         
         # Convert to (H, W, C) format and take RGB channels
-        img1 = np.transpose(img1[:3], (1, 2, 0))
+        img_expanded = np.transpose(img_expanded[:3], (1, 2, 0))
         
         # Rotate image
-        img1 = rotate(
-            img1,
-            angle=-rotation,
+        # scipy.ndimage.rotate: positive angle = counterclockwise, negative = clockwise
+        # 
+        # User expectation: When drone turns left (rotation decreases), 
+        # image should rotate relatively right (clockwise from viewer's perspective).
+        # 
+        # Implementation: We use angle = rotation to achieve correct relative rotation:
+        # - rotation decreases (left turn) → angle decreases → clockwise rotation (relative right) ✓
+        # - rotation increases (right turn) → angle increases → counterclockwise rotation (relative left) ✓
+        # 
+        # Note: This prioritizes relative rotation correctness over absolute direction.
+        # The absolute direction may differ from the rotation value (e.g., rotation=90 may not show East),
+        # but the relative rotation direction matches the turn direction as expected by the user.
+        img_rotated = rotate(
+            img_expanded,
+            angle=rotation,
             reshape=False,
             mode="constant",
             cval=0
         )
         
-        img2 = np.transpose(img2[:3], (1, 2, 0))
-        
         # Center crop to unrotated view size
-        start_y = (h1 - h2) // 2
-        start_x = (w1 - w2) // 2
-        cropped = img1[start_y:start_y+h2, start_x:start_x+w2, :]
+        start_y = (h_expanded - h_unrotated) // 2
+        start_x = (w_expanded - w_unrotated) // 2
+        cropped = img_rotated[start_y:start_y+h_unrotated, start_x:start_x+w_unrotated, :]
         
         # Resize to target dimensions
         cropped = cv2.resize(cropped, (self.width, self.height))

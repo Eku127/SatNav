@@ -216,7 +216,15 @@ class SatSim:
             x_new, y_new = GeoUtils.move_in_mercator(
                 x, y, self.forward_step_size, rotation
             )
-            self._agent_position = (x_new, y_new, alt)
+            # Check if new position is navigable (within safe bounds)
+            # This prevents agent from moving to positions where camera view
+            # would exceed map bounds, regardless of rotation angle
+            position_new_wgs84 = GeoUtils.position_mercator_to_wgs84(
+                np.array([x_new, y_new, alt], dtype=np.float32)
+            )
+            if self.is_navigable(position_new_wgs84):
+                self._agent_position = (x_new, y_new, alt)
+            # If not navigable, agent stays at current position (no update)
         elif action_str == "TURN_LEFT":
             self._agent_rotation = (rotation - self.turn_angle) % 360.0
         elif action_str == "TURN_RIGHT":
@@ -264,11 +272,18 @@ class SatSim:
     def is_navigable(self, position_wgs84: Union[List[float], np.ndarray]) -> bool:
         """Check if a position is navigable.
         
+        This method checks if the agent can be placed at the given position without
+        the camera view exceeding map bounds. It uses a safety margin based on camera
+        parameters and altitude to ensure that regardless of rotation angle, the
+        camera view will always stay within map bounds.
+        
         Args:
             position_wgs84: Position to check as [longitude, latitude, altitude].
             
         Returns:
-            True if the position is within scene bounds, False otherwise.
+            True if the position is within safe navigable bounds, False otherwise.
+            Safe bounds are computed by shrinking the map bounds by the safety margin
+            (which depends on altitude and camera parameters).
             
         Raises:
             RuntimeError: If scene not loaded.
@@ -278,17 +293,39 @@ class SatSim:
                 "Scene not loaded. Call load_scene() first."
             )
         
-        # Convert to Mercator
+        # Convert to Mercator coordinates
         position_mercator = GeoUtils.position_wgs84_to_mercator(
             np.array(position_wgs84, dtype=np.float32)
         )
-        x, y, _ = position_mercator
+        x, y, altitude = position_mercator
         
-        # Check if within scene bounds
+        # Get map bounds
         bounds = self._current_scene.bounds
+        
+        # Calculate safety margin based on altitude and camera parameters
+        # The margin represents the maximum distance from camera center to any corner
+        # of the view rectangle when rotated. By ensuring the agent stays at least
+        # this distance away from map edges, we guarantee the camera view will never
+        # exceed map bounds regardless of rotation angle.
+        margin = self._camera.get_margin(altitude)
+        
+        # Compute safe navigable bounds by shrinking map bounds by the margin
+        # This creates a "safe zone" where the agent can move freely without
+        # risking camera view exceeding map boundaries
+        safe_left = bounds.left + margin
+        safe_right = bounds.right - margin
+        safe_bottom = bounds.bottom + margin
+        safe_top = bounds.top - margin
+        
+        # Check if position is within safe bounds
+        # Also check if safe bounds are valid (map is large enough)
+        if safe_left >= safe_right or safe_bottom >= safe_top:
+            # Map is too small for the given altitude, no position is safe
+            return False
+        
         return (
-            bounds.left <= x <= bounds.right and
-            bounds.bottom <= y <= bounds.top
+            safe_left <= x <= safe_right and
+            safe_bottom <= y <= safe_top
         )
     
     def get_scene_bounds(self) -> Tuple[float, float, float, float]:
