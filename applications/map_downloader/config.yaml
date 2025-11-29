@@ -1,0 +1,72 @@
+# Map Downloader Configuration
+# Configuration for downloading satellite maps from Google Maps Static API
+
+# Google Maps API Configuration
+API:
+  # Your Google Maps API key
+  # Get one from: https://developers.google.com/maps/documentation/maps-static/get-api-key
+  API_KEY: "AIzaSyAvdA9uijk4A2IX0sYeMOc2Kv3dH7GpDRc"
+  
+  # Optional signature for API requests (if using signed URLs)
+  SIGNATURE: null
+
+# Region Configuration
+REGION:
+  # Region definition type: "corners" or "center"
+  # - "corners": Define region by two corner coordinates (LAT1/LON1 and LAT2/LON2)
+  # - "center": Define region by center point and dimensions (CENTER_LAT/CENTER_LON, HEIGHT_M/WIDTH_M)
+  TYPE: "center"  # Options: "corners", "center"
+  
+  # Method 1: Corner-based definition (used when TYPE="corners")
+  CORNERS:
+    # Lower-left corner coordinates (lat, lon)
+    LAT1: 39.900
+    LON1: 116.397
+    
+    # Upper-right corner coordinates (lat, lon)
+    LAT2: 39.903
+    LON2: 116.400
+  
+  # Method 2: Center-based definition (used when TYPE="center")
+  CENTER:
+    # Center point coordinates (lat, lon) - New York City
+    LAT: 40.7128
+    LON: -74.0060
+    
+    # Region dimensions in meters
+    HEIGHT_M: 2000.0  # North-South dimension (meters) - 2km
+    WIDTH_M: 2000.0   # East-West dimension (meters) - 2km
+
+# Download Parameters
+DOWNLOAD:
+  # Zoom level (higher = more detail)
+  # Typical values: 15-20
+  # - 15: ~5m per pixel
+  # - 19: ~0.3m per pixel
+  # - 20: ~0.15m per pixel
+  ZOOM: 19
+  
+  # Map type: roadmap, satellite, hybrid, terrain
+  MAPTYPE: "satellite"
+  
+  # Download mode: "sequential" or "parallel"
+  # - "sequential": Download tiles one by one (slower but more stable)
+  # - "parallel": Download multiple tiles concurrently (faster, 4-9x speedup)
+  MODE: "parallel"
+  
+  # Maximum number of concurrent workers for parallel download
+  # Only used when MODE="parallel"
+  # Default: min(CPU cores, 20) to avoid API rate limits
+  # Recommended: 10-20 for most cases
+  MAX_WORKERS: 15
+
+# Output Configuration
+OUTPUT:
+  # Default output directory
+  OUTPUT_DIR: "data/scene_datasets"
+  
+  # Filename pattern (always uses center format regardless of input type)
+  # When using TYPE="corners", corners are automatically converted to center format for filename
+  # Available placeholders: {center_lat}, {center_lon}, {height_m}, {width_m}, {zoom}
+  FILENAME_PATTERN_CENTER: "map_center_{center_lat:.6f}_{center_lon:.6f}_h{height_m:.0f}w{width_m:.0f}_z{zoom}.tif"
+

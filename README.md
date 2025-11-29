@@ -422,43 +422,6 @@ pytest tests/test_env.py::TestEnvIntegration::test_multiple_steps_with_real_sats
 pytest tests/test_env.py -k "test_metric" -v
 ```
 
-### 5.4 测试选项
-
-```bash
-# 显示测试输出（print 语句）
-pytest -s
-
-# 在第一个失败时停止
-pytest -x
-
-# 显示最慢的 10 个测试
-pytest --durations=10
-
-# 并行运行测试（需要 pytest-xdist）
-pytest -n auto
-
-# 只运行上次失败的测试
-pytest --lf
-
-# 运行失败和新增的测试
-pytest --ff
-```
-
-### 5.5 测试覆盖率
-
-```bash
-# 生成终端覆盖率报告
-pytest --cov=satnav --cov-report=term-missing
-
-# 生成 HTML 覆盖率报告（保存在 htmlcov/ 目录）
-pytest --cov=satnav --cov-report=html
-
-# 生成 XML 覆盖率报告（用于 CI/CD）
-pytest --cov=satnav --cov-report=xml
-
-# 设置覆盖率阈值（如果覆盖率低于阈值，测试失败）
-pytest --cov=satnav --cov-report=term-missing --cov-fail-under=80
-```
 
 ---
 
