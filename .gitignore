@@ -163,6 +163,8 @@ configs/local_*.yaml
 *.local.yaml
 
 *.tif
+# Exception: allow test data map.tif
+!tests/test_data/map.tif
 
 data/
 
