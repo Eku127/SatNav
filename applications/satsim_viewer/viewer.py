@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import cv2
 import numpy as np
+from datetime import datetime
 from omegaconf import OmegaConf
 
 from satnav.sims.satsim import SatSim
@@ -139,9 +140,14 @@ class InteractiveViewer:
         # Create window
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
         
+        # Output directory for saving images
+        self.output_dir = Path(__file__).parent.parent.parent / "output"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
         # State tracking
         self.running = True
         self.at_boundary = False  # Track if agent is at boundary
+        self.current_image = None  # Store current image for saving
         
     def get_agent_state_info(self) -> dict:
         """Get current agent state information.
@@ -247,7 +253,7 @@ class InteractiveViewer:
         
         # Controls hint
         h, w = image.shape[:2]
-        text = "Controls: w=forward, s=backward, a=left, d=right, q=up, e=down, ESC=quit"
+        text = "Controls: w=forward, s=backward, a=left, d=right, q=up, e=down, p=save, ESC=quit"
         cv2.putText(image, text, (20, h - 20), font, 0.5, shadow_color, 2, cv2.LINE_AA)
         cv2.putText(image, text, (20, h - 20), font, 0.5, (200, 200, 200), 1, cv2.LINE_AA)
         
@@ -383,8 +389,45 @@ class InteractiveViewer:
             except (ValueError, RuntimeError) as e:
                 print(f"Warning: Cannot move backward - {e}")
                 self.at_boundary = True
+        elif key_char == 'p':
+            # Save current image
+            self.save_current_image()
         
         return True
+    
+    def save_current_image(self):
+        """Save current image to output directory.
+        
+        Generates a filename with timestamp and position information.
+        """
+        if self.current_image is None:
+            print("Warning: No image to save")
+            return
+        
+        # Get current state for filename
+        state_info = self.get_agent_state_info()
+        lon = state_info['wgs84']['longitude']
+        lat = state_info['wgs84']['latitude']
+        alt = state_info['wgs84']['altitude']
+        rot = state_info['rotation']
+        
+        # Generate filename with timestamp and position
+        # Use format that's safe for filenames (replace dots and handle negative signs)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Format coordinates: use 'n' for negative, 'p' for positive, replace dot with 'd'
+        lon_str = f"{lon:.4f}".replace('.', 'd').replace('-', 'n')
+        lat_str = f"{lat:.4f}".replace('.', 'd').replace('-', 'n')
+        alt_str = f"{alt:.1f}".replace('.', 'd')
+        rot_str = f"{rot:.1f}".replace('.', 'd')
+        filename = f"viewer_{timestamp}_lon{lon_str}_lat{lat_str}_alt{alt_str}_rot{rot_str}.png"
+        filepath = self.output_dir / filename
+        
+        # Save image (current_image is in BGR format for OpenCV)
+        success = cv2.imwrite(str(filepath), self.current_image)
+        if success:
+            print(f"✓ Image saved to: {filepath}")
+        else:
+            print(f"✗ Failed to save image to: {filepath}")
     
     def _render_and_display(self):
         """Render current observation and display it.
@@ -401,6 +444,12 @@ class InteractiveViewer:
             
             # Draw state information
             display_image = self.draw_state_info(rgb_image_bgr.copy())
+            
+            # Store current image for saving (without state overlay for cleaner saved image)
+            # Option 1: Save with state info (current behavior)
+            self.current_image = display_image.copy()
+            # Option 2: Save without state info (uncomment if preferred)
+            # self.current_image = rgb_image_bgr.copy()
             
             # Display image
             cv2.imshow(self.window_name, display_image)
@@ -452,6 +501,7 @@ class InteractiveViewer:
         print("  'd' - Turn right")
         print("  'q' - Move up (increase altitude)")
         print("  'e' - Move down (decrease altitude)")
+        print("  'p' - Save current image to output/")
         print("  'ESC' - Quit")
         print("=" * 60 + "\n")
         

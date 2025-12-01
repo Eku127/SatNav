@@ -141,7 +141,8 @@ class SatSimWrapper(Simulator):
         corresponding region from the satellite map.
         
         Camera model:
-        - Ground_Width = 2 * Altitude * tan(HFOV / 2)
+        - Ground_Width = 2 * Altitude * tan(HFOV / 2)  (HFOV controls horizontal direction)
+        - Ground_Height = Ground_Width / aspect_ratio
         - GSD (Ground Sample Distance) = Ground_Width / WIDTH
         
         Returns:

@@ -10,6 +10,21 @@ Non-interactive aerial 3D view renderer using CesiumJS and Google 3D Tiles.
 - Headless mode support
 - Command-line interface with config file support
 
+## Example Output
+
+The Aerial Viewer renders 3D aerial views compatible with SatSim's camera model:
+
+<div style="display: flex; gap: 20px; align-items: center;">
+  <div style="flex: 1;">
+    <p><strong>SatSim Satellite View (2D orthographic)</strong></p>
+    <img src="images/sat_crop_view.png" alt="SatSim Satellite View" style="width: 100%;">
+  </div>
+  <div style="flex: 1;">
+    <p><strong>Aerial Viewer 3D View (3D perspective)</strong></p>
+    <img src="images/aerial_view.png" alt="Aerial Viewer 3D View" style="width: 100%;">
+  </div>
+</div>
+
 ## Requirements
 
 - Python 3.7+
@@ -122,15 +137,70 @@ This will use the default configuration from `config.yaml` and save the output t
 python -m applications.aerial_viewer --config /path/to/config.yaml
 ```
 
-### Override Parameters via Command Line
+### SatSim-Compatible Mode
+
+Use SatSim-compatible parameters (vertical down view, HFOV matching):
 
 ```bash
 python -m applications.aerial_viewer \
-    --lat 22.2854 \
-    --lng 114.1570 \
-    --height 500 \
-    --pitch -30 \
-    --output output/my_view.png
+    --latitude 40.7128 \
+    --longitude -74.0060 \
+    --altitude 100 \
+    --rotation 0 \
+    --hfov 90 \
+    --output output/satsim_view.png
+```
+
+Legacy arguments are also supported for backward compatibility:
+
+```bash
+python -m applications.aerial_viewer \
+    --lat 40.7128 \
+    --lng -74.0060 \
+    --height 100 \
+    --heading 0 \
+    --hfov 90
+```
+
+### Python API
+
+```python
+from applications.aerial_viewer import AerialRenderer
+
+renderer = AerialRenderer("config.yaml")
+try:
+    # Use render_satsim_compatible for SatSim-compatible parameters
+    output_path = renderer.render_satsim_compatible(
+        longitude=-74.0060,
+        latitude=40.7128,
+        altitude=100,
+        rotation=0,  # 0 = North
+        hfov=90,     # Horizontal field of view
+        width=640,   # Optional: output width
+        height=480   # Optional: output height
+    )
+    print(f"Rendered to: {output_path}")
+finally:
+    renderer.close()
+```
+
+Or use the `render` method with legacy parameters:
+
+```python
+renderer = AerialRenderer("config.yaml")
+try:
+    output_path = renderer.render(
+        lat=40.7128,
+        lng=-74.0060,
+        height=100,
+        heading=0,  # Maps to rotation
+        pitch=-90.0,  # Always vertical down in SatSim mode
+        roll=0.0,
+        hfov=90
+    )
+    print(f"Rendered to: {output_path}")
+finally:
+    renderer.close()
 ```
 
 ## Configuration
@@ -144,25 +214,29 @@ API:
   API_KEY: "YOUR_GOOGLE_API_KEY"  # Google 3D Tiles API key
 ```
 
-### Camera Configuration
+### Agent & Camera Configuration (SatSim-Compatible)
 
 ```yaml
+AGENT:
+  LONGITUDE: -74.0060   # Longitude (degrees)
+  LATITUDE: 40.7128     # Latitude (degrees)
+  ALTITUDE: 100.0       # Altitude (meters)
+  ROTATION: 0.0         # Rotation/roll angle (degrees, 0=North)
+
 CAMERA:
-  LAT: 22.2854      # Latitude (degrees)
-  LNG: 114.1570     # Longitude (degrees)
-  HEIGHT: 500.0     # Height above ground (meters)
-  HEADING: 0.0      # Heading angle (degrees, 0=North)
-  PITCH: -30.0      # Pitch angle (degrees, negative = looking down)
-  ROLL: 0.0         # Roll angle (degrees)
+  HFOV: 90             # Horizontal field of view (degrees)
+  WIDTH: 640           # Output width (pixels)
+  HEIGHT: 480          # Output height (pixels)
 ```
+
+**Note**: The camera always renders vertical down view (pitch = -90°), matching SatSim's orthographic projection behavior.
 
 ### Browser Configuration
 
 ```yaml
 BROWSER:
-  DRIVER: "edge"    # "edge", "chrome", or "firefox"
-  HEADLESS: true    # Run in headless mode
-  WINDOW_SIZE: [1920, 1080]  # Browser window size [width, height]
+  DRIVER: "chrome"    # "edge", "chrome", or "firefox"
+  HEADLESS: false     # WebGL requires non-headless mode for CesiumJS 3D rendering
 ```
 
 ### Rendering Configuration
@@ -177,7 +251,16 @@ RENDERING:
 
 ## Output
 
-The renderer outputs a PNG image with the specified camera view. The image size matches the browser window size (default: 1920×1080 pixels).
+The renderer outputs a PNG image with the specified camera view. The image size matches the camera configuration (`CAMERA.WIDTH` × `CAMERA.HEIGHT`).
+
+### Comparison with SatSim
+
+The Aerial Viewer provides a 3D perspective view that matches SatSim's camera parameters:
+
+- **SatSim**: Uses 2D orthographic projection from satellite imagery
+- **Aerial Viewer**: Uses 3D perspective projection from Google 3D Tiles
+
+Both views use the same camera parameters (position, altitude, HFOV, rotation) for compatibility.
 
 ## Troubleshooting
 
@@ -324,10 +407,11 @@ The renderer outputs a PNG image with the specified camera view. The image size 
 
 2. **Check Network Speed**: 3D Tiles require good network connection
 
-3. **Reduce Window Size** (faster rendering):
+3. **Reduce Image Size** (faster rendering):
    ```yaml
-   BROWSER:
-     WINDOW_SIZE: [1280, 720]  # Smaller = faster
+   CAMERA:
+     WIDTH: 640   # Smaller = faster
+     HEIGHT: 480
    ```
 
 #### 7. Permission Denied (Linux)
@@ -368,6 +452,71 @@ To get more detailed error information:
 - **Recommended**: Use Chrome (via Homebrew) or Safari (if supported)
 - **Driver**: Use `webdriver-manager` or Homebrew (`brew install chromedriver`)
 
+## SatSim Compatibility
+
+The application supports **SatSim-compatible mode** for matching satellite viewer camera settings:
+
+### Parameter Mapping
+
+| SatSim Parameter | Aerial Viewer | Notes |
+|-----------------|---------------|-------|
+| `longitude` | `AGENT.LONGITUDE` | Direct mapping |
+| `latitude` | `AGENT.LATITUDE` | Direct mapping |
+| `altitude` | `AGENT.ALTITUDE` | Direct mapping |
+| `rotation` | `AGENT.ROTATION` → `HEADING` | Rotation becomes heading (0=North) |
+| `HFOV` | `CAMERA.HFOV` | Horizontal field of view (converted to vertical FOV for CesiumJS) |
+| `WIDTH` | `CAMERA.WIDTH` | Output image width |
+| `HEIGHT` | `CAMERA.HEIGHT` | Output image height |
+| (implicit) | `PITCH = -90°` | Always vertical down view |
+| (implicit) | `ROLL = 0°` | No roll |
+
+### Differences from SatSim
+
+1. **Projection Model**:
+   - **SatSim**: Orthographic projection (no perspective distortion)
+   - **Aerial Viewer**: Perspective projection (3D rendering with perspective)
+   - **Impact**: At low altitudes, perspective distortion may be visible. At high altitudes (>500m), the difference is minimal.
+
+2. **3D Terrain**:
+   - **SatSim**: 2D satellite imagery (flat)
+   - **Aerial Viewer**: 3D Tiles with building heights and terrain
+   - **Impact**: Buildings and terrain features appear in 3D, matching real-world appearance.
+
+3. **Image Source**:
+   - **SatSim**: High-resolution GeoTIFF files
+   - **Aerial Viewer**: Google 3D Tiles (streamed, resolution depends on zoom level)
+   - **Impact**: Image quality and detail level may differ.
+
+### Usage Example: Matching SatSim View
+
+```python
+# SatSim configuration
+satnav_config = {
+    "SIMULATOR": {
+        "RGB_SENSOR": {
+            "WIDTH": 640,
+            "HEIGHT": 480,
+            "HFOV": 90
+        }
+    }
+}
+
+# Equivalent Aerial Viewer configuration
+aerial_config = {
+    "AGENT": {
+        "LONGITUDE": -74.0060,
+        "LATITUDE": 40.7128,
+        "ALTITUDE": 100.0,
+        "ROTATION": 0.0
+    },
+    "CAMERA": {
+        "HFOV": 90,
+        "WIDTH": 640,
+        "HEIGHT": 480
+    }
+}
+```
+
 ## Notes
 
 - The renderer uses CesiumJS to load Google 3D Tiles
@@ -377,4 +526,6 @@ To get more detailed error information:
 - Make sure your Google API key has **3D Tiles API enabled** in Google Cloud Console
 - The application automatically disables system proxy for local Selenium connections
 - For best results, use **non-headless mode** with a display (or Xvfb on Linux servers)
+- The camera automatically sets `PITCH=-90°` and `ROLL=0°` for vertical down view (SatSim-compatible)
+- **FOV conversion**: Horizontal FOV (HFOV) is automatically converted to vertical FOV for CesiumJS based on aspect ratio
 

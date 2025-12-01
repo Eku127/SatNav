@@ -50,7 +50,14 @@ class AerialRenderer:
         """Create and configure Selenium WebDriver."""
         browser = self.config.BROWSER.DRIVER.lower()
         headless = self.config.BROWSER.HEADLESS
-        window_size = self.config.BROWSER.WINDOW_SIZE
+        
+        # Use camera dimensions (required)
+        if not hasattr(self.config, "CAMERA"):
+            raise ValueError("CAMERA configuration is required. Please add CAMERA section to config.yaml")
+        window_size = [
+            self.config.CAMERA.WIDTH,
+            self.config.CAMERA.HEIGHT
+        ]
         
         print(f"Initializing {browser} browser driver...")
         if not headless:
@@ -259,36 +266,42 @@ class AerialRenderer:
         heading: Optional[float] = None,
         pitch: Optional[float] = None,
         roll: Optional[float] = None,
+        hfov: Optional[float] = None,
         output_path: Optional[str] = None
     ) -> str:
-        """Render aerial view and save as image.
+        """Render aerial view and save as image (SatSim-compatible mode).
         
         Args:
             lat: Latitude (degrees). If None, uses config value.
             lng: Longitude (degrees). If None, uses config value.
             height: Height above ground (meters). If None, uses config value.
             heading: Heading angle (degrees). If None, uses config value.
-            pitch: Pitch angle (degrees). If None, uses config value.
-            roll: Roll angle (degrees). If None, uses config value.
+            pitch: Pitch angle (degrees). If None, uses -90.0 (vertical down).
+            roll: Roll angle (degrees). If None, uses 0.0.
+            hfov: Horizontal field of view (degrees). If None, uses config value.
             output_path: Output image path. If None, uses config value.
             
         Returns:
             Path to the saved image.
         """
         # Use config values if not provided
+        agent = self.config.AGENT
         camera = self.config.CAMERA
-        lat = lat if lat is not None else camera.LAT
-        lng = lng if lng is not None else camera.LNG
-        height = height if height is not None else camera.HEIGHT
-        heading = heading if heading is not None else camera.HEADING
-        pitch = pitch if pitch is not None else camera.PITCH
-        roll = roll if roll is not None else camera.ROLL
+        
+        lat = lat if lat is not None else agent.LATITUDE
+        lng = lng if lng is not None else agent.LONGITUDE
+        height = height if height is not None else agent.ALTITUDE
+        heading = heading if heading is not None else agent.ROTATION
+        pitch = pitch if pitch is not None else -90.0  # Always vertical down view
+        roll = roll if roll is not None else 0.0
+        hfov = hfov if hfov is not None else camera.HFOV
         
         output_path = output_path or self.config.RENDERING.OUTPUT_PATH
         
-        print("Starting aerial view rendering...")
+        print("Starting aerial view rendering (SatSim-compatible mode)...")
         print(f"  Camera position: lat={lat:.6f}, lng={lng:.6f}, height={height:.1f}m")
         print(f"  Camera orientation: heading={heading:.1f}°, pitch={pitch:.1f}°, roll={roll:.1f}°")
+        print(f"  Horizontal FOV: {hfov:.1f}°")
         
         # Create output directory if needed
         output_file = Path(output_path)
@@ -337,9 +350,16 @@ class AerialRenderer:
                     message = log.get('message', '')
                     print(f"  [{level}] {message[:200]}")
             
-            updateview_available = self.driver.execute_script("return typeof window.updateView === 'function';")
-            if not updateview_available:
-                print("✗ Warning: updateView function not available")
+            # Check for updateView or updateViewWithFOV
+            updateview_available = self.driver.execute_script(
+                "return typeof window.updateView === 'function';"
+            )
+            updateview_fov_available = self.driver.execute_script(
+                "return typeof window.updateViewWithFOV === 'function';"
+            )
+            
+            if not updateview_available and not updateview_fov_available:
+                print("✗ Warning: updateView functions not available")
                 # Check if there's a JavaScript error
                 js_errors = self.driver.execute_script("""
                     var errors = [];
@@ -351,12 +371,17 @@ class AerialRenderer:
                 # Wait more and retry
                 print("Waiting additional 10 seconds...")
                 time.sleep(10)
-                updateview_available = self.driver.execute_script("return typeof window.updateView === 'function';")
-                if not updateview_available:
+                updateview_available = self.driver.execute_script(
+                    "return typeof window.updateView === 'function';"
+                )
+                updateview_fov_available = self.driver.execute_script(
+                    "return typeof window.updateViewWithFOV === 'function';"
+                )
+                if not updateview_available and not updateview_fov_available:
                     # Get page source for debugging
                     print("Page source (first 500 chars):")
                     print(self.driver.page_source[:500])
-                    raise Exception("updateView function not available after waiting")
+                    raise Exception("updateView functions not available after waiting")
         except Exception as e:
             print(f"✗ JavaScript check failed: {e}")
             # Take screenshot of error state
@@ -368,12 +393,42 @@ class AerialRenderer:
                 pass
             raise
         
-        # Update camera view
+        # Set container size before updating camera view
+        if hasattr(self.config, "CAMERA"):
+            target_width = self.config.CAMERA.WIDTH
+            target_height = self.config.CAMERA.HEIGHT
+            # Set container size early so CesiumJS can adjust
+            self.driver.execute_script(f"""
+                var container = document.getElementById('cesiumContainer');
+                if (container) {{
+                    container.style.width = '{target_width}px';
+                    container.style.height = '{target_height}px';
+                }}
+            """)
+            time.sleep(0.3)  # Wait for container resize
+        
+        # Update camera view with FOV
         print(f"Setting camera view...")
-        self.driver.execute_script(
-            f"window.updateView({lat}, {lng}, {height}, {heading}, {pitch}, {roll});"
-        )
-        print("✓ Camera view updated")
+        if hfov is not None and updateview_fov_available:
+            # Use FOV-aware update function
+            self.driver.execute_script(
+                f"window.updateViewWithFOV({lat}, {lng}, {height}, {heading}, {pitch}, {roll}, {hfov});"
+            )
+            print(f"✓ Camera view updated with HFOV={hfov}°")
+        else:
+            # Fallback to standard update function if FOV function not available
+            self.driver.execute_script(
+                f"window.updateView({lat}, {lng}, {height}, {heading}, {pitch}, {roll});"
+            )
+            print("✓ Camera view updated (without FOV)")
+        
+        # Ensure CesiumJS resizes after camera update
+        self.driver.execute_script("""
+            if (typeof viewer !== 'undefined') {
+                viewer.resize();
+            }
+        """)
+        time.sleep(0.5)  # Wait for resize to complete
         
         # Adaptive waiting for 3D Tiles to load
         print("Waiting for 3D Tiles to load and render...")
@@ -486,14 +541,174 @@ class AerialRenderer:
         # Take screenshot
         print("Taking screenshot...")
         try:
+            # Get target dimensions from camera config
+            target_width = self.config.CAMERA.WIDTH
+            target_height = self.config.CAMERA.HEIGHT
+            
+            # Strategy: Render at larger size, then crop to target size
+            # This ensures we have enough content and can crop center region to avoid black borders
+            # Use 1.2x multiplier for render size (20% larger)
+            render_width = int(target_width * 1.2)
+            render_height = int(target_height * 1.2)
+            
+            print(f"  Target size: {target_width}x{target_height}")
+            print(f"  Render size: {render_width}x{render_height} (1.2x for cropping)")
+            
+            # Set container to render size
+            self.driver.execute_script(f"""
+                var container = document.getElementById('cesiumContainer');
+                if (container) {{
+                    container.style.width = '{render_width}px';
+                    container.style.height = '{render_height}px';
+                }}
+                if (typeof viewer !== 'undefined') {{
+                    viewer.resize();
+                }}
+            """)
+            
+            # Wait for resize and rendering
+            time.sleep(1.0)
+            
+            # Update browser window size to match render size (with some padding for browser chrome)
+            self.driver.set_window_size(render_width + 50, render_height + 100)
+            time.sleep(0.5)
+            
+            # Take screenshot of the container element
             canvas = self.driver.find_element("id", "cesiumContainer")
-            canvas.screenshot(str(output_file))
+            temp_screenshot = str(output_file) + ".temp.png"
+            canvas.screenshot(temp_screenshot)
+            
+            # Crop center region to target size
+            from PIL import Image
+            img = Image.open(temp_screenshot)
+            actual_width, actual_height = img.size
+            print(f"  Screenshot size: {actual_width}x{actual_height}")
+            
+            # Calculate crop box (center crop)
+            crop_left = (actual_width - target_width) // 2
+            crop_top = (actual_height - target_height) // 2
+            crop_right = crop_left + target_width
+            crop_bottom = crop_top + target_height
+            
+            print(f"  Cropping: ({crop_left}, {crop_top}) to ({crop_right}, {crop_bottom})")
+            
+            # Crop to center region
+            cropped = img.crop((crop_left, crop_top, crop_right, crop_bottom))
+            
+            # Verify dimensions match target
+            if cropped.size != (target_width, target_height):
+                print(f"  Warning: Cropped size {cropped.size} doesn't match target, resizing...")
+                cropped = cropped.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            
+            # Save final image
+            cropped.save(str(output_file))
+            
+            # Clean up temp file
+            import os
+            if os.path.exists(temp_screenshot):
+                os.remove(temp_screenshot)
+            
+            # Verify final dimensions
+            final_img = Image.open(output_file)
+            actual_width, actual_height = final_img.size
             print(f"✓ Aerial view rendered and saved to: {output_file}")
+            print(f"  Final size: {actual_width}x{actual_height} (target: {target_width}x{target_height})")
         except Exception as e:
             print(f"✗ Failed to take screenshot: {e}")
             raise
         
         return str(output_file)
+    
+    def render_satsim_compatible(
+        self,
+        longitude: Optional[float] = None,
+        latitude: Optional[float] = None,
+        altitude: Optional[float] = None,
+        rotation: Optional[float] = None,
+        hfov: Optional[float] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        output_path: Optional[str] = None
+    ) -> str:
+        """Render with SatSim-compatible parameters.
+        
+        This method provides a direct interface compatible with SatSim's camera model:
+        - Always renders vertical down view (pitch = -90°)
+        - Uses rotation as heading (0 = North)
+        - Supports HFOV matching SatSim's horizontal field of view
+        - Supports custom output dimensions
+        
+        Args:
+            longitude: Agent longitude (degrees).
+            latitude: Agent latitude (degrees).
+            altitude: Agent altitude (meters).
+            rotation: Agent rotation/roll angle (degrees, 0=North).
+            hfov: Horizontal field of view (degrees). Defaults to config value or 90.
+            width: Output image width (pixels). If None, uses config or browser window width.
+            height: Output image height (pixels). If None, uses config or browser window height.
+            output_path: Output image path. If None, uses config value.
+            
+        Returns:
+            Path to the saved image.
+        """
+        # Get values from config if not provided
+        agent = self.config.get("AGENT", None)
+        camera = self.config.get("CAMERA", None)
+        
+        longitude = longitude if longitude is not None else (agent.LONGITUDE if agent else None)
+        latitude = latitude if latitude is not None else (agent.LATITUDE if agent else None)
+        altitude = altitude if altitude is not None else (agent.ALTITUDE if agent else None)
+        rotation = rotation if rotation is not None else (agent.ROTATION if agent else 0.0)
+        hfov = hfov if hfov is not None else (camera.HFOV if camera else 90.0)
+        
+        if longitude is None or latitude is None or altitude is None:
+            raise ValueError("longitude, latitude, and altitude must be provided or in config")
+        
+        # Convert SatSim parameters to CesiumJS parameters
+        lat = latitude
+        lng = longitude
+        height = altitude
+        heading = rotation  # SatSim rotation → CesiumJS heading
+        pitch = -90.0       # Always vertical down view (SatSim style)
+        roll = 0.0          # No roll
+        
+        # Handle custom dimensions
+        if width is not None or height is not None:
+            # Temporarily override camera dimensions
+            original_camera_width = self.config.CAMERA.WIDTH
+            original_camera_height = self.config.CAMERA.HEIGHT
+            if width is not None and height is not None:
+                self.config.CAMERA.WIDTH = width
+                self.config.CAMERA.HEIGHT = height
+            elif width is not None:
+                # Keep aspect ratio if only width provided
+                aspect = width / (self.config.CAMERA.HEIGHT if height is None else height)
+                new_height = int(width / aspect)
+                self.config.CAMERA.WIDTH = width
+                self.config.CAMERA.HEIGHT = new_height
+            elif height is not None:
+                # Keep aspect ratio if only height provided
+                aspect = (self.config.CAMERA.WIDTH if width is None else width) / height
+                new_width = int(height * aspect)
+                self.config.CAMERA.WIDTH = new_width
+                self.config.CAMERA.HEIGHT = height
+            
+            # Recreate driver with new window size if it exists
+            if self.driver is not None:
+                self.close()
+                self.driver = None
+        
+        # Render using standard render method with FOV
+        return self.render(
+            lat=lat,
+            lng=lng,
+            height=height,
+            heading=heading,
+            pitch=pitch,
+            roll=roll,
+            hfov=hfov,
+            output_path=output_path
+        )
     
     def close(self):
         """Close browser and cleanup."""
@@ -511,7 +726,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Render aerial 3D view using CesiumJS and Google 3D Tiles"
+        description="Render aerial 3D view using CesiumJS and Google 3D Tiles (SatSim-compatible mode)"
     )
     parser.add_argument(
         "--config",
@@ -526,22 +741,32 @@ def main():
         help="Output image path (overrides config)"
     )
     parser.add_argument(
-        "--lat", type=float, default=None, help="Latitude (degrees)"
+        "--longitude", type=float, default=None, help="Longitude (degrees)"
     )
     parser.add_argument(
-        "--lng", type=float, default=None, help="Longitude (degrees)"
+        "--latitude", type=float, default=None, help="Latitude (degrees)"
     )
     parser.add_argument(
-        "--height", type=float, default=None, help="Height (meters)"
+        "--altitude", type=float, default=None, help="Altitude (meters)"
     )
     parser.add_argument(
-        "--heading", type=float, default=None, help="Heading (degrees)"
+        "--rotation", type=float, default=None, help="Rotation (degrees, 0=North)"
     )
     parser.add_argument(
-        "--pitch", type=float, default=None, help="Pitch (degrees)"
+        "--hfov", type=float, default=None, help="Horizontal field of view (degrees)"
+    )
+    # Legacy arguments for backward compatibility (mapped to SatSim parameters)
+    parser.add_argument(
+        "--lat", type=float, default=None, help="Latitude (degrees, legacy, use --latitude)"
     )
     parser.add_argument(
-        "--roll", type=float, default=None, help="Roll (degrees)"
+        "--lng", type=float, default=None, help="Longitude (degrees, legacy, use --longitude)"
+    )
+    parser.add_argument(
+        "--height", type=float, default=None, help="Height (meters, legacy, use --altitude)"
+    )
+    parser.add_argument(
+        "--heading", type=float, default=None, help="Heading (degrees, legacy, use --rotation)"
     )
     
     args = parser.parse_args()
@@ -552,16 +777,23 @@ def main():
         print(f"Error: Configuration file not found: {config_path}")
         return
     
-    # Create renderer and render
+    # Create renderer
     renderer = AerialRenderer(str(config_path))
+    
     try:
-        renderer.render(
-            lat=args.lat,
-            lng=args.lng,
-            height=args.height,
-            heading=args.heading,
-            pitch=args.pitch,
-            roll=args.roll,
+        # Use SatSim-compatible rendering
+        # Map legacy arguments to new arguments
+        longitude = args.longitude if args.longitude is not None else args.lng
+        latitude = args.latitude if args.latitude is not None else args.lat
+        altitude = args.altitude if args.altitude is not None else args.height
+        rotation = args.rotation if args.rotation is not None else args.heading
+        
+        renderer.render_satsim_compatible(
+            longitude=longitude,
+            latitude=latitude,
+            altitude=altitude,
+            rotation=rotation,
+            hfov=args.hfov,
             output_path=args.output
         )
     finally:
@@ -570,4 +802,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

@@ -21,13 +21,13 @@ Interactive viewer application for exploring satellite maps using SatSim.
 ### Basic Usage
 
 ```bash
-python -m applications.viewer
+python -m applications.satsim_viewer
 ```
 
 ### Custom Configuration
 
 ```bash
-python viewer.py --config /path/to/custom_config.yaml
+python -m applications.satsim_viewer --config /path/to/custom_config.yaml
 ```
 
 ## Configuration
@@ -78,11 +78,11 @@ The viewer displays:
 
 ```bash
 # Using default config (tests/test_data/map.tif)
-python viewer.py
+python -m applications.satsim_viewer
 
 # Using custom TIF file
 # Edit config.yaml to set TIF_PATH to your file
-python viewer.py
+python -m applications.satsim_viewer
 ```
 
 ## Safe Boundary Detection

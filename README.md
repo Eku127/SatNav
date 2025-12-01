@@ -124,8 +124,8 @@ SatSim 使用 `SatelliteCamera` 类生成 RGB 观测：
 
 **渲染流程**：
 1. **计算视野范围**：根据位置、高度、HFOV 和旋转角度计算地面覆盖范围
-   - 垂直半宽：`half_y_m = altitude * tan(HFOV / 2)`
-   - 水平半宽：`half_x_m = half_y_m * aspect_ratio`
+   - 水平半宽：`half_x_m = altitude * tan(HFOV / 2)`（HFOV控制水平方向）
+   - 垂直半宽：`half_y_m = half_x_m / aspect_ratio`
    - 考虑旋转角度，计算四个角点的位置
 
 2. **裁剪卫星地图**：使用 `rasterio.windows.from_bounds()` 从 TIF 文件中裁剪对应区域
@@ -487,7 +487,7 @@ SatNav 提供了两个实用工具应用，位于 `applications/` 目录下：
 
 **快速开始**：
 ```bash
-python -m applications.viewer
+python -m applications.satsim_viewer
 ```
 
 **控制方式**：
@@ -499,9 +499,9 @@ python -m applications.viewer
 - `e`: 下降（减少高度）
 - `ESC`: 退出
 
-**配置**：编辑 `applications/viewer/config.yaml` 设置 TIF 文件路径、相机参数等。
+**配置**：编辑 `applications/satsim_viewer/config.yaml` 设置 TIF 文件路径、相机参数等。
 
-详细文档：`applications/viewer/README.md`
+详细文档：`applications/satsim_viewer/README.md`
 
 ### 7.2 Map Downloader（地图下载器）
 
@@ -525,6 +525,52 @@ python -m applications.map_downloader
 - `DOWNLOAD.ZOOM`: 缩放级别（15-20）
 
 详细文档：`applications/map_downloader/README.md`
+
+### 7.3 Aerial Viewer（3D 航拍查看器）
+
+使用 CesiumJS 和 Google 3D Tiles 渲染非交互式 3D 航拍视图的工具，与 SatSim 相机模型兼容。
+
+**快速开始**：
+```bash
+python -m applications.aerial_viewer
+```
+
+**主要功能**：
+- 渲染 3D 航拍视图（使用 Google 3D Tiles）
+- 与 SatSim 相机参数兼容（垂直俯视、HFOV 匹配）
+- 支持多种浏览器（Chrome、Edge、Firefox）
+- 命令行接口和配置文件支持
+
+**示例输出对比**：
+
+<div style="display: flex; gap: 20px; align-items: center;">
+  <div style="flex: 1;">
+    <p><strong>SatSim 卫星视图（2D 正交投影）</strong></p>
+    <img src="applications/aerial_viewer/images/sat_crop_view.png" alt="SatSim Satellite View" style="width: 100%;">
+  </div>
+  <div style="flex: 1;">
+    <p><strong>Aerial Viewer 3D 视图（3D 透视投影）</strong></p>
+    <img src="applications/aerial_viewer/images/aerial_view.png" alt="Aerial Viewer 3D View" style="width: 100%;">
+  </div>
+</div>
+
+**配置**：编辑 `applications/aerial_viewer/config.yaml` 设置：
+- `API.API_KEY`: Google 3D Tiles API key
+- `AGENT`: 智能体状态（经纬度、高度、旋转角度）
+- `CAMERA`: 相机参数（HFOV、宽度、高度）
+
+**与 SatSim 的区别**：
+- **投影模型**：SatSim 使用正交投影（无透视变形），Aerial Viewer 使用透视投影（3D 渲染）
+- **地形**：SatSim 使用 2D 卫星图像（平面），Aerial Viewer 使用 3D Tiles（包含建筑物高度和地形）
+- **图像来源**：SatSim 使用高分辨率 GeoTIFF 文件，Aerial Viewer 使用 Google 3D Tiles（流式传输）
+
+**依赖要求**：
+- `selenium` - WebDriver 控制
+- `omegaconf` - 配置管理
+- `webdriver-manager`（推荐）- 自动管理浏览器驱动
+- Google 3D Tiles API key
+
+详细文档：`applications/aerial_viewer/README.md`
 
 ---
 
@@ -569,7 +615,8 @@ SatNav/
 │   ├── test_camera.py
 │   └── test_geoutils.py
 ├── applications/             # 应用工具
-│   ├── viewer/  # 交互式查看器
+│   ├── satsim_viewer/       # 交互式查看器
+│   ├── aerial_viewer/        # 3D 航拍查看器
 │   └── map_downloader/      # 地图下载器
 ├── doc/                      # 文档目录
 │   └── refactor/             # 设计文档

@@ -5,12 +5,17 @@
   <script src="https://ajax.googleapis.com/ajax/libs/cesiumjs/1.105/Build/Cesium/Cesium.js"></script>
   <link href="https://ajax.googleapis.com/ajax/libs/cesiumjs/1.105/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
+      width: 100%;
+      height: 100%;
     }
     #cesiumContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
     }
@@ -23,7 +28,7 @@
     Cesium.RequestScheduler.requestsByServer["tile.googleapis.com:443"] = 18;
 
     // Create the viewer (minimal UI)
-    const viewer = new Cesium.Viewer('cesiumContainer', {
+    var viewer = new Cesium.Viewer('cesiumContainer', {
       imageryProvider: false,
       baseLayerPicker: false,
       geocoder: false,
@@ -52,6 +57,49 @@
 
     // Function to update camera view (called by Python)
     window.updateView = function(lat, lng, height, heading, pitch, roll) {
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(lng, lat, height),
+        orientation: {
+          heading: Cesium.Math.toRadians(heading),
+          pitch: Cesium.Math.toRadians(pitch),
+          roll: Cesium.Math.toRadians(roll)
+        }
+      });
+      viewer.scene.requestRender();
+      window.__renderReady = false;
+    };
+
+    // Function to update camera view with FOV (SatSim-compatible mode)
+    // This allows setting the horizontal field of view to match SatSim's HFOV
+    window.updateViewWithFOV = function(lat, lng, height, heading, pitch, roll, hfov) {
+      // Ensure viewer is resized before calculating aspect ratio
+      if (typeof viewer !== 'undefined') {
+        viewer.resize();
+      }
+      
+      // Set FOV first (if provided and valid)
+      if (hfov && hfov > 0 && hfov < 180) {
+        // CesiumJS uses vertical FOV, so we need to convert horizontal FOV to vertical
+        // For perspective projection: vfov = 2 * atan(tan(hfov/2) / aspect_ratio)
+        // Get aspect ratio from container or canvas
+        const container = document.getElementById('cesiumContainer');
+        let aspect = 1.0;
+        if (container) {
+          const containerWidth = container.clientWidth || container.offsetWidth;
+          const containerHeight = container.clientHeight || container.offsetHeight;
+          if (containerWidth > 0 && containerHeight > 0) {
+            aspect = containerWidth / containerHeight;
+          } else if (viewer && viewer.canvas) {
+            aspect = viewer.canvas.width / viewer.canvas.height;
+          }
+        }
+        
+        const hfov_rad = Cesium.Math.toRadians(hfov);
+        const vfov_rad = 2 * Math.atan(Math.tan(hfov_rad / 2) / aspect);
+        viewer.camera.frustum.fov = vfov_rad;
+      }
+      
+      // Then set view
       viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(lng, lat, height),
         orientation: {
