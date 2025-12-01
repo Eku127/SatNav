@@ -477,7 +477,58 @@ python examples/example_vln.py
 
 ---
 
-## 7. 项目结构
+## 7. 应用工具
+
+SatNav 提供了两个实用工具应用，位于 `applications/` 目录下：
+
+### 7.1 Interactive Viewer（交互式查看器）
+
+用于交互式探索卫星地图的工具，支持键盘控制导航。
+
+**快速开始**：
+```bash
+python -m applications.viewer
+```
+
+**控制方式**：
+- `w`: 向前移动
+- `s`: 向后移动
+- `a`: 向左转
+- `d`: 向右转
+- `q`: 上升（增加高度）
+- `e`: 下降（减少高度）
+- `ESC`: 退出
+
+**配置**：编辑 `applications/viewer/config.yaml` 设置 TIF 文件路径、相机参数等。
+
+详细文档：`applications/viewer/README.md`
+
+### 7.2 Map Downloader（地图下载器）
+
+从 Google Maps Static API 下载卫星图像并生成 GeoTIFF 文件的工具。
+
+**快速开始**：
+```bash
+# 编辑 config.yaml 设置区域和 API key
+python -m applications.map_downloader
+```
+
+**主要功能**：
+- 支持角点定义或中心点+尺寸两种区域定义方式
+- 支持顺序和并行两种下载模式（并行模式 4-9 倍速度提升）
+- 自动生成带地理参考的 GeoTIFF 文件（EPSG:3857）
+
+**配置**：编辑 `applications/map_downloader/config.yaml` 设置：
+- `REGION`: 区域定义（角点或中心点）
+- `API.API_KEY`: Google Maps API key
+- `DOWNLOAD.MODE`: 下载模式（`sequential` 或 `parallel`）
+- `DOWNLOAD.ZOOM`: 缩放级别（15-20）
+
+详细文档：`applications/map_downloader/README.md`
+
+---
+
+## 8. 项目结构
 
 ```
 SatNav/
@@ -517,6 +568,9 @@ SatNav/
 │   ├── test_satsim.py
 │   ├── test_camera.py
 │   └── test_geoutils.py
+├── applications/             # 应用工具
+│   ├── viewer/  # 交互式查看器
+│   └── map_downloader/      # 地图下载器
 ├── doc/                      # 文档目录
 │   └── refactor/             # 设计文档
 ├── setup.py                  # 安装脚本
@@ -526,6 +580,6 @@ SatNav/
 
 ---
 
-## 8. 许可证
+## 9. 许可证
 
 MIT License

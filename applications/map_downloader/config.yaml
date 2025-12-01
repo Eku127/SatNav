@@ -34,8 +34,8 @@ REGION:
     LON: -74.0060
     
     # Region dimensions in meters
-    HEIGHT_M: 2000.0  # North-South dimension (meters) - 2km
-    WIDTH_M: 2000.0   # East-West dimension (meters) - 2km
+    HEIGHT_M: 1000.0  # North-South dimension (meters) - 2km
+    WIDTH_M: 1000.0   # East-West dimension (meters) - 2km
 
 # Download Parameters
 DOWNLOAD:
@@ -44,7 +44,7 @@ DOWNLOAD:
   # - 15: ~5m per pixel
   # - 19: ~0.3m per pixel
   # - 20: ~0.15m per pixel
-  ZOOM: 19
+  ZOOM: 20
   
   # Map type: roadmap, satellite, hybrid, terrain
   MAPTYPE: "satellite"
