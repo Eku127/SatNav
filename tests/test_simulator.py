@@ -34,8 +34,7 @@ class TestSatSimWrapper:
         assert sim.rgb_width == 224
         assert sim.rgb_height == 224
         assert sim.rgb_hfov == 90.0
-        assert sim._agent_state is None
-        assert sim._scene_id is None
+        assert sim.scene_id is None
     
     def test_init_with_dictconfig(self):
         """Test initialization with DictConfig."""
@@ -60,20 +59,21 @@ class TestSatSimWrapper:
         assert sim.rgb_height == 224  # default
         assert sim.rgb_hfov == 90.0  # default
     
-    def test_reset_not_implemented(self):
-        """Test that reset() raises NotImplementedError."""
+    def test_reset_with_nonexistent_scene(self):
+        """Test that reset() raises FileNotFoundError for nonexistent scene."""
         config = self.create_test_config()
         sim = SatSimWrapper(config)
         
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(FileNotFoundError, match="Scene file not found"):
             sim.reset("test_scene_001")
     
-    def test_step_not_implemented(self):
-        """Test that step() raises NotImplementedError."""
+    def test_step_without_initialization(self):
+        """Test that step() raises RuntimeError when agent state not initialized."""
         config = self.create_test_config()
         sim = SatSimWrapper(config)
         
-        with pytest.raises(NotImplementedError):
+        # Try to step without setting agent state or loading scene
+        with pytest.raises(RuntimeError, match="Agent state not initialized"):
             sim.step("MOVE_FORWARD")
     
     def test_get_agent_state_not_initialized(self):
@@ -137,14 +137,14 @@ class TestSatSimWrapper:
         with pytest.raises(RuntimeError, match="Agent state not initialized"):
             sim.get_observations()
     
-    def test_get_observations_not_implemented(self):
-        """Test that get_observations() raises NotImplementedError."""
+    def test_get_observations_without_scene(self):
+        """Test that get_observations() raises RuntimeError when scene not loaded."""
         config = self.create_test_config()
         sim = SatSimWrapper(config)
         
         sim.set_agent_state([116.3974, 39.9093, 100.0], 0.0)
         
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError, match="Scene not loaded"):
             sim.get_observations()
     
     def test_geodesic_distance(self):
@@ -173,14 +173,14 @@ class TestSatSimWrapper:
         # Should be approximately the altitude difference (0 in this case)
         assert abs(distance) < 1.0  # Very small
     
-    def test_is_navigable_not_implemented(self):
-        """Test that is_navigable() raises NotImplementedError."""
+    def test_is_navigable_without_scene(self):
+        """Test that is_navigable() raises RuntimeError when scene not loaded."""
         config = self.create_test_config()
         sim = SatSimWrapper(config)
         
         position = [116.3974, 39.9093, 100.0]
         
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError, match="Scene not loaded"):
             sim.is_navigable(position)
     
     def test_sample_navigable_point_no_scene(self):

@@ -260,4 +260,49 @@ class SatSimWrapper(Simulator):
             Current scene ID, or None if no scene is loaded.
         """
         return self._scene_id
+    
+    @property
+    def forward_step_size(self) -> float:
+        """Get the forward step size in meters.
+        
+        Returns:
+            Forward step size in meters.
+        """
+        return self._satsim.forward_step_size
+    
+    @property
+    def turn_angle(self) -> float:
+        """Get the turn angle in degrees.
+        
+        Returns:
+            Turn angle in degrees.
+        """
+        return self._satsim.turn_angle
+    
+    @property
+    def rgb_width(self) -> int:
+        """Get the RGB image width in pixels.
+        
+        Returns:
+            RGB image width in pixels.
+        """
+        return self._satsim._camera.width
+    
+    @property
+    def rgb_height(self) -> int:
+        """Get the RGB image height in pixels.
+        
+        Returns:
+            RGB image height in pixels.
+        """
+        return self._satsim._camera.height
+    
+    @property
+    def rgb_hfov(self) -> float:
+        """Get the RGB camera horizontal field of view in degrees.
+        
+        Returns:
+            RGB camera HFOV in degrees.
+        """
+        return self._satsim._camera.hfov
 

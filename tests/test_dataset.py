@@ -43,15 +43,15 @@ class TestSatNavDataset:
         
         # Verify first episode
         ep1 = dataset.episodes[0]
-        assert ep1.instruction.instruction_text == "Go to the kitchen"
+        assert ep1.instruction.instruction_text == "Go east to the destination"
         assert len(ep1.reference_path) == 3
         assert len(ep1.goals) == 1
         
         # Verify second episode
         ep2 = dataset.episodes[1]
-        assert ep2.instruction.instruction_text == "Navigate forward and turn right at the intersection"
-        assert len(ep2.reference_path) == 5
-        assert len(ep2.goals) == 2
+        assert ep2.instruction.instruction_text == "Navigate north to the destination"
+        assert len(ep2.reference_path) == 3
+        assert len(ep2.goals) == 1
 
     def create_test_dataset_json(self, tmp_path):
         """Create a test dataset JSON file."""
