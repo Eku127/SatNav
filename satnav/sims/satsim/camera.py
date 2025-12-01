@@ -8,7 +8,6 @@ import cv2
 import numpy as np
 import rasterio
 from rasterio.windows import from_bounds
-from scipy.ndimage import rotate
 
 
 class SatelliteCamera:
@@ -202,8 +201,8 @@ class SatelliteCamera:
         # Convert to (H, W, C) format and take RGB channels
         img_expanded = np.transpose(img_expanded[:3], (1, 2, 0))
         
-        # Rotate image
-        # scipy.ndimage.rotate: positive angle = counterclockwise, negative = clockwise
+        # Rotate image using OpenCV (much faster than scipy.ndimage.rotate)
+        # OpenCV rotation: positive angle = counterclockwise (same as scipy)
         # 
         # User expectation: When drone turns left (rotation decreases), 
         # image should rotate relatively right (clockwise from viewer's perspective).
@@ -215,12 +214,18 @@ class SatelliteCamera:
         # Note: This prioritizes relative rotation correctness over absolute direction.
         # The absolute direction may differ from the rotation value (e.g., rotation=90 may not show East),
         # but the relative rotation direction matches the turn direction as expected by the user.
-        img_rotated = rotate(
+        # 
+        # OpenCV rotation matrix: getRotationMatrix2D(center, angle, scale)
+        # angle is in degrees, positive = counterclockwise
+        center = (w_expanded / 2.0, h_expanded / 2.0)
+        M = cv2.getRotationMatrix2D(center, rotation, 1.0)
+        img_rotated = cv2.warpAffine(
             img_expanded,
-            angle=rotation,
-            reshape=False,
-            mode="constant",
-            cval=0
+            M,
+            (w_expanded, h_expanded),
+            flags=cv2.INTER_LINEAR,
+            borderMode=cv2.BORDER_CONSTANT,
+            borderValue=0
         )
         
         # Center crop to unrotated view size

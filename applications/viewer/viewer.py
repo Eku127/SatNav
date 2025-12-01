@@ -135,7 +135,6 @@ class InteractiveViewer:
         
         # Display configuration
         self.window_name = self.config.DISPLAY.WINDOW_NAME
-        self.fps = self.config.DISPLAY.FPS
         
         # Create window
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
@@ -387,8 +386,62 @@ class InteractiveViewer:
         
         return True
     
+    def _render_and_display(self):
+        """Render current observation and display it.
+        
+        This is called whenever the agent state changes or initially.
+        """
+        try:
+            # Get observations
+            observations = self.sim.get_observations()
+            rgb_image = observations["rgb"]
+            
+            # Convert RGB to BGR for OpenCV (OpenCV uses BGR)
+            rgb_image_bgr = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
+            
+            # Draw state information
+            display_image = self.draw_state_info(rgb_image_bgr.copy())
+            
+            # Display image
+            cv2.imshow(self.window_name, display_image)
+        except ValueError as e:
+            # Handle boundary errors or invalid camera view
+            error_msg = str(e)
+            if "Camera view bounds exceed" in error_msg:
+                print(f"Warning: Camera view exceeds map bounds. Try moving away from the edge.")
+                self.at_boundary = True
+            else:
+                print(f"Warning: {error_msg}")
+            
+            # Create error image to display boundary warning
+            # Get image dimensions from config or use default
+            img_height = self.config.SIMULATOR.RGB_SENSOR.get("HEIGHT", 480)
+            img_width = self.config.SIMULATOR.RGB_SENSOR.get("WIDTH", 640)
+            error_image = np.zeros((img_height, img_width, 3), dtype=np.uint8)
+            error_image_bgr = cv2.cvtColor(error_image, cv2.COLOR_RGB2BGR)
+            
+            # Draw warning message on error image
+            # Note: With the updated is_navigable() logic, this error should rarely occur
+            # as we prevent moving to unsafe positions. However, it might still happen
+            # if altitude changes or other edge cases.
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            warning_text = "Camera view exceeds map bounds!"
+            instruction_text = "Use w/a/d/s to move, or q/e to change altitude"
+            cv2.putText(error_image_bgr, warning_text, 
+                       (50, img_height // 2 - 20), font, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+            cv2.putText(error_image_bgr, instruction_text, 
+                       (50, img_height // 2 + 20), font, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
+            
+            # Draw state info on error image
+            display_image = self.draw_state_info(error_image_bgr.copy())
+            cv2.imshow(self.window_name, display_image)
+    
     def run(self):
-        """Run the interactive viewer main loop."""
+        """Run the interactive viewer main loop.
+        
+        Uses event-driven rendering: only renders when agent state changes.
+        No continuous loop rendering - waits for keyboard input.
+        """
         print("\n" + "=" * 60)
         print("SatNav Interactive Viewer")
         print("=" * 60)
@@ -402,67 +455,23 @@ class InteractiveViewer:
         print("  'ESC' - Quit")
         print("=" * 60 + "\n")
         
+        # Initial render
+        self._render_and_display()
+        
+        # Event-driven loop: wait for keyboard input, then render
         while self.running:
             try:
-                # Get observations
-                observations = self.sim.get_observations()
-                rgb_image = observations["rgb"]
+                # Wait for keyboard input (no timeout - event-driven)
+                key = cv2.waitKey(0) & 0xFF
                 
-                # Convert RGB to BGR for OpenCV (OpenCV uses BGR)
-                rgb_image_bgr = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
-                
-                # Draw state information
-                display_image = self.draw_state_info(rgb_image_bgr.copy())
-                
-                # Display image
-                cv2.imshow(self.window_name, display_image)
-                
-                # Handle keyboard input
-                key = cv2.waitKey(int(1000 / self.fps)) & 0xFF
                 if key == 27:  # ESC key
                     break
                 elif key != 255:  # Some key was pressed
+                    # Handle keyboard input (this may change agent state)
                     self.running = self.handle_keyboard(key)
+                    # Re-render after state change
+                    self._render_and_display()
                 
-            except ValueError as e:
-                # Handle boundary errors or invalid camera view
-                error_msg = str(e)
-                if "Camera view bounds exceed" in error_msg:
-                    print(f"Warning: Camera view exceeds map bounds. Try moving away from the edge.")
-                    self.at_boundary = True
-                else:
-                    print(f"Warning: {error_msg}")
-                
-                # Create error image to display boundary warning
-                # Get image dimensions from config or use default
-                img_height = self.config.SIMULATOR.RGB_SENSOR.get("HEIGHT", 480)
-                img_width = self.config.SIMULATOR.RGB_SENSOR.get("WIDTH", 640)
-                error_image = np.zeros((img_height, img_width, 3), dtype=np.uint8)
-                error_image_bgr = cv2.cvtColor(error_image, cv2.COLOR_RGB2BGR)
-                
-                # Draw warning message on error image
-                # Note: With the updated is_navigable() logic, this error should rarely occur
-                # as we prevent moving to unsafe positions. However, it might still happen
-                # if altitude changes or other edge cases.
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                warning_text = "Camera view exceeds map bounds!"
-                instruction_text = "Use w/a/d/s to move, or q/e to change altitude"
-                cv2.putText(error_image_bgr, warning_text, 
-                           (50, img_height // 2 - 20), font, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
-                cv2.putText(error_image_bgr, instruction_text, 
-                           (50, img_height // 2 + 20), font, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
-                
-                # Draw state info on error image
-                display_image = self.draw_state_info(error_image_bgr.copy())
-                cv2.imshow(self.window_name, display_image)
-                
-                # Wait for user input (allow user to move agent)
-                key = cv2.waitKey(int(1000 / self.fps)) & 0xFF
-                if key == 27:  # ESC key
-                    break
-                elif key != 255:  # Some key was pressed
-                    self.running = self.handle_keyboard(key)
-                # Continue loop to try again after user input
             except KeyboardInterrupt:
                 print("\nInterrupted by user")
                 break

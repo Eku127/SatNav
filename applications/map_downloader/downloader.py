@@ -14,6 +14,10 @@ from PIL import Image
 from pyproj import Geod
 from tqdm import tqdm
 
+# Increase PIL image size limit to allow processing large stitched images
+# This is safe for trusted image sources like Google Maps
+Image.MAX_IMAGE_PIXELS = None
+
 
 class GoogleMapDownloader:
     """

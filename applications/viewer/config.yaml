@@ -2,12 +2,12 @@
 # Configuration for the interactive satellite map viewer
 
 # Path to the TIF file to visualize
-TIF_PATH: data/scene_datasets/map_center_40.712800_-74.006000_h2000w2000_z19.tif
+TIF_PATH: data/scene_datasets/map_center_40.712800_-74.006000_h1000w1000_z20.tif
 
 # Simulator configuration
 SIMULATOR:
   # Forward movement step size in meters
-  FORWARD_STEP_SIZE: 100
+  FORWARD_STEP_SIZE: 30
   
   # Turn angle in degrees (for TURN_LEFT and TURN_RIGHT actions)
   TURN_ANGLE: 15
@@ -34,6 +34,6 @@ AGENT:
 DISPLAY:
   # Window name
   WINDOW_NAME: "SatNav Interactive Viewer"
-  # Update rate (frames per second)
-  FPS: 30
+  # Note: Viewer now uses event-driven rendering (no FPS needed)
+  # Rendering happens only when agent state changes (on keyboard input)
 

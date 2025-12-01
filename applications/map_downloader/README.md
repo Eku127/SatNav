@@ -39,7 +39,7 @@ The command-line interface automatically reads configuration from `config.yaml` 
 Simply edit `config.yaml` with your desired region and run:
 
 ```bash
-python -m applications.map_downloader.generate_geotiff
+python -m applications.map_downloader
 ```
 
 All parameters (coordinates, API key, zoom, output directory) will be read from `config.yaml`.
@@ -49,7 +49,7 @@ All parameters (coordinates, API key, zoom, output directory) will be read from 
 Define region by two corner coordinates:
 
 ```bash
-python -m applications.map_downloader.generate_geotiff \
+python -m applications.map_downloader \
     --type corners \
     --lat1 22.54 --lon1 114.06 \
     --lat2 22.55 --lon2 114.07 \
@@ -72,7 +72,7 @@ REGION:
 
 Then run:
 ```bash
-python -m applications.map_downloader.generate_geotiff
+python -m applications.map_downloader
 ```
 
 #### Method 3: Center-based Definition
@@ -80,7 +80,7 @@ python -m applications.map_downloader.generate_geotiff
 Define region by center point and dimensions:
 
 ```bash
-python -m applications.map_downloader.generate_geotiff \
+python -m applications.map_downloader \
     --type center \
     --center-lat 22.545 \
     --center-lon 114.065 \
@@ -105,7 +105,7 @@ REGION:
 
 Then run:
 ```bash
-python -m applications.map_downloader.generate_geotiff
+python -m applications.map_downloader
 ```
 
 #### Command-line Arguments
@@ -306,7 +306,7 @@ DOWNLOAD:
 
 **Command:**
 ```bash
-python -m applications.map_downloader.generate_geotiff
+python -m applications.map_downloader
 ```
 
 **Output filename:** `map_center_22.545000_114.065000_h1111w1111_z19.tif`
@@ -331,7 +331,7 @@ DOWNLOAD:
 
 **Command:**
 ```bash
-python -m applications.map_downloader.generate_geotiff
+python -m applications.map_downloader
 ```
 
 **Output filename:** `map_center_39.901500_116.398500_h1000w1000_z19.tif`
@@ -339,7 +339,7 @@ python -m applications.map_downloader.generate_geotiff
 ### Example 3: Override config with command-line arguments
 
 ```bash
-python -m applications.map_downloader.generate_geotiff \
+python -m applications.map_downloader \
     --type center \
     --center-lat 22.545 \
     --center-lon 114.065 \
@@ -413,4 +413,34 @@ When using corner-based input, the corners are automatically converted to center
 - **All filenames use center format** for consistency, even when input is corner-based
 - Large images are automatically tiled and stitched
 - **Parallel mode** uses connection pooling and concurrent downloads for 4-9x speedup
+
+## Input/Output Summary
+
+### Input Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `API_KEY` | String | Google Maps Static API key (required) |
+| `REGION.TYPE` | String | Region definition type: `"corners"` or `"center"` |
+| `REGION.CORNERS.LAT1` | Float | Lower-left corner latitude (degrees, WGS84) |
+| `REGION.CORNERS.LON1` | Float | Lower-left corner longitude (degrees, WGS84) |
+| `REGION.CORNERS.LAT2` | Float | Upper-right corner latitude (degrees, WGS84) |
+| `REGION.CORNERS.LON2` | Float | Upper-right corner longitude (degrees, WGS84) |
+| `REGION.CENTER.LAT` | Float | Center point latitude (degrees, WGS84) |
+| `REGION.CENTER.LON` | Float | Center point longitude (degrees, WGS84) |
+| `REGION.CENTER.HEIGHT_M` | Float | North-South dimension (meters) |
+| `REGION.CENTER.WIDTH_M` | Float | East-West dimension (meters) |
+| `DOWNLOAD.ZOOM` | Integer | Zoom level (15-20, higher = more detail) |
+| `DOWNLOAD.MODE` | String | Download mode: `"sequential"` or `"parallel"` |
+| `DOWNLOAD.MAX_WORKERS` | Integer | Max concurrent workers for parallel mode |
+| `OUTPUT.OUTPUT_DIR` | String | Output directory path |
+
+### Output
+
+| Output | Type | Description |
+|--------|------|-------------|
+| GeoTIFF File | File | Georeferenced TIFF image file |
+| CRS | EPSG:3857 | Web Mercator projection (meters) |
+| Filename Format | String | `map_center_{lat}_{lon}_h{height}w{width}_z{zoom}.tif` |
+| Image Format | RGB | 3-channel RGB image (uint8) |
 

@@ -21,8 +21,7 @@ Interactive viewer application for exploring satellite maps using SatSim.
 ### Basic Usage
 
 ```bash
-cd applications/interactive_viewer
-python viewer.py
+python -m applications.viewer
 ```
 
 ### Custom Configuration
@@ -107,4 +106,31 @@ The viewer uses **safe boundary detection** to prevent the camera view from exce
 - If the map is too small for the current altitude, you may need to reduce altitude to enable movement
 - The viewer automatically calculates the center point from the TIF file bounds
 - Boundary warnings appear both in the console and as overlay text on the image
+
+## Input/Output Summary
+
+### Input Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `TIF_PATH` | String | Path to input GeoTIFF file (EPSG:3857) |
+| `SIMULATOR.FORWARD_STEP_SIZE` | Float | Step size for forward/backward movement (meters) |
+| `SIMULATOR.TURN_ANGLE` | Float | Turn angle per keypress (degrees) |
+| `SIMULATOR.RGB_SENSOR.WIDTH` | Integer | Camera image width (pixels) |
+| `SIMULATOR.RGB_SENSOR.HEIGHT` | Integer | Camera image height (pixels) |
+| `SIMULATOR.RGB_SENSOR.HFOV` | Float | Horizontal field of view (degrees) |
+| `AGENT.ALTITUDE` | Float | Initial agent altitude (meters) |
+| `AGENT.ROTATION` | Float | Initial rotation/roll angle (degrees, 0=North) |
+| `AGENT.ALTITUDE_STEP_SIZE` | Float | Step size for altitude changes (meters) |
+| `DISPLAY.WINDOW_NAME` | String | OpenCV window title |
+
+### Output
+
+| Output | Type | Description |
+|--------|------|-------------|
+| RGB Image | Array | Rendered satellite image (H×W×3, uint8) |
+| WGS84 Coordinates | Dict | Agent position: `{longitude, latitude, altitude}` |
+| Mercator Coordinates | Dict | Agent position: `{x, y, altitude}` (meters, EPSG:3857) |
+| Rotation | Float | Current roll angle (degrees, 0=North) |
+| Boundary Status | Boolean | Whether agent is at safe boundary limit |
 
