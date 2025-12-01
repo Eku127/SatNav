@@ -1,0 +1,31 @@
+# Aerial Viewer Configuration
+# Non-interactive 3D aerial view renderer using CesiumJS and Google 3D Tiles
+
+# Google 3D Tiles API Configuration
+API:
+  API_KEY: "AIzaSyAvdA9uijk4A2IX0sYeMOc2Kv3dH7GpDRc"  # Google 3D Tiles API key
+
+# Camera/View Configuration
+CAMERA:
+  # Initial camera position
+  LAT: 40.7128      # Latitude (degrees)
+  LNG: -74.0060    # Longitude (degrees)
+  HEIGHT: 100.0     # Height above ground (meters)
+  
+  # Camera orientation
+  HEADING: 0.0      # Heading angle (degrees, 0=North)
+  PITCH: -90.0      # Pitch angle (degrees, negative = looking down)
+  ROLL: 0.0         # Roll angle (degrees)
+
+# Browser Configuration
+BROWSER:
+  DRIVER: "chrome"    # Browser driver: "edge", "chrome", "firefox"
+  HEADLESS: false    # WebGL requires non-headless mode for CesiumJS 3D rendering
+  WINDOW_SIZE: [1920, 1080]  # Browser window size [width, height]
+
+# Rendering Configuration
+RENDERING:
+  MAX_WAIT_TIME: 60.0   # Maximum wait time for 3D Tiles to load (seconds)
+  CHECK_INTERVAL: 0.5   # Interval between status checks (seconds)
+  STABILITY_CHECKS: 3   # Number of consecutive stable checks before proceeding
+  OUTPUT_PATH: "output/aerial_view.png"  # Output image path

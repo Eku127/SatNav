@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>CesiumJS 3D Tiles Aerial Viewer</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/cesiumjs/1.105/Build/Cesium/Cesium.js"></script>
+  <link href="https://ajax.googleapis.com/ajax/libs/cesiumjs/1.105/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #cesiumContainer {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  <script>
+    // Enable simultaneous requests for faster loading
+    Cesium.RequestScheduler.requestsByServer["tile.googleapis.com:443"] = 18;
+
+    // Create the viewer (minimal UI)
+    const viewer = new Cesium.Viewer('cesiumContainer', {
+      imageryProvider: false,
+      baseLayerPicker: false,
+      geocoder: false,
+      homeButton: false,
+      sceneModePicker: false,
+      navigationHelpButton: false,
+      animation: false,
+      timeline: false,
+      fullscreenButton: false,
+      infoBox: false,
+      selectionIndicator: false,
+      requestRenderMode: true
+    });
+
+    // Add 3D Tiles tileset
+    const tileset = viewer.scene.primitives.add(new Cesium.Cesium3DTileset({
+      url: "https://tile.googleapis.com/v1/3dtiles/root.json?key={{API_KEY}}",
+      showCreditsOnScreen: true,
+    }));
+
+    // Set render ready flag
+    window.__renderReady = false;
+    viewer.scene.postRender.addEventListener(function() {
+      window.__renderReady = true;
+    });
+
+    // Function to update camera view (called by Python)
+    window.updateView = function(lat, lng, height, heading, pitch, roll) {
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(lng, lat, height),
+        orientation: {
+          heading: Cesium.Math.toRadians(heading),
+          pitch: Cesium.Math.toRadians(pitch),
+          roll: Cesium.Math.toRadians(roll)
+        }
+      });
+      viewer.scene.requestRender();
+      window.__renderReady = false;
+    };
+
+    // Function to check if tileset is ready
+    window.__tilesetReady = false;
+    window.__tilesetLoadingProgress = 0;
+    window.__lastFrameNumber = 0;
+    window.__lastTilesLoaded = 0;
+    
+    tileset.readyPromise.then(function() {
+      window.__tilesetReady = true;
+      window.__tilesetLoadingProgress = 1.0;
+    }).catch(function(error) {
+      console.error("Tileset failed to load:", error);
+      window.__tilesetReady = false;
+    });
+
+    // Track tileset loading progress
+    viewer.scene.globe.tileLoadProgressEvent.addEventListener(function(progress) {
+      if (progress > 0) {
+        window.__tilesetLoadingProgress = Math.min(1.0, progress);
+      }
+    });
+
+    // Helper function to count loaded tiles recursively
+    function countLoadedTiles(tile) {
+      if (!tile) return 0;
+      let count = 0;
+      if (tile.content && tile.content.ready) {
+        count = 1;
+      }
+      if (tile.children) {
+        for (let i = 0; i < tile.children.length; i++) {
+          count += countLoadedTiles(tile.children[i]);
+        }
+      }
+      return count;
+    }
+
+    // Function to check if tileset is fully loaded and stable
+    window.checkTilesetStatus = function() {
+      if (!window.__tilesetReady) {
+        return { ready: false, progress: 0, stable: false, tilesLoaded: 0 };
+      }
+      
+      // Get current frame number
+      const currentFrame = viewer.scene.frameState ? viewer.scene.frameState.frameNumber : 0;
+      
+      // Get current tiles loaded count using CesiumJS statistics
+      let currentTilesLoaded = 0;
+      try {
+        // Method 1: Use statistics property (primary method for CesiumJS 1.105+)
+        if (tileset.statistics) {
+          // Try numberOfTilesWithContentReady first (most accurate)
+          if (typeof tileset.statistics.numberOfTilesWithContentReady === 'number') {
+            currentTilesLoaded = tileset.statistics.numberOfTilesWithContentReady;
+          }
+          // Fallback to numberOfTilesTotal if ready count not available
+          else if (typeof tileset.statistics.numberOfTilesTotal === 'number' && currentTilesLoaded === 0) {
+            currentTilesLoaded = tileset.statistics.numberOfTilesTotal;
+          }
+        }
+        // Method 2: Use internal _statistics (for older versions or internal access)
+        if (currentTilesLoaded === 0 && tileset._statistics) {
+          if (typeof tileset._statistics.numberOfTilesWithContentReady === 'number') {
+            currentTilesLoaded = tileset._statistics.numberOfTilesWithContentReady;
+          }
+        }
+        // Method 3: Recursively count loaded tiles from root (fallback)
+        if (currentTilesLoaded === 0 && tileset.root) {
+          const recursiveCount = countLoadedTiles(tileset.root);
+          if (recursiveCount > 0) {
+            currentTilesLoaded = recursiveCount;
+          }
+        }
+        // Method 4: Try to access internal _tilesLoaded array (last resort)
+        if (currentTilesLoaded === 0 && tileset._tilesLoaded && Array.isArray(tileset._tilesLoaded)) {
+          currentTilesLoaded = tileset._tilesLoaded.length;
+        }
+      } catch (e) {
+        // If all methods fail, try to use last known value or count from root
+        try {
+          if (tileset.root) {
+            const recursiveCount = countLoadedTiles(tileset.root);
+            if (recursiveCount > 0) {
+              currentTilesLoaded = recursiveCount;
+            } else {
+              currentTilesLoaded = window.__lastTilesLoaded || 0;
+            }
+          } else {
+            currentTilesLoaded = window.__lastTilesLoaded || 0;
+          }
+        } catch (e2) {
+          currentTilesLoaded = window.__lastTilesLoaded || 0;
+        }
+      }
+      
+      // Check if tileset is still loading new tiles
+      const tilesChanged = currentTilesLoaded !== window.__lastTilesLoaded;
+      window.__lastTilesLoaded = currentTilesLoaded;
+      
+      // Check if rendering is stable (no new frames or tiles loaded)
+      const framesSinceLastCheck = currentFrame - window.__lastFrameNumber;
+      window.__lastFrameNumber = currentFrame;
+      
+      // Consider stable if:
+      // 1. Render is ready
+      // 2. No new tiles loaded in this check
+      // 3. Frame rate has stabilized (not rendering every frame)
+      const stable = window.__renderReady && 
+                     !tilesChanged && 
+                     framesSinceLastCheck <= 1;
+      
+      return {
+        ready: window.__tilesetReady,
+        progress: window.__tilesetLoadingProgress,
+        stable: stable,
+        tilesLoaded: currentTilesLoaded,
+        framesSinceLastCheck: framesSinceLastCheck
+      };
+    };
+  </script>
+</body>
+</html>
+
