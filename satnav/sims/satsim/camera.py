@@ -70,10 +70,12 @@ class SatelliteCamera:
         h = altitude
         
         # Ground half-height/width in meters
-        # Vertical half-width (north-south direction)
-        half_y_m = h * math.tan(math.radians(self.hfov / 2.0))
         # Horizontal half-width (east-west direction)
-        half_x_m = half_y_m * self.aspect_ratio
+        # HFOV is horizontal field of view, so it controls horizontal direction
+        half_x_m = h * math.tan(math.radians(self.hfov / 2.0))
+        # Vertical half-width (north-south direction)
+        # Calculate from horizontal using aspect ratio
+        half_y_m = half_x_m / self.aspect_ratio
         
         # Distance to four corners (diagonal half-distance)
         r = math.hypot(half_x_m, half_y_m)

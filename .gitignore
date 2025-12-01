@@ -165,3 +165,6 @@ configs/local_*.yaml
 *.tif
 
 data/
+
+# Output files
+output/

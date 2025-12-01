@@ -1,0 +1,32 @@
+# Aerial Viewer Configuration
+# Non-interactive 3D aerial view renderer using CesiumJS and Google 3D Tiles
+# SatSim-compatible mode only
+
+# Google 3D Tiles API Configuration
+API:
+  API_KEY: "AIzaSyAvdA9uijk4A2IX0sYeMOc2Kv3dH7GpDRc"  # Google 3D Tiles API key
+
+# Agent State Configuration (SatSim-compatible)
+AGENT:
+  LONGITUDE: -74.0060   # Longitude (degrees)
+  LATITUDE: 40.7128     # Latitude (degrees)
+  ALTITUDE: 100.0       # Altitude (meters)
+  ROTATION: 0.0         # Rotation/roll angle (degrees, 0=North)
+
+# Camera Settings
+CAMERA:
+  HFOV: 90             # Horizontal field of view (degrees)
+  WIDTH: 640           # Output width (pixels)
+  HEIGHT: 480          # Output height (pixels)
+
+# Browser Configuration
+BROWSER:
+  DRIVER: "chrome"    # Browser driver: "edge", "chrome", "firefox"
+  HEADLESS: false    # WebGL requires non-headless mode for CesiumJS 3D rendering
+
+# Rendering Configuration
+RENDERING:
+  MAX_WAIT_TIME: 60.0   # Maximum wait time for 3D Tiles to load (seconds)
+  CHECK_INTERVAL: 0.5   # Interval between status checks (seconds)
+  STABILITY_CHECKS: 3   # Number of consecutive stable checks before proceeding
+  OUTPUT_PATH: "output/aerial_view.png"  # Output image path
