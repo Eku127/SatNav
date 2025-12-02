@@ -1,0 +1,48 @@
+{
+  "instruction_vocab": {
+    "word_list": ["go", "to", "the", "destination", "turn", "left", "right", "forward", "stop", "east", "west", "north", "south"]
+  },
+  "episodes": [
+    {
+      "episode_id": "example_001",
+      "trajectory_id": "traj_001",
+      "scene_id": "map",
+      "start_position": [114.064413, 22.543496, 100.0],
+      "start_rotation": 0.0,
+      "goals": [
+        {
+          "position": [114.070413, 22.543496, 100.0]
+        }
+      ],
+      "reference_path": [
+        [114.064413, 22.543496, 100.0],
+        [114.067413, 22.543496, 100.0],
+        [114.070413, 22.543496, 100.0]
+      ],
+      "instruction": {
+        "instruction_text": "Go east to the destination"
+      }
+    },
+    {
+      "episode_id": "example_002",
+      "trajectory_id": "traj_002",
+      "scene_id": "map",
+      "start_position": [114.067413, 22.540496, 100.0],
+      "start_rotation": 90.0,
+      "goals": [
+        {
+          "position": [114.067413, 22.546496, 100.0]
+        }
+      ],
+      "reference_path": [
+        [114.067413, 22.540496, 100.0],
+        [114.067413, 22.543496, 100.0],
+        [114.067413, 22.546496, 100.0]
+      ],
+      "instruction": {
+        "instruction_text": "Navigate north to the destination"
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,31 @@
+# SatNav dependencies
+# Note: No gym dependency - simplified implementation
+
+numpy>=1.19.0
+omegaconf>=2.1.0
+pyyaml>=5.4.0
+attrs>=21.0.0
+
+# SatSim dependencies
+rasterio>=1.3.0  # TIF file handling and reprojection
+pyproj>=3.4.0  # Coordinate transformations (WGS84 <-> EPSG:3857)
+opencv-python>=4.5.0  # Image processing
+scipy>=1.7.0  # Agent sprite rotation (used by VLN-CE agent visualization)
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Map downloader dependencies
+tqdm>=4.60.0  # Progress bar for downloads
+requests>=2.25.0  # HTTP requests
+pillow>=8.0.0  # Image processing
+
+# Aerial viewer dependencies
+selenium>=4.0.0  # Browser automation for aerial viewer
+webdriver-manager>=4.0.0  # Automatic browser driver management
+
+# Video generation dependencies (optional, for make_video function)
+imageio>=2.9.0  # Video I/O
+imageio-ffmpeg>=0.4.0  # FFMPEG plugin for imageio
+

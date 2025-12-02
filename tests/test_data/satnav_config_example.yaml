@@ -1,0 +1,24 @@
+ENVIRONMENT:
+  MAX_EPISODE_STEPS: 500
+
+SIMULATOR:
+  FORWARD_STEP_SIZE: 0.25
+  TURN_ANGLE: 15
+  RGB_SENSOR:
+    WIDTH: 224
+    HEIGHT: 224
+    HFOV: 90
+
+TASK:
+  TYPE: VLN
+  SUCCESS_DISTANCE: 3.0
+  POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH]
+
+DATASET:
+  # TYPE: Dataset type identifier (kept for compatibility, not used in current implementation)
+  # Since we don't use a registry system, this field is informational only.
+  TYPE: SatNav
+  SPLIT: test
+  DATA_PATH: tests/test_data/satnav_dataset_example.json
+  SCENES_DIR: tests/test_data/

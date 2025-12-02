@@ -1,0 +1,191 @@
+# =============================================================================
+# Python
+# =============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =============================================================================
+# Testing & Coverage
+# =============================================================================
+
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# =============================================================================
+# Virtual Environments
+# =============================================================================
+
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+
+# =============================================================================
+# IDEs & Editors
+# =============================================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+.ropeproject
+
+# =============================================================================
+# OS Files
+# =============================================================================
+
+.DS_Store
+Thumbs.db
+
+# =============================================================================
+# Documentation
+# =============================================================================
+
+docs/_build/
+/site
+
+# =============================================================================
+# Type Checkers
+# =============================================================================
+
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# =============================================================================
+# Project Specific
+# =============================================================================
+
+# Dataset files (usually large, should be stored separately)
+data/datasets/
+data/scene_datasets/
+*.json.gz
+*.json
+# Keep example dataset for tests
+!tests/test_data/*.json
+
+# Scene files (GeoTIFF)
+*.tif
+# Exception: allow test data map.tif
+!tests/test_data/map.tif
+
+# Data directory (general)
+data/
+
+# Output files (visualizations, videos, results)
+output/
+
+# Model checkpoints and logs
+checkpoints/
+logs/
+runs/
+wandb/
+
+# Local configuration overrides
+configs/local_*.yaml
+*.local.yaml
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# =============================================================================
+# Other Tools (not commonly used in this project)
+# =============================================================================
+
+# Translations
+*.mo
+*.pot
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask
+instance/
+.webassets-cache
+
+# Scrapy
+.scrapy
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py

@@ -1,0 +1,42 @@
+# Interactive Viewer Configuration
+# Configuration for the interactive satellite map viewer
+
+# Path to the TIF file to visualize
+# TIF_PATH: data/scene_datasets/map_center_40.712800_-74.006000_h1000w1000_z20.tif
+# map.tf
+TIF_PATH: tests/test_data/map.tif
+
+
+# Simulator configuration
+SIMULATOR:
+  # Forward movement step size in meters
+  FORWARD_STEP_SIZE: 30
+  
+  # Turn angle in degrees (for TURN_LEFT and TURN_RIGHT actions)
+  TURN_ANGLE: 15
+  
+  # RGB sensor configuration
+  RGB_SENSOR:
+    # Image width in pixels
+    WIDTH: 640
+    # Image height in pixels
+    HEIGHT: 480
+    # Horizontal field of view in degrees
+    HFOV: 90
+
+# Initial agent state
+AGENT:
+  # Initial altitude in meters
+  ALTITUDE: 100.0
+  # Initial rotation (roll angle) in degrees (0=North)
+  ROTATION: 0.0
+  # Altitude change step size in meters (for up/down movement)
+  ALTITUDE_STEP_SIZE: 10.0
+
+# Display configuration
+DISPLAY:
+  # Window name
+  WINDOW_NAME: "SatNav Interactive Viewer"
+  # Note: Viewer now uses event-driven rendering (no FPS needed)
+  # Rendering happens only when agent state changes (on keyboard input)
+
