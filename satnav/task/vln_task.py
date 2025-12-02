@@ -14,6 +14,7 @@ from satnav.task.measures import (
     PathLength,
     SPL,
     Success,
+    TopDownMapSatNav,
 )
 from satnav.task.sensors import InstructionSensor, RGBSensor, Sensor
 
@@ -80,11 +81,36 @@ class VLNTask:
         Args:
             measurements: List of measurement names to enable.
         """
+        # Extract TopDownMap configuration if available
+        if isinstance(self._config, DictConfig):
+            topdown_config = getattr(self._config, "TOP_DOWN_MAP", {})
+            map_resolution = getattr(topdown_config, "MAP_RESOLUTION", 1024)
+            padding_meters = getattr(topdown_config, "PADDING_METERS", 50.0)
+            draw_reference_path = getattr(topdown_config, "DRAW_REFERENCE_PATH", True)
+            draw_source_and_target = getattr(topdown_config, "DRAW_SOURCE_AND_TARGET", True)
+            max_episode_steps = getattr(self._config, "MAX_EPISODE_STEPS", 500)
+        else:
+            topdown_config = self._config.get("TOP_DOWN_MAP", {})
+            map_resolution = topdown_config.get("MAP_RESOLUTION", 1024)
+            padding_meters = topdown_config.get("PADDING_METERS", 50.0)
+            draw_reference_path = topdown_config.get("DRAW_REFERENCE_PATH", True)
+            draw_source_and_target = topdown_config.get("DRAW_SOURCE_AND_TARGET", True)
+            max_episode_steps = self._config.get("MAX_EPISODE_STEPS", 500)
+        
         # Create measure instances
         distance_to_goal = DistanceToGoal(simulator=self._sim)
         success = Success(success_distance=self.success_distance, simulator=self._sim)
         path_length = PathLength(simulator=self._sim)
         spl = SPL(simulator=self._sim)
+        top_down_map = TopDownMapSatNav(
+            simulator=self._sim,
+            map_resolution=map_resolution,
+            padding_meters=padding_meters,
+            draw_reference_path=draw_reference_path,
+            draw_source_and_target=draw_source_and_target,
+            max_episode_steps=max_episode_steps,
+            success_distance=self.success_distance,
+        )
         
         # Store measures by name for easy access
         self._measures_dict = {
@@ -92,12 +118,14 @@ class VLNTask:
             "SUCCESS": success,
             "PATH_LENGTH": path_length,
             "SPL": spl,
+            "TOP_DOWN_MAP": top_down_map,
         }
         
         # Add enabled measures to list
         if not measurements:
-            # If no measurements specified, enable all
-            measurements = list(self._measures_dict.keys())
+            # If no measurements specified, enable all except TOP_DOWN_MAP
+            # (TOP_DOWN_MAP is optional for visualization)
+            measurements = ["DISTANCE_TO_GOAL", "SUCCESS", "PATH_LENGTH", "SPL"]
         
         for measure_name in measurements:
             measure_name_upper = measure_name.upper()
@@ -253,7 +281,7 @@ class VLNTask:
         
         return observations
     
-    def get_metrics(self) -> Dict[str, float]:
+    def get_metrics(self) -> Dict[str, Any]:
         """Get current metrics from all measures.
         
         Returns:
@@ -262,6 +290,7 @@ class VLNTask:
                 - "success": Success value (1.0 or 0.0)
                 - "path_length": Path length in meters
                 - "spl": SPL value (0.0 to 1.0)
+                - "top_down_map": Top-down map info dict (if enabled)
         """
         metrics = {}
         
@@ -274,8 +303,24 @@ class VLNTask:
                 metrics["path_length"] = measure.get_metric()
             elif isinstance(measure, SPL):
                 metrics["spl"] = measure.get_metric()
+            elif isinstance(measure, TopDownMapSatNav):
+                metrics["top_down_map"] = measure.get_metric()
         
         return metrics
+    
+    def get_info(self) -> Dict[str, Any]:
+        """Get info dictionary including visualization data.
+        
+        This method returns a dictionary suitable for visualization,
+        including the top-down map if enabled.
+        
+        Returns:
+            Dictionary containing:
+                - All scalar metrics (distance_to_goal, success, etc.)
+                - "top_down_map": Top-down map visualization dict (if enabled)
+        """
+        info = self.get_metrics()
+        return info
     
     @property
     def current_episode(self) -> Optional[VLNEpisode]:

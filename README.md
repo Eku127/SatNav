@@ -427,7 +427,85 @@ pytest tests/test_env.py -k "test_metric" -v
 
 ## 6. 快速开始示例
 
-### 6.1 基本使用
+SatNav 提供了两个完整的示例脚本，演示如何使用不同的路径跟随策略进行导航。
+
+### 6.1 SatNavPathFollower 示例
+
+`satnav_path_follower_example.py` 演示如何使用 `SatNavPathFollower` 运行数据集中的所有 episode。
+
+**特点**：
+- 使用贪心策略直接导航到目标位置
+- 支持运行数据集中的所有 episode
+- 为每个 episode 生成视频（可选）
+- 生成包含所有 episode 评估指标的 JSON 文件
+
+**使用方法**：
+```bash
+# 运行所有 episode 并生成视频（默认）
+python examples/satnav_path_follower_example.py
+
+# 运行所有 episode 但不生成视频
+python examples/satnav_path_follower_example.py --no-video
+```
+
+**输出**：
+- 每个 episode 的视频：`output/episode_{episode_id}_video.mp4`
+- 评估结果 JSON：`output/{dataset_name}_{timestamp}.json`
+- 最终可视化图像：`output/topdown_map_satnav_follower.png`
+
+**JSON 结果文件格式**：
+```json
+{
+  "dataset_name": "satnav_dataset_complex",
+  "timestamp": "20251202_151823",
+  "total_episodes": 2,
+  "summary": {
+    "successful_episodes": 2,
+    "success_rate": 1.0,
+    "average_success": 1.0,
+    "average_spl": 0.95,
+    "average_steps": 45.5
+  },
+  "episodes": [
+    {
+      "episode_id": "complex_path_001",
+      "scene_id": "map",
+      "instruction": "Go forward, then turn left...",
+      "success": 1.0,
+      "spl": 0.95,
+      "distance_to_goal": 0.5,
+      "path_length": 120.5,
+      "reference_path_length": 127.0,
+      "path_efficiency": 0.95,
+      "num_steps": 42,
+      "action_distribution": {"MOVE_FORWARD": 30, "TURN_LEFT": 8, "TURN_RIGHT": 4}
+    }
+  ]
+}
+```
+
+### 6.2 ReferencePathFollower 示例
+
+`reference_follower_example.py` 演示如何使用 `ReferencePathFollower` 运行单个 episode。
+
+**特点**：
+- 沿着参考路径的 waypoint 顺序导航
+- 严格遵循数据集中的参考路径
+- 适用于生成 teacher forcing 数据和评估路径跟随精度
+- 简洁的实现，专注于核心导航逻辑
+
+**使用方法**：
+```bash
+python examples/reference_follower_example.py
+```
+
+**输出**：
+- 最终可视化图像：`output/topdown_map_example.png`
+- 控制台输出评估指标
+
+### 6.3 基本使用（编程接口）
+
+如果需要自定义导航策略，可以直接使用 SatNav 的编程接口：
 
 ```python
 from satnav.core import Env
@@ -453,7 +531,7 @@ while not done and step_count < 100:
     step_count += 1
     
     # 打印当前状态
-    state = env._sim.get_agent_state()
+    state = env._task._sim.get_agent_state()
     print(f"Step {step_count}: Position={state.position}, Rotation={state.rotation}")
 
 # 获取评价指标
@@ -465,14 +543,15 @@ print(f"Distance to goal: {metrics['distance_to_goal']:.2f}m")
 print(f"Path length: {metrics['path_length']:.2f}m")
 ```
 
-### 6.2 验证安装
+### 6.4 验证安装
 
 ```bash
 # 验证导入
 python3 -c "from satnav.core import Env; from satnav.sims.satsim import SatSim; print('✓ Installation successful')"
 
 # 运行示例
-python examples/example_vln.py
+python examples/satnav_path_follower_example.py --no-video
+python examples/reference_follower_example.py
 ```
 
 ---
@@ -602,7 +681,8 @@ SatNav/
 ├── configs/                   # 配置文件
 │   └── vln_task.yaml         # VLN任务配置
 ├── examples/                  # 示例代码
-│   └── example_vln.py        # 使用示例
+│   ├── satnav_path_follower_example.py  # SatNavPathFollower 示例（批量运行）
+│   └── reference_follower_example.py    # ReferencePathFollower 示例（单 episode）
 ├── tests/                     # 测试文件
 │   ├── test_data/            # 测试数据
 │   │   ├── map.tif           # 测试用卫星地图

@@ -866,8 +866,9 @@ class TestEnvIntegration:
         assert "rgb" in obs
         
         # Verify state didn't change (STOP should not move)
+        # Use rtol=0 to disable relative tolerance for geographic coordinates
         final_state = env._sim.get_agent_state()
-        assert np.allclose(initial_state.position, final_state.position, atol=1e-6)
+        assert np.allclose(initial_state.position, final_state.position, atol=1e-6, rtol=0)
         assert abs(initial_state.rotation - final_state.rotation) < 0.1
     
     def test_env_multiple_episodes_with_real_satsim(self):
@@ -976,9 +977,9 @@ class TestEnvIntegration:
         assert np.isfinite(distance_after_move)
         
         # Verify DistanceToGoal metric properties
-        # Note: DistanceToGoal uses an optimization where it only updates when
-        # position changes significantly (not allclose with atol=1e-4).
-        # This is an implementation detail for performance.
+        # Note: DistanceToGoal always updates distance (no optimization).
+        # Previous implementation used allclose with atol=1e-4, but this was removed
+        # for better accuracy with geographic coordinates.
         
         # The key properties to verify:
         # 1. Distance is always non-negative and finite

@@ -1,3 +1,7 @@
+# =============================================================================
+# Python
+# =============================================================================
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -35,7 +39,10 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# =============================================================================
+# Testing & Coverage
+# =============================================================================
+
 htmlcov/
 .tox/
 .nox/
@@ -49,25 +56,113 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# =============================================================================
+# Virtual Environments
+# =============================================================================
+
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+
+# =============================================================================
+# IDEs & Editors
+# =============================================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+.ropeproject
+
+# =============================================================================
+# OS Files
+# =============================================================================
+
+.DS_Store
+Thumbs.db
+
+# =============================================================================
+# Documentation
+# =============================================================================
+
+docs/_build/
+/site
+
+# =============================================================================
+# Type Checkers
+# =============================================================================
+
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# =============================================================================
+# Project Specific
+# =============================================================================
+
+# Dataset files (usually large, should be stored separately)
+data/datasets/
+data/scene_datasets/
+*.json.gz
+*.json
+# Keep example dataset for tests
+!tests/test_data/*.json
+
+# Scene files (GeoTIFF)
+*.tif
+# Exception: allow test data map.tif
+!tests/test_data/map.tif
+
+# Data directory (general)
+data/
+
+# Output files (visualizations, videos, results)
+output/
+
+# Model checkpoints and logs
+checkpoints/
+logs/
+runs/
+wandb/
+
+# Local configuration overrides
+configs/local_*.yaml
+*.local.yaml
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# =============================================================================
+# Other Tools (not commonly used in this project)
+# =============================================================================
+
 # Translations
 *.mo
 *.pot
 
-# Django stuff:
+# Django
 *.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# Flask stuff:
+# Flask
 instance/
 .webassets-cache
 
-# Scrapy stuff:
+# Scrapy
 .scrapy
-
-# Sphinx documentation
-docs/_build/
 
 # PyBuilder
 target/
@@ -88,85 +183,9 @@ Pipfile.lock
 # PEP 582
 __pypackages__/
 
-# Celery stuff
+# Celery
 celerybeat-schedule
 celerybeat.pid
 
-# SageMath parsed files
+# SageMath
 *.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Project specific
-# Dataset files (usually large, should be stored separately)
-data/datasets/
-data/scene_datasets/
-*.json.gz
-*.json
-
-# Keep example dataset for tests
-!tests/test_data/*.json
-
-# Model checkpoints and logs
-checkpoints/
-logs/
-runs/
-wandb/
-
-# Temporary files
-*.tmp
-*.bak
-*.backup
-
-# OS files
-Thumbs.db
-.DS_Store
-
-# Conda environment
-.conda/
-
-# Local configuration overrides
-configs/local_*.yaml
-*.local.yaml
-
-*.tif
-# Exception: allow test data map.tif
-!tests/test_data/map.tif
-
-data/
-
-# Output files
-output/

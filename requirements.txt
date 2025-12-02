@@ -9,7 +9,8 @@ attrs>=21.0.0
 # SatSim dependencies
 rasterio>=1.3.0  # TIF file handling and reprojection
 pyproj>=3.4.0  # Coordinate transformations (WGS84 <-> EPSG:3857)
-opencv-python>=4.5.0  # Image rotation and resizing (replaces scipy for rotation)
+opencv-python>=4.5.0  # Image processing
+scipy>=1.7.0  # Agent sprite rotation (used by VLN-CE agent visualization)
 
 # Testing dependencies
 pytest>=7.0.0
@@ -23,4 +24,8 @@ pillow>=8.0.0  # Image processing
 # Aerial viewer dependencies
 selenium>=4.0.0  # Browser automation for aerial viewer
 webdriver-manager>=4.0.0  # Automatic browser driver management
+
+# Video generation dependencies (optional, for make_video function)
+imageio>=2.9.0  # Video I/O
+imageio-ffmpeg>=0.4.0  # FFMPEG plugin for imageio
 
