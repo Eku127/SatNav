@@ -1,8 +1,26 @@
-# Interactive Viewer
+# SatSim Viewer Applications
 
-Interactive viewer application for exploring satellite maps using SatSim.
+This directory contains two interactive viewer applications for exploring satellite maps:
 
-## Features
+1. **Free Viewer** (`free_viewer.py`) - Free exploration of satellite maps
+2. **Task Viewer** (`task_viewer.py`) - Interactive VLN task viewer
+
+## Quick Start
+
+```bash
+# Run free viewer (default)
+python -m applications.satsim_viewer
+python -m applications.satsim_viewer free
+
+# Run task viewer
+python -m applications.satsim_viewer task
+```
+
+## Free Viewer
+
+Interactive viewer application for free exploration of satellite maps using SatSim.
+
+### Features
 
 - **Keyboard Navigation**: Navigate through satellite maps using simple keyboard controls
 - **Real-time Visualization**: View RGB observations from the satellite map
@@ -11,26 +29,33 @@ Interactive viewer application for exploring satellite maps using SatSim.
 - **Boundary Warnings**: Visual and console warnings when agent reaches safe boundary limits
 - **Configurable**: Customize camera parameters, initial position, and display settings via YAML config
 
-## Requirements
+### Requirements
 
 - OpenCV (`opencv-python`) - for image display and keyboard input
 - SatNav dependencies (rasterio, pyproj, scipy, numpy)
 
-## Usage
+### Usage
 
-### Basic Usage
-
+**Basic Usage**:
 ```bash
+# Using -m module syntax (default)
 python -m applications.satsim_viewer
+python -m applications.satsim_viewer free
+
+# Or run directly
+python -m applications.satsim_viewer.free_viewer
 ```
 
-### Custom Configuration
-
+**Custom Configuration**:
 ```bash
-python -m applications.satsim_viewer --config /path/to/custom_config.yaml
+# Using -m module syntax
+python -m applications.satsim_viewer free --config /path/to/custom_config.yaml
+
+# Or run directly
+python -m applications.satsim_viewer.free_viewer --config /path/to/custom_config.yaml
 ```
 
-## Configuration
+### Configuration
 
 Edit `config.yaml` to customize:
 
@@ -47,7 +72,7 @@ Edit `config.yaml` to customize:
   - `WINDOW_NAME`: Window title
   - `FPS`: Update rate (frames per second)
 
-## Controls
+### Controls
 
 - **'w'**: Move forward
 - **'s'**: Move backward
@@ -55,9 +80,10 @@ Edit `config.yaml` to customize:
 - **'d'**: Turn right
 - **'q'**: Move up (increase altitude)
 - **'e'**: Move down (decrease altitude)
+- **'p'**: Save current image
 - **ESC**: Quit
 
-## Initial Position
+### Initial Position
 
 The viewer automatically initializes the agent at the center of the loaded TIF file with:
 - Position: Center of the map bounds (calculated from TIF bounds)
@@ -66,7 +92,7 @@ The viewer automatically initializes the agent at the center of the loaded TIF f
 
 **Note**: If the map is too small for the given altitude, the initial center position may not be within safe bounds. In this case, a warning will be displayed and you may need to reduce altitude (press 'e') to enable movement.
 
-## Display Information
+### Display Information
 
 The viewer displays:
 - **WGS84 Coordinates**: Longitude, latitude, altitude
@@ -74,18 +100,18 @@ The viewer displays:
 - **Rotation**: Current roll angle (degrees)
 - **Boundary Warnings**: Red warning text when agent reaches safe boundary limits
 
-## Example
+### Example
 
 ```bash
 # Using default config (tests/test_data/map.tif)
-python -m applications.satsim_viewer
+python -m applications.satsim_viewer.free_viewer
 
 # Using custom TIF file
 # Edit config.yaml to set TIF_PATH to your file
-python -m applications.satsim_viewer
+python -m applications.satsim_viewer.free_viewer
 ```
 
-## Safe Boundary Detection
+### Safe Boundary Detection
 
 The viewer uses **safe boundary detection** to prevent the camera view from exceeding map bounds:
 
@@ -99,13 +125,84 @@ The viewer uses **safe boundary detection** to prevent the camera view from exce
   - A red warning text appears on the image
   - You can still turn or change altitude to find a navigable path
 
-## Notes
+### Notes
 
 - The viewer uses OpenCV for display, which expects BGR color format
 - Safe boundary detection prevents camera view from exceeding map bounds
 - If the map is too small for the current altitude, you may need to reduce altitude to enable movement
 - The viewer automatically calculates the center point from the TIF file bounds
 - Boundary warnings appear both in the console and as overlay text on the image
+
+---
+
+## Task Viewer
+
+Interactive viewer application for VLN tasks using SatNav. Allows users to navigate through VLN episodes with keyboard controls and view task metrics.
+
+### Features
+
+- **Task-based Navigation**: Navigate through VLN episodes from dataset
+- **Keyboard Controls**: Simple keyboard controls for navigation (w/a/d for movement, SPACE for stop)
+- **Visualization**: 
+  - Left: Current RGB observation
+  - Right: Top-down map with agent path and waypoints (toggleable)
+  - Bottom: Instruction text and distance information
+- **Metrics Display**: Show evaluation metrics after STOP action
+- **Episode Management**: Automatically load next episode after completing current one
+
+### Requirements
+
+- OpenCV (`opencv-python`) - for image display and keyboard input
+- SatNav dependencies
+
+### Usage
+
+**Basic Usage**:
+```bash
+# Using -m module syntax
+python -m applications.satsim_viewer task
+
+# Or run directly
+python -m applications.satsim_viewer.task_viewer
+```
+
+**Custom Configuration**:
+```bash
+# Using -m module syntax
+python -m applications.satsim_viewer task --config /path/to/vln_task.yaml
+
+# Or run directly
+python -m applications.satsim_viewer.task_viewer --config /path/to/vln_task.yaml
+```
+
+### Controls
+
+- **'w'**: Move forward
+- **'a'**: Turn left
+- **'d'**: Turn right
+- **'t'**: Toggle topdown view
+- **'SPACE'**: Stop and show metrics, then load next episode
+- **ESC**: Quit
+
+### Display Information
+
+The viewer displays:
+- **Episode ID and Scene ID**: Shown in top-left corner of RGB image
+- **Instruction**: Full instruction text in bottom panel
+- **Distance to Next Waypoint**: Distance to current waypoint being navigated to
+- **Distance to Goal**: Distance to final goal
+- **Top-down Map**: Optional visualization showing agent path, waypoints, and camera view bounds
+
+### Configuration
+
+The Task Viewer uses the VLN task configuration file (e.g., `configs/vln_task.yaml`), which includes:
+- **DATASET**: Dataset configuration (data path, scenes directory)
+- **SIMULATOR**: Camera and movement parameters
+- **TASK**: Task configuration (success distance, measurements, etc.)
+
+The viewer automatically enables `TOP_DOWN_MAP` measurement if not already enabled.
+
+---
 
 ## Input/Output Summary
 

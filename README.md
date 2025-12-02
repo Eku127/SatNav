@@ -558,15 +558,24 @@ python examples/reference_follower_example.py
 
 ## 7. 应用工具
 
-SatNav 提供了两个实用工具应用，位于 `applications/` 目录下：
+SatNav 提供了多个实用工具应用，位于 `applications/` 目录下：
 
-### 7.1 Interactive Viewer（交互式查看器）
+### 7.1 SatSim Viewer（交互式查看器）
 
-用于交互式探索卫星地图的工具，支持键盘控制导航。
+`applications/satsim_viewer/` 目录包含两个交互式查看器应用：
+
+#### 7.1.1 Free Viewer（自由探索查看器）
+
+用于自由探索卫星地图的工具，支持键盘控制导航。
 
 **快速开始**：
 ```bash
+# 使用 -m 模块方式（默认运行 free viewer）
 python -m applications.satsim_viewer
+python -m applications.satsim_viewer free
+
+# 或直接运行
+python -m applications.satsim_viewer.free_viewer
 ```
 
 **控制方式**：
@@ -576,9 +585,33 @@ python -m applications.satsim_viewer
 - `d`: 向右转
 - `q`: 上升（增加高度）
 - `e`: 下降（减少高度）
+- `p`: 保存当前图像
 - `ESC`: 退出
 
 **配置**：编辑 `applications/satsim_viewer/config.yaml` 设置 TIF 文件路径、相机参数等。
+
+#### 7.1.2 Task Viewer（任务查看器）
+
+用于交互式浏览 VLN 任务的工具，支持键盘控制导航和任务评估。
+
+**快速开始**：
+```bash
+# 使用 -m 模块方式
+python -m applications.satsim_viewer task
+
+# 或直接运行
+python -m applications.satsim_viewer.task_viewer
+```
+
+**控制方式**：
+- `w`: 向前移动
+- `a`: 向左转
+- `d`: 向右转
+- `t`: 切换 topdown 视图
+- `SPACE`: 停止并显示评估指标，然后加载下一个 episode
+- `ESC`: 退出
+
+**配置**：使用 VLN 任务配置文件（如 `configs/vln_task.yaml`）。
 
 详细文档：`applications/satsim_viewer/README.md`
 
@@ -696,6 +729,8 @@ SatNav/
 │   └── test_geoutils.py
 ├── applications/             # 应用工具
 │   ├── satsim_viewer/       # 交互式查看器
+│   │   ├── free_viewer.py   # 自由探索查看器
+│   │   └── task_viewer.py   # 任务查看器
 │   ├── aerial_viewer/        # 3D 航拍查看器
 │   └── map_downloader/      # 地图下载器
 ├── doc/                      # 文档目录

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Interactive viewer for satellite maps using SatSim.
+"""Interactive free viewer for satellite maps using SatSim.
 
 This application allows users to navigate through satellite maps using keyboard controls:
 - 'w': Move forward
@@ -139,6 +139,8 @@ class InteractiveViewer:
         
         # Create window
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        # Set initial window size (width, height)
+        cv2.resizeWindow(self.window_name, 1024, 768)
         
         # Output directory for saving images
         self.output_dir = Path(__file__).parent.parent.parent / "output"
