@@ -128,7 +128,7 @@ class SatNavPathFollower:
         self.goal_radius = goal_radius
         self.turn_angle = turn_angle
         self.return_action_string = return_action_string
-        
+    
         # State for oscillation prevention
         self._last_action: Optional[str] = None
     

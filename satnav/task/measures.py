@@ -490,7 +490,7 @@ class TopDownMapSatNav(Measure):
         draw_reference_path: bool = True,
         draw_source_and_target: bool = True,
         agent_sprite_size: int = 30,
-        path_thickness: int = 2,
+        path_thickness: int = 4,  # Increased from 2 to 4 for better visibility
         max_episode_steps: int = 500,
         success_distance: float = 3.0
     ):
@@ -620,7 +620,7 @@ class TopDownMapSatNav(Measure):
                 self._start_position,
                 self._goal_position,
                 self._bounds
-            )
+                )
     
     def update(
         self,
@@ -670,7 +670,7 @@ class TopDownMapSatNav(Measure):
         rendered_map = self._top_down_map.copy()
         map_shape = rendered_map.shape[:2]
         
-        # Draw agent path (gradient colored)
+        # Draw agent path (yellow)
         # Include current position in path even if it hasn't changed (for real-time visualization)
         path_to_draw = self._agent_path.copy()
         
@@ -688,7 +688,7 @@ class TopDownMapSatNav(Measure):
             draw_path(
                 rendered_map,
                 path_pixels,
-                color="gradient",
+                color=(0, 255, 255),  # Yellow (BGR format)
                 thickness=self._path_thickness,
                 max_steps=self._max_episode_steps
             )
@@ -699,7 +699,7 @@ class TopDownMapSatNav(Measure):
             current_position,
             current_rotation,
             self._bounds,
-            sprite_size=self._agent_sprite_size
+            agent_radius_px=self._agent_sprite_size // 2  # Convert sprite_size to radius
         )
         
         # Calculate agent position in pixel coordinates for output

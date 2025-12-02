@@ -8,10 +8,27 @@ Adapted from VLN-CE habitat_extensions/maps.py for geographic coordinates.
 """
 
 import math
+import os
+import textwrap
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 
 import cv2
 import numpy as np
+
+try:
+    import imageio
+    HAS_IMAGEIO = True
+except ImportError:
+    HAS_IMAGEIO = False
+    imageio = None
+
+try:
+    import scipy.ndimage
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
+    scipy = None
 
 # Optional imports for satellite map cropping
 try:
@@ -48,59 +65,115 @@ TOP_DOWN_MAP_COLORS = {
 }
 
 
-def create_agent_sprite(size: int = 30) -> np.ndarray:
-    """Create an arrow-shaped agent sprite programmatically.
+def paste_overlapping_image(
+    background: np.ndarray,
+    foreground: np.ndarray,
+    location: Tuple[int, int],
+    mask: Optional[np.ndarray] = None,
+) -> None:
+    """Composites the foreground onto the background dealing with edge boundaries.
     
-    Creates a simple arrow pointing up (north) that can be rotated to indicate
-    agent heading direction.
+    Adapted from habitat-lab/habitat/utils/visualizations/utils.py
     
     Args:
-        size: Size of the sprite in pixels (width and height).
-        
-    Returns:
-        RGBA image of the agent sprite (size, size, 4) uint8.
+        background: The background image to paste on (modified in place).
+        foreground: The image to paste. Can be RGB or RGBA. If using alpha
+            blending, values for foreground and background should both be
+            between 0 and 255. Otherwise behavior is undefined.
+        location: The image coordinates to paste the foreground (row, col).
+        mask: If not None, a mask for deciding what part of the foreground to
+            use. Must be the same size as the foreground if provided.
     """
-    sprite = np.zeros((size, size, 4), dtype=np.uint8)
-    
-    # Arrow shape points (pointing up/north)
-    center = size // 2
-    top = size // 6
-    bottom = size - size // 6
-    wing_width = size // 3
-    
-    # Define arrow polygon points
-    points = np.array([
-        [center, top],           # Top point
-        [center + wing_width, bottom],  # Bottom right
-        [center, bottom - size // 4],   # Bottom center indent
-        [center - wing_width, bottom],  # Bottom left
-    ], dtype=np.int32)
-    
-    # Fill arrow with color (white with full alpha)
-    cv2.fillPoly(sprite, [points], (255, 255, 255, 255))
-    
-    # Add border for visibility
-    cv2.polylines(sprite, [points], True, (0, 0, 0, 255), thickness=2)
-    
-    return sprite
+    assert mask is None or mask.shape[:2] == foreground.shape[:2]
+    foreground_size = foreground.shape[:2]
+    min_pad = (
+        max(0, foreground_size[0] // 2 - location[0]),
+        max(0, foreground_size[1] // 2 - location[1]),
+    )
+
+    max_pad = (
+        max(
+            0,
+            (location[0] + (foreground_size[0] - foreground_size[0] // 2))
+            - background.shape[0],
+        ),
+        max(
+            0,
+            (location[1] + (foreground_size[1] - foreground_size[1] // 2))
+            - background.shape[1],
+        ),
+    )
+
+    background_patch = background[
+        (location[0] - foreground_size[0] // 2 + min_pad[0]) : (
+            location[0]
+            + (foreground_size[0] - foreground_size[0] // 2)
+            - max_pad[0]
+        ),
+        (location[1] - foreground_size[1] // 2 + min_pad[1]) : (
+            location[1]
+            + (foreground_size[1] - foreground_size[1] // 2)
+            - max_pad[1]
+        ),
+    ]
+    foreground = foreground[
+        min_pad[0] : foreground.shape[0] - max_pad[0],
+        min_pad[1] : foreground.shape[1] - max_pad[1],
+    ]
+    if foreground.size == 0 or background_patch.size == 0:
+        # Nothing to do, no overlap.
+        return
+
+    if mask is not None:
+        mask = mask[
+            min_pad[0] : foreground.shape[0] - max_pad[0],
+            min_pad[1] : foreground.shape[1] - max_pad[1],
+        ]
+
+    if foreground.shape[2] == 4:
+        # Alpha blending
+        foreground = (
+            background_patch.astype(np.int32) * (255 - foreground[:, :, [3]])
+            + foreground[:, :, :3].astype(np.int32) * foreground[:, :, [3]]
+        ) // 255
+    if mask is not None:
+        background_patch[mask] = foreground[mask]
+    else:
+        background_patch[:] = foreground
 
 
-# Global agent sprite (cached)
+# Global agent sprite (loaded from file, cached)
 _AGENT_SPRITE: Optional[np.ndarray] = None
 
 
-def get_agent_sprite(size: int = 30) -> np.ndarray:
-    """Get the agent sprite, creating it if necessary.
+def get_agent_sprite() -> np.ndarray:
+    """Get the agent sprite from VLN-CE/habitat-lab asset file.
     
-    Args:
-        size: Size of the sprite in pixels.
-        
     Returns:
-        RGBA image of the agent sprite.
+        RGBA image of the agent sprite (100x100, 4 channels).
     """
     global _AGENT_SPRITE
-    if _AGENT_SPRITE is None or _AGENT_SPRITE.shape[0] != size:
-        _AGENT_SPRITE = create_agent_sprite(size)
+    if _AGENT_SPRITE is None:
+        if not HAS_IMAGEIO:
+            raise ImportError("imageio is required to load agent sprite")
+        
+        sprite_path = os.path.join(
+            os.path.dirname(__file__),
+            "assets",
+            "maps_topdown_agent_sprite",
+            "100x100.png",
+        )
+        
+        if not os.path.exists(sprite_path):
+            raise FileNotFoundError(
+                f"Agent sprite not found at {sprite_path}. "
+                "Please ensure the sprite file is copied from habitat-lab."
+            )
+        
+        _AGENT_SPRITE = imageio.imread(sprite_path)
+        # Flip vertically (as done in habitat-lab)
+        _AGENT_SPRITE = np.ascontiguousarray(np.flipud(_AGENT_SPRITE))
+    
     return _AGENT_SPRITE.copy()
 
 
@@ -325,7 +398,7 @@ def draw_path(
     img: np.ndarray,
     path_points: List[Tuple[int, int]],
     color: Union[Tuple[int, int, int], str] = "gradient",
-    thickness: int = 2,
+    thickness: int = 4,  # Increased from 2 to 4 for better visibility
     max_steps: int = 500
 ) -> None:
     """Draw a path on the image.
@@ -364,7 +437,7 @@ def draw_reference_path(
     reference_path: List[List[float]],
     bounds: Dict[str, float],
     color: Tuple[int, int, int] = None,
-    thickness: int = 2,
+    thickness: int = 4,  # Increased from 2 to 4 for better visibility
     draw_points: bool = True,
     point_radius: int = 4
 ) -> None:
@@ -403,6 +476,103 @@ def draw_reference_path(
     if draw_points:
         for row, col in pixel_points:
             draw_point(img, (row, col), color, radius=point_radius)
+
+
+def draw_camera_view_bounds(
+    img: np.ndarray,
+    agent_position: List[float],
+    agent_rotation: float,
+    altitude: float,
+    hfov: float,
+    image_width: int,
+    image_height: int,
+    bounds: Dict[str, float],
+    color: Tuple[int, int, int] = (0, 255, 255),  # Yellow (BGR)
+    thickness: int = 2
+) -> None:
+    """Draw RGB camera view bounds on the top-down map.
+    
+    Calculates the ground coverage area visible to the RGB camera and draws
+    it as a yellow-bordered rectangle on the map.
+    
+    Args:
+        img: Image to draw on (modified in place).
+        agent_position: Agent position as [lon, lat, alt].
+        agent_rotation: Agent rotation in degrees (0=North).
+        altitude: Camera altitude in meters.
+        hfov: Horizontal field of view in degrees.
+        image_width: RGB image width in pixels.
+        image_height: RGB image height in pixels.
+        bounds: Geographic bounds dictionary.
+        color: BGR color for the rectangle border (default: yellow).
+        thickness: Border thickness in pixels.
+    """
+    # Import here to avoid circular imports
+    from satnav.sims.satsim.geoutils import GeoUtils
+    from satnav.sims.satsim.camera import SatelliteCamera
+    
+    # Create camera instance to calculate view bounds
+    camera = SatelliteCamera(image_width, image_height, hfov)
+    
+    # Convert agent position to Mercator
+    position_mercator = GeoUtils.wgs84_to_mercator(
+        agent_position[0], agent_position[1]
+    )
+    
+    # Calculate view bounds corners directly (similar to camera.get_view_bounds logic)
+    cx, cy = position_mercator
+    h = altitude
+    
+    # Ground half-height/width in meters
+    half_x_m = h * math.tan(math.radians(hfov / 2.0))
+    half_y_m = half_x_m / (image_width / image_height)  # aspect ratio
+    
+    # Distance to four corners (diagonal half-distance)
+    r = math.hypot(half_x_m, half_y_m)
+    
+    # Base azimuth angles for four corners (relative to North)
+    base_az_deg = [
+        math.degrees(math.atan2(+half_x_m, +half_y_m)),  # NE
+        math.degrees(math.atan2(-half_x_m, +half_y_m)),  # NW
+        math.degrees(math.atan2(-half_x_m, -half_y_m)),  # SW
+        math.degrees(math.atan2(+half_x_m, -half_y_m)),  # SE
+    ]
+    
+    # Apply rotation
+    az_deg = [((az + agent_rotation) % 360.0) for az in base_az_deg]
+    
+    # Calculate corner positions in Mercator
+    corners_mercator = [
+        (
+            cx + r * math.sin(math.radians(az)),
+            cy + r * math.cos(math.radians(az))
+        )
+        for az in az_deg
+    ]
+    
+    # Convert corners from Mercator to WGS84
+    corners_wgs84 = [
+        GeoUtils.mercator_to_wgs84(x, y) for x, y in corners_mercator
+    ]
+    
+    # Convert to pixel coordinates (allow out-of-bounds coordinates)
+    map_shape = img.shape[:2]
+    pixel_corners = []
+    for lon, lat in corners_wgs84:
+        # Calculate pixel coordinates without clamping (allow negative or > image size)
+        height, width = map_shape[:2]
+        lon_norm = (lon - bounds["lon_min"]) / (bounds["lon_max"] - bounds["lon_min"])
+        lat_norm = (lat - bounds["lat_min"]) / (bounds["lat_max"] - bounds["lat_min"])
+        col = lon_norm * (width - 1)
+        row = (1 - lat_norm) * (height - 1)  # Flip for image coordinates
+        pixel_corners.append((int(col), int(row)))  # OpenCV uses (x, y) = (col, row)
+    
+    # Draw rectangle using cv2.polylines
+    # Even if corners are outside the image, cv2.polylines will draw the visible parts
+    if len(pixel_corners) >= 4:
+        # Close the polygon by adding first point at the end
+        closed_corners = np.array(pixel_corners + [pixel_corners[0]], dtype=np.int32)
+        cv2.polylines(img, [closed_corners], isClosed=True, color=color, thickness=thickness)
 
 
 def draw_source_and_target(
@@ -446,78 +616,76 @@ def draw_agent(
     position: List[float],
     rotation: float,
     bounds: Dict[str, float],
-    sprite_size: int = 30
+    agent_radius_px: int = 15
 ) -> np.ndarray:
     """Draw the agent with heading arrow on the image.
+    
+    Uses the same agent sprite and drawing method as VLN-CE/habitat-lab.
     
     Args:
         img: Image to draw on (will be copied).
         position: Agent position as [lon, lat, alt].
         rotation: Agent heading in degrees (0 = North).
         bounds: Geographic bounds dictionary.
-        sprite_size: Size of the agent sprite in pixels.
+        agent_radius_px: 1/2 number of pixels the agent will be resized to.
         
     Returns:
         Modified image with agent drawn.
     """
+    if not HAS_SCIPY:
+        raise ImportError("scipy is required for agent sprite rotation")
+    
     img = img.copy()
     map_shape = img.shape[:2]
     
     # Get pixel position
     row, col = geo_to_pixel(position[0], position[1], bounds, map_shape)
+    agent_center_coord = (row, col)
     
-    # Get and rotate agent sprite
-    sprite = get_agent_sprite(sprite_size)
+    # Get agent sprite (100x100 from file)
+    agent_sprite = get_agent_sprite()
     
-    # Rotate sprite (OpenCV rotation is counter-clockwise, we need clockwise for heading)
-    center = (sprite_size // 2, sprite_size // 2)
-    M = cv2.getRotationMatrix2D(center, -rotation, 1.0)  # Negative for clockwise
-    rotated_sprite = cv2.warpAffine(
-        sprite, M, (sprite_size, sprite_size),
-        flags=cv2.INTER_LINEAR,
-        borderMode=cv2.BORDER_CONSTANT,
-        borderValue=(0, 0, 0, 0)
+    # Coordinate system conversion:
+    # - SatNav: rotation in degrees, 0 = North (up), 90 = East (right), 180 = South (down), 270 = West (left)
+    # - Habitat-lab sprite: after flipud, initial direction needs to be determined
+    # - scipy.ndimage.rotate: rotates counter-clockwise (positive angle = CCW)
+    # 
+    # Try different formulas based on sprite initial direction:
+    # If sprite initially points East (right) when rotation=0:
+    #   - To point North (up) when rotation=0, need -90° rotation
+    #   - Formula: adjusted_rotation = rotation - 90.0
+    # 
+    # If sprite initially points West (left) when rotation=0:
+    #   - To point North (up) when rotation=0, need +90° rotation  
+    #   - Formula: adjusted_rotation = rotation + 90.0
+    # 
+    # If sprite initially points South (down) when rotation=0:
+    #   - To point North (up) when rotation=0, need +180° rotation
+    #   - Formula: adjusted_rotation = rotation + 180.0
+    # 
+    # Current test: try rotation - 90 (assuming sprite initially points East)
+    adjusted_rotation_deg = -rotation + 180.0
+    
+    # Rotate before resize to keep good resolution (as in habitat-lab)
+    rotated_agent = scipy.ndimage.rotate(
+        agent_sprite, adjusted_rotation_deg, reshape=False
     )
     
-    # Calculate paste position (centered on agent position)
-    half_size = sprite_size // 2
-    y_start = row - half_size
-    y_end = row + half_size + (sprite_size % 2)
-    x_start = col - half_size
-    x_end = col + half_size + (sprite_size % 2)
+    # Rescale because rotation may result in larger image than original, but
+    # the agent sprite size should stay the same.
+    initial_agent_size = agent_sprite.shape[0]
+    new_size = rotated_agent.shape[0]
+    agent_size_px = max(
+        1, int(agent_radius_px * 2 * new_size / initial_agent_size)
+    )
+    resized_agent = cv2.resize(
+        rotated_agent,
+        (agent_size_px, agent_size_px),
+        interpolation=cv2.INTER_LINEAR,
+    )
     
-    # Handle boundary conditions
-    sprite_y_start = max(0, -y_start)
-    sprite_y_end = sprite_size - max(0, y_end - map_shape[0])
-    sprite_x_start = max(0, -x_start)
-    sprite_x_end = sprite_size - max(0, x_end - map_shape[1])
-    
-    y_start = max(0, y_start)
-    y_end = min(map_shape[0], y_end)
-    x_start = max(0, x_start)
-    x_end = min(map_shape[1], x_end)
-    
-    # Get sprite region
-    sprite_region = rotated_sprite[
-        sprite_y_start:sprite_y_end,
-        sprite_x_start:sprite_x_end
-    ]
-    
-    if sprite_region.shape[0] == 0 or sprite_region.shape[1] == 0:
-        return img
-    
-    # Alpha blending
-    if sprite_region.shape[2] == 4:
-        alpha = sprite_region[:, :, 3:4] / 255.0
-        sprite_rgb = sprite_region[:, :, :3]
-        
-        img_region = img[y_start:y_end, x_start:x_end]
-        
-        # Ensure shapes match
-        if img_region.shape[:2] == sprite_rgb.shape[:2]:
-            img[y_start:y_end, x_start:x_end] = (
-                alpha * sprite_rgb + (1 - alpha) * img_region
-            ).astype(np.uint8)
+    # Paste using the same method as habitat-lab
+    paste_overlapping_image(img, resized_agent, agent_center_coord)
     
     return img
 
@@ -547,4 +715,470 @@ def colorize_map(
     _map[fog_indices] = _map[fog_indices] * fog_of_war_desat_amount
     
     return _map.astype(np.uint8)
+
+
+def add_instruction_text(
+    img: np.ndarray,
+    text: str,
+    font_size: float = 1.1,
+    thickness: int = 2,
+    padding: int = 15,
+    line_spacing: int = 25
+) -> Tuple[np.ndarray, int]:
+    """Add instruction text to an image with word wrapping.
+    
+    Adapted from VLN-CE habitat_extensions/utils.py add_instruction_on_img.
+    
+    Args:
+        img: Image to add text to (BGR format).
+        text: Instruction text to add.
+        font_size: Font size for text.
+        thickness: Text thickness.
+        padding: Padding from edges.
+        line_spacing: Spacing between lines in pixels.
+        
+    Returns:
+        Tuple of (image with instruction text added, required height in pixels).
+    """
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    
+    # Calculate character size for wrapping
+    char_size = cv2.getTextSize(" ", font, font_size, thickness)[0]
+    wrapped_text = textwrap.wrap(
+        text, width=int((img.shape[1] - 2 * padding) / char_size[0])
+    )
+    
+    # Calculate required height for all text lines
+    total_height = padding  # Start with top padding
+    for line in wrapped_text:
+        textsize = cv2.getTextSize(line, font, font_size, thickness)[0]
+        total_height += textsize[1] + line_spacing
+    total_height += padding  # Add bottom padding
+    
+    # Resize image if needed to fit all text
+    if total_height > img.shape[0]:
+        # Create new image with required height
+        new_img = np.ones((total_height, img.shape[1], 3), dtype=np.uint8) * 255
+        img = new_img
+    
+    # Draw each line of text
+    y = padding
+    start_x = padding
+    for line in wrapped_text:
+        textsize = cv2.getTextSize(line, font, font_size, thickness)[0]
+        y += textsize[1] + line_spacing
+        cv2.putText(
+            img,
+            line,
+            (start_x, y),
+            font,
+            font_size,
+            (0, 0, 0),  # Black text (BGR)
+            thickness,
+            lineType=cv2.LINE_AA,
+        )
+    
+    return img, total_height
+
+
+def create_video_frame(
+    rgb_image: np.ndarray,
+    topdown_image: np.ndarray,
+    instruction_text: str,
+    frame_width: int = 2048,
+    min_frame_width: int = 2048,
+    max_frame_width: int = 4096
+) -> Tuple[np.ndarray, int]:
+    """Create a single video frame combining RGB, top-down map, and instruction.
+    
+    Layout:
+    - Top row: RGB image (left) | Top-down map (right)
+    - Bottom row: Instruction text (full width)
+    
+    The frame width will be dynamically adjusted based on instruction text length
+    to ensure all text is displayed without truncation.
+    
+    Args:
+        rgb_image: RGB observation image (H, W, 3) in RGB format.
+        topdown_image: Top-down map image (H, W, 3) in RGB format.
+        instruction_text: Instruction text to display.
+        frame_width: Initial target width for the frame.
+        min_frame_width: Minimum frame width (default: 2048).
+        max_frame_width: Maximum frame width (default: 4096).
+        
+    Returns:
+        Tuple of (combined frame image (H, W, 3) in RGB format, actual frame width used).
+    """
+    # Convert RGB to BGR for OpenCV operations
+    rgb_bgr = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
+    topdown_bgr = cv2.cvtColor(topdown_image, cv2.COLOR_RGB2BGR)
+    
+    # Resize RGB to target width, maintaining aspect ratio
+    rgb_h, rgb_w = rgb_bgr.shape[:2]
+    rgb_new_h = int((frame_width / 2 / rgb_w) * rgb_h)
+    rgb_resized = cv2.resize(
+        rgb_bgr,
+        (frame_width // 2, rgb_new_h),
+        interpolation=cv2.INTER_CUBIC
+    )
+    
+    # Resize top-down map maintaining aspect ratio, fit within target area
+    topdown_h, topdown_w = topdown_bgr.shape[:2]
+    target_topdown_width = frame_width // 2
+    target_topdown_height = rgb_new_h
+    
+    # Calculate scaling factor to fit within target area while maintaining aspect ratio
+    scale_w = target_topdown_width / topdown_w
+    scale_h = target_topdown_height / topdown_h
+    scale = min(scale_w, scale_h)  # Use smaller scale to ensure it fits
+    
+    # Calculate new dimensions maintaining aspect ratio
+    topdown_new_w = int(topdown_w * scale)
+    topdown_new_h = int(topdown_h * scale)
+    
+    # Resize top-down map with aspect ratio preserved
+    topdown_resized = cv2.resize(
+        topdown_bgr,
+        (topdown_new_w, topdown_new_h),
+        interpolation=cv2.INTER_CUBIC
+    )
+    
+    # Calculate padding needed (centered)
+    pad_width = target_topdown_width - topdown_new_w
+    pad_height = target_topdown_height - topdown_new_h
+    
+    pad_left = pad_width // 2
+    pad_right = pad_width - pad_left
+    pad_top = pad_height // 2
+    pad_bottom = pad_height - pad_top
+    
+    # Add white padding around top-down map (centered)
+    topdown_with_space = cv2.copyMakeBorder(
+        topdown_resized,
+        top=pad_top,
+        bottom=pad_bottom,
+        left=pad_left,
+        right=pad_right,
+        borderType=cv2.BORDER_CONSTANT,
+        value=(255, 255, 255)  # White padding (BGR)
+    )
+    
+    # Ensure top_row width matches frame_width exactly
+    top_row_width = rgb_resized.shape[1] + topdown_with_space.shape[1]
+    if top_row_width != frame_width:
+        # Adjust if needed (shouldn't happen, but safety check)
+        if top_row_width > frame_width:
+            # Crop if too wide
+            top_row = np.concatenate([rgb_resized, topdown_with_space], axis=1)
+            top_row = top_row[:, :frame_width, :]
+        else:
+            # Pad if too narrow
+            padding_width = frame_width - top_row_width
+            padding = np.ones((rgb_new_h, padding_width, 3), dtype=np.uint8) * 255
+            top_row = np.concatenate([rgb_resized, topdown_with_space, padding], axis=1)
+    else:
+        # Combine RGB and top-down map horizontally
+        top_row = np.concatenate([rgb_resized, topdown_with_space], axis=1)
+    
+    # Calculate required width for instruction text based on text length
+    # Estimate text width: average character width * number of characters
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_size = 1.1
+    thickness = 2
+    padding = 15
+    
+    # Calculate average character width
+    char_size = cv2.getTextSize("M", font, font_size, thickness)[0]
+    avg_char_width = char_size[0]
+    
+    # Estimate text width needed (add padding and some margin)
+    # Use textwrap to get actual wrapped lines to calculate width more accurately
+    temp_panel = np.ones((200, frame_width, 3), dtype=np.uint8) * 255
+    wrapped_text = textwrap.wrap(
+        instruction_text, width=int((frame_width - 2 * padding) / avg_char_width)
+    )
+    
+    # Find the longest line to determine required width
+    max_line_width = 0
+    for line in wrapped_text:
+        textsize = cv2.getTextSize(line, font, font_size, thickness)[0]
+        max_line_width = max(max_line_width, textsize[0])
+    
+    # Calculate required width: longest line + padding + margin
+    required_text_width = max_line_width + 2 * padding + 100
+    
+    # Determine actual frame width needed
+    # Ensure it's at least min_frame_width, but expand if text needs more space
+    actual_frame_width = max(frame_width, min(required_text_width, max_frame_width))
+    
+    # If we need to expand width, resize top_row accordingly
+    if actual_frame_width > frame_width:
+        # Resize top_row to match new width
+        scale_factor = actual_frame_width / frame_width
+        new_rgb_width = int(frame_width // 2 * scale_factor)
+        new_topdown_width = actual_frame_width - new_rgb_width
+        
+        # Resize RGB and topdown to new widths, maintaining aspect ratio
+        rgb_resized = cv2.resize(
+            rgb_bgr,
+            (new_rgb_width, int(rgb_new_h * scale_factor)),
+            interpolation=cv2.INTER_CUBIC
+        )
+        
+        # Resize topdown maintaining aspect ratio
+        topdown_h, topdown_w = topdown_bgr.shape[:2]
+        topdown_scale_w = new_topdown_width / topdown_w
+        topdown_scale_h = (rgb_resized.shape[0]) / topdown_h
+        topdown_scale = min(topdown_scale_w, topdown_scale_h)
+        
+        topdown_new_w = int(topdown_w * topdown_scale)
+        topdown_new_h = int(topdown_h * topdown_scale)
+        
+        topdown_resized = cv2.resize(
+            topdown_bgr,
+            (topdown_new_w, topdown_new_h),
+            interpolation=cv2.INTER_CUBIC
+        )
+        
+        # Recalculate padding for topdown
+        pad_width = new_topdown_width - topdown_new_w
+        pad_height = rgb_resized.shape[0] - topdown_new_h
+        pad_left = pad_width // 2
+        pad_right = pad_width - pad_left
+        pad_top = pad_height // 2
+        pad_bottom = pad_height - pad_top
+        
+        topdown_with_space = cv2.copyMakeBorder(
+            topdown_resized,
+            top=pad_top,
+            bottom=pad_bottom,
+            left=pad_left,
+            right=pad_right,
+            borderType=cv2.BORDER_CONSTANT,
+            value=(255, 255, 255)
+        )
+        
+        top_row = np.concatenate([rgb_resized, topdown_with_space], axis=1)
+        frame_width = actual_frame_width
+    
+    # Create instruction panel with dynamic height based on text length
+    # Start with a reasonable initial height, will be adjusted based on text length
+    initial_instruction_height = 200
+    instruction_panel = np.ones((initial_instruction_height, frame_width, 3), dtype=np.uint8) * 255
+    
+    # Add instruction text (function will resize panel if needed to fit all text)
+    instruction_panel, required_height = add_instruction_text(instruction_panel, instruction_text)
+    
+    # Combine top row and instruction panel vertically
+    frame = np.concatenate([top_row, instruction_panel], axis=0)
+    
+    # Convert back to RGB for video output
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    
+    return frame_rgb, frame_width
+
+
+def make_video(
+    rgb_frames: List[np.ndarray],
+    topdown_frames: List[np.ndarray],
+    instruction_text: str,
+    output_path: Union[str, Path],
+    fps: int = 10,
+    frame_width: int = 2048,
+    quality: Optional[float] = 5
+) -> None:
+    """Generate a video from RGB and top-down map frames with instruction text.
+    
+    Creates a video where each frame shows:
+    - Left side: RGB sensor observation
+    - Right side: Top-down map visualization
+    - Bottom: Instruction text
+    
+    Args:
+        rgb_frames: List of RGB observation images (H, W, 3) in RGB format.
+        topdown_frames: List of top-down map images (H, W, 3) in RGB format.
+        instruction_text: Instruction text to display on all frames.
+        output_path: Path to save the video file.
+        fps: Frames per second for the video.
+        frame_width: Target width for video frames.
+        quality: Video quality (0-10, higher is better). Uses variable bitrate.
+        
+    Raises:
+        ImportError: If imageio is not installed.
+        ValueError: If rgb_frames and topdown_frames have different lengths.
+    """
+    if not HAS_IMAGEIO:
+        raise ImportError(
+            "imageio is required for video generation. "
+            "Install it with: pip install imageio imageio-ffmpeg"
+        )
+    
+    if len(rgb_frames) != len(topdown_frames):
+        raise ValueError(
+            f"rgb_frames and topdown_frames must have the same length. "
+            f"Got {len(rgb_frames)} and {len(topdown_frames)}"
+        )
+    
+    if len(rgb_frames) == 0:
+        raise ValueError("No frames provided for video generation")
+    
+    if quality is not None:
+        assert 0 <= quality <= 10, "quality must be between 0 and 10"
+    
+    # Create output directory if it doesn't exist
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Generate video frames
+    # First pass: determine the maximum width needed across all frames
+    max_width = frame_width
+    for rgb_frame, topdown_frame in zip(rgb_frames, topdown_frames):
+        _, actual_width = create_video_frame(
+            rgb_frame,
+            topdown_frame,
+            instruction_text,
+            frame_width,
+            min_frame_width=frame_width,
+            max_frame_width=8192  # Allow up to 8K width for very long instructions
+        )
+        max_width = max(max_width, actual_width)
+    
+    # Second pass: create all frames with consistent width
+    video_frames = []
+    for rgb_frame, topdown_frame in zip(rgb_frames, topdown_frames):
+        frame, _ = create_video_frame(
+            rgb_frame,
+            topdown_frame,
+            instruction_text,
+            max_width,  # Use the maximum width for all frames
+            min_frame_width=max_width,
+            max_frame_width=max_width
+        )
+        video_frames.append(frame)
+    
+    # Write video using imageio
+    video_name = output_path.name
+    if not video_name.endswith('.mp4'):
+        video_name = f"{video_name}.mp4"
+    
+    writer = imageio.get_writer(
+        str(output_path.parent / video_name),
+        fps=fps,
+        quality=quality,
+    )
+    
+    for frame in video_frames:
+        writer.append_data(frame)
+    
+    writer.close()
+    
+    print(f"✓ Video saved to: {output_path.parent / video_name}")
+
+
+def annotate_topdown_map(
+    info: dict,
+    agent_state,
+    waypoints: list,
+    current_waypoint_idx: int,
+    step_count: int,
+    action: str,
+    current_distance: float,
+    goal_radius: float,
+    config,
+    topdown_frames: list = None
+) -> np.ndarray:
+    """Annotate top-down map with camera view bounds, waypoint circles, and text overlay.
+    
+    This function takes the top-down map from environment metrics and adds:
+    - Camera view bounds (RGB sensor coverage area) as yellow rectangle
+    - Waypoint threshold circles (yellow for current, gray for reached, green for future)
+    - Text overlay with step information
+    
+    Args:
+        info: Environment info dict containing metrics.
+        agent_state: Current agent state with position and rotation.
+        waypoints: List of waypoint positions [[lon, lat, alt], ...].
+        current_waypoint_idx: Index of current waypoint being navigated to (0-indexed).
+        step_count: Current step number.
+        action: Action taken in this step.
+        current_distance: Distance to current waypoint in meters.
+        goal_radius: Goal radius threshold in meters.
+        config: Configuration object with SIMULATOR.RGB_SENSOR settings.
+        topdown_frames: Optional list to append RGB frame for video generation.
+        
+    Returns:
+        Annotated top-down map as RGB numpy array (H, W, 3), or None if top_down_map
+        is not available in metrics.
+    """
+    try:
+        # Use metrics from info dict (already updated after step)
+        env_metrics = info.get("metrics", {})
+        if "top_down_map" not in env_metrics:
+            return None
+        
+        top_down_info = env_metrics["top_down_map"]
+        map_image = top_down_info["map"]
+        bounds = top_down_info["bounds"]
+        
+        # Convert RGB to BGR for OpenCV
+        map_bgr = cv2.cvtColor(map_image, cv2.COLOR_RGB2BGR)
+        
+        # Draw camera view bounds (RGB sensor coverage area)
+        draw_camera_view_bounds(
+            map_bgr,
+            agent_state.position.tolist(),
+            agent_state.rotation,
+            agent_state.position[2],  # altitude
+            config.SIMULATOR.RGB_SENSOR.HFOV,
+            config.SIMULATOR.RGB_SENSOR.WIDTH,
+            config.SIMULATOR.RGB_SENSOR.HEIGHT,
+            bounds,
+            color=(0, 255, 255),  # Yellow (BGR)
+            thickness=2
+        )
+        
+        # Draw waypoint threshold circles
+        for i, wp in enumerate(waypoints):
+            # Use different colors for current waypoint vs others
+            if i == current_waypoint_idx:
+                # Current waypoint: yellow circle
+                circle_color = (0, 255, 255)  # Yellow (BGR)
+            elif i < current_waypoint_idx:
+                # Reached waypoints: gray circle
+                circle_color = (128, 128, 128)  # Gray (BGR)
+            else:
+                # Future waypoints: green circle
+                circle_color = (0, 255, 0)  # Green (BGR)
+            
+            # Draw threshold circle for each waypoint
+            draw_circle_outline(
+                map_bgr,
+                wp,
+                radius_meters=goal_radius,
+                bounds=bounds,
+                color=circle_color,
+                thickness=2
+            )
+        
+        # Add text overlay with step info
+        cv2.putText(map_bgr, f"Step {step_count}: {action}", (10, 30),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(map_bgr, f"Waypoint {current_waypoint_idx+1}/{len(waypoints)}", (10, 60),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(map_bgr, f"Dist: {current_distance:.1f}m", (10, 90),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(map_bgr, f"Threshold: {goal_radius:.1f}m", (10, 120),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        
+        # Convert BGR back to RGB for return
+        map_rgb = cv2.cvtColor(map_bgr, cv2.COLOR_BGR2RGB)
+        
+        # Store top-down frame for video if requested
+        if topdown_frames is not None:
+            topdown_frames.append(map_rgb.copy())
+        
+        return map_rgb
+    except Exception:
+        # Silently ignore errors
+        return None
 

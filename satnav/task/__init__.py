@@ -15,6 +15,7 @@ from satnav.task.measures import (
     Success,
     PathLength,
     SPL,
+    TopDownMapSatNav,
 )
 from satnav.task.vln_task import VLNTask
 
@@ -30,6 +31,7 @@ __all__ = [
     "Success",
     "PathLength",
     "SPL",
+    "TopDownMapSatNav",
     "VLNTask",
 ]
 

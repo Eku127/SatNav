@@ -100,8 +100,7 @@ from satnav.navigation import ReferencePathFollower
 
 # Initialize
 path_follower = ReferencePathFollower(
-    goal_radius=3.0,       # final goal success distance
-    waypoint_radius=5.0,   # intermediate waypoint switch distance
+    goal_radius=3.0,       # success distance for all waypoints including goal
     turn_angle=15.0,
 )
 
