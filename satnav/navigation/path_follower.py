@@ -128,6 +128,9 @@ class SatNavPathFollower:
         self.goal_radius = goal_radius
         self.turn_angle = turn_angle
         self.return_action_string = return_action_string
+        
+        # State for oscillation prevention
+        self._last_action: Optional[str] = None
     
     def get_next_action(
         self,
@@ -173,16 +176,40 @@ class SatNavPathFollower:
         # Calculate angle difference (how much we need to turn)
         angle_diff = normalize_angle_diff(target_bearing - current_heading)
         
-        # Decide action based on angle difference
-        if abs(angle_diff) <= self.turn_angle / 2:
+        # Adaptive threshold: larger when close to goal to prevent oscillation
+        # Base threshold: half turn angle for normal navigation
+        base_threshold = self.turn_angle / 2
+        
+        # When close to goal (within 2x goal_radius), use larger threshold
+        # This prevents oscillation when small movements cause large bearing changes
+        if distance < self.goal_radius * 2:
+            # Within 2x goal radius, use full turn_angle as threshold
+            threshold = self.turn_angle
+        else:
+            threshold = base_threshold
+        
+        # Hysteresis: use larger threshold if we were moving forward
+        # This prevents rapid switching between forward and turn actions
+        if self._last_action == Action.MOVE_FORWARD:
+            # If we were moving forward, use larger threshold to continue
+            # This creates a "dead zone" that prevents oscillation
+            threshold = min(threshold * 1.5, self.turn_angle * 1.5)
+        
+        # Decide action based on angle difference with adaptive threshold
+        if abs(angle_diff) <= threshold:
             # Close enough to facing the goal, move forward
-            return self._return_action(Action.MOVE_FORWARD)
+            action = Action.MOVE_FORWARD
         elif angle_diff > 0:
             # Need to turn right (clockwise, positive direction)
-            return self._return_action(Action.TURN_RIGHT)
+            action = Action.TURN_RIGHT
         else:
             # Need to turn left (counter-clockwise, negative direction)
-            return self._return_action(Action.TURN_LEFT)
+            action = Action.TURN_LEFT
+        
+        # Store last action for hysteresis
+        self._last_action = action
+        
+        return self._return_action(action)
     
     def _return_action(self, action: str) -> Union[str, int]:
         """Return action in the requested format.
@@ -225,6 +252,9 @@ class SatNavPathFollower:
             because it doesn't account for actual movement. Use execute_actions=True
             for accurate sequences, or use DiscretePathPlanner for theoretical paths.
         """
+        # Reset last action state for fresh start
+        self._last_action = None
+        
         actions: List[str] = []
         
         for _ in range(max_steps):
@@ -274,24 +304,20 @@ class ReferencePathFollower:
     def __init__(
         self,
         goal_radius: float = 3.0,
-        turn_angle: float = 15.0,
-        waypoint_radius: float = 5.0
+        turn_angle: float = 15.0
     ):
         """Initialize the reference path follower.
         
         Args:
-            goal_radius: Distance threshold for final goal (meters).
+            goal_radius: Distance threshold for all waypoints including final goal (meters).
             turn_angle: Angle per turn action (degrees).
-            waypoint_radius: Distance threshold for intermediate waypoints (meters).
-                Using a larger radius than goal_radius allows smoother path following.
         """
         self.goal_radius = goal_radius
         self.turn_angle = turn_angle
-        self.waypoint_radius = waypoint_radius
         
-        # Internal state
-        self._path_follower = SatNavPathFollower(
-            goal_radius=waypoint_radius,
+        # Internal path follower using unified goal_radius for all waypoints
+        self._follower = SatNavPathFollower(
+            goal_radius=goal_radius,
             turn_angle=turn_angle
         )
         self._reference_path: Optional[List[List[float]]] = None
@@ -337,19 +363,16 @@ class ReferencePathFollower:
         current_position = agent_state.position
         distance = geodesic_distance(current_position, current_waypoint)
         
-        # Use goal_radius for final waypoint, waypoint_radius for intermediate
-        is_final_waypoint = (self._current_waypoint_idx == len(self._reference_path) - 1)
-        threshold = self.goal_radius if is_final_waypoint else self.waypoint_radius
-        
-        if distance <= threshold:
+        # Use goal_radius for all waypoints
+        if distance <= self.goal_radius:
             # Reached current waypoint, advance to next
             self._current_waypoint_idx += 1
             if self._current_waypoint_idx >= len(self._reference_path):
                 return Action.STOP
             current_waypoint = self._reference_path[self._current_waypoint_idx]
         
-        # Get action to move towards current waypoint
-        return self._path_follower.get_next_action(current_waypoint, simulator)
+        # Use unified follower with goal_radius for all waypoints
+        return self._follower.get_next_action(current_waypoint, simulator)
     
     def follow_path(
         self,

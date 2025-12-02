@@ -6,7 +6,7 @@ for Earth's curvature, which is essential for continuous space navigation.
 """
 
 import abc
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -128,16 +128,14 @@ class DistanceToGoal(Measure):
         agent_state = simulator.get_agent_state()
         current_position = agent_state.position.tolist()
         
-        # Only update if position has changed significantly
-        if self._previous_position is None or not np.allclose(
-            self._previous_position, current_position, atol=1e-4
-        ):
-            # Calculate geodesic distance (not Euclidean!)
-            self._metric = simulator.geodesic_distance(
-                current_position,
-                self._goal_position
-            )
-            self._previous_position = current_position.copy()
+        # Always update distance - geodesic distance calculation is fast
+        # Previous implementation used np.allclose with atol=1e-4 which was too
+        # coarse for geographic coordinates (0.0001 degrees ≈ 11 meters at equator)
+        self._metric = simulator.geodesic_distance(
+            current_position,
+            self._goal_position
+        )
+        self._previous_position = current_position.copy()
     
     def get_metric(self) -> float:
         """Get current distance to goal.
@@ -464,4 +462,286 @@ class SPL(Measure):
         if self._metric is None:
             return 0.0
         return float(self._metric)
+
+
+class TopDownMapSatNav(Measure):
+    """Top-down map visualization measure for SatNav.
+    
+    This measure generates a top-down visualization of the navigation task,
+    including:
+    - Cropped satellite map as background (containing reference path and goal)
+    - Reference path (green line)
+    - Start position (blue dot)
+    - Goal position (red dot)
+    - Agent trajectory (gradient colored path)
+    - Current agent position with heading arrow
+    
+    The map is cropped to include all reference path points and goal with padding,
+    avoiding rendering the entire (potentially large) satellite map.
+    
+    Adapted from VLN-CE's TopDownMapVLNCE for geographic coordinates.
+    """
+    
+    def __init__(
+        self,
+        simulator: Optional[Simulator] = None,
+        map_resolution: int = 1024,
+        padding_meters: float = 50.0,
+        draw_reference_path: bool = True,
+        draw_source_and_target: bool = True,
+        agent_sprite_size: int = 30,
+        path_thickness: int = 2,
+        max_episode_steps: int = 500,
+        success_distance: float = 3.0
+    ):
+        """Initialize the TopDownMapSatNav measure.
+        
+        Args:
+            simulator: Simulator instance (optional, can be provided in reset).
+            map_resolution: Maximum resolution of the map image (longest side).
+            padding_meters: Padding to add around the bounding box in meters.
+            draw_reference_path: Whether to draw the reference path.
+            draw_source_and_target: Whether to draw start/goal markers.
+            agent_sprite_size: Size of the agent arrow sprite in pixels.
+            path_thickness: Thickness of path lines.
+            max_episode_steps: Maximum steps for gradient calculation.
+            success_distance: Success distance threshold in meters.
+        """
+        super().__init__()
+        self._sim = simulator
+        self._map_resolution = map_resolution
+        self._padding_meters = padding_meters
+        self._draw_reference_path = draw_reference_path
+        self._draw_source_and_target = draw_source_and_target
+        self._agent_sprite_size = agent_sprite_size
+        self._path_thickness = path_thickness
+        self._max_episode_steps = max_episode_steps
+        self._success_distance = success_distance
+        
+        # State
+        self._top_down_map: Optional[np.ndarray] = None
+        self._bounds: Optional[Dict[str, float]] = None
+        self._step_count: int = 0
+        self._agent_path: List[List[float]] = []  # List of [lon, lat, alt]
+        self._previous_position: Optional[List[float]] = None
+        
+        # Episode data
+        self._start_position: Optional[List[float]] = None
+        self._goal_position: Optional[List[float]] = None
+        self._reference_path: Optional[List[List[float]]] = None
+    
+    def reset(
+        self,
+        episode: VLNEpisode,
+        simulator: Optional[Simulator] = None
+    ) -> None:
+        """Reset the measure for a new episode.
+        
+        Args:
+            episode: The VLN episode containing reference path and goals.
+            simulator: Simulator instance (if not provided in __init__).
+        """
+        sim = simulator if simulator is not None else self._sim
+        if sim is None:
+            raise ValueError("simulator must be provided either in __init__ or reset")
+        
+        self._sim = sim
+        self._step_count = 0
+        self._agent_path = []
+        self._previous_position = None
+        
+        # Store episode data
+        self._start_position = list(episode.start_position)
+        self._goal_position = list(episode.goals[0].position) if episode.goals else None
+        self._reference_path = episode.reference_path
+        
+        # Initialize map
+        self._initialize_map(episode)
+        
+        # Add starting position to path
+        agent_state = sim.get_agent_state()
+        self._agent_path.append(agent_state.position.tolist())
+        self._previous_position = agent_state.position.tolist()
+        
+        # Initial metric update
+        self._update_metric_internal()
+    
+    def _initialize_map(self, episode: VLNEpisode) -> None:
+        """Initialize the top-down map by cropping satellite imagery.
+        
+        Args:
+            episode: The VLN episode.
+        """
+        # Import here to avoid circular imports
+        from satnav.utils.maps import (
+            crop_satellite_map,
+            draw_reference_path,
+            draw_source_and_target,
+        )
+        
+        # Get the satellite TIF from simulator
+        # Access the internal SatSim to get the scene
+        if hasattr(self._sim, '_satsim'):
+            sat_tif = self._sim._satsim._current_scene
+        elif hasattr(self._sim, '_current_scene'):
+            sat_tif = self._sim._current_scene
+        else:
+            raise RuntimeError("Cannot access satellite map from simulator")
+        
+        if sat_tif is None:
+            raise RuntimeError("No satellite scene loaded in simulator")
+        
+        # Prepare reference path (use empty list if None)
+        ref_path = self._reference_path if self._reference_path else []
+        
+        # Crop satellite map
+        self._top_down_map, self._bounds = crop_satellite_map(
+            sat_tif=sat_tif,
+            reference_path=ref_path,
+            goal_position=self._goal_position or self._start_position,
+            start_position=self._start_position,
+            padding_meters=self._padding_meters,
+            max_resolution=self._map_resolution
+        )
+        
+        # Draw reference path
+        if self._draw_reference_path and ref_path:
+            draw_reference_path(
+                self._top_down_map,
+                ref_path,
+                self._bounds,
+                thickness=self._path_thickness
+            )
+        
+        # Draw source and target
+        if self._draw_source_and_target and self._goal_position:
+            draw_source_and_target(
+                self._top_down_map,
+                self._start_position,
+                self._goal_position,
+                self._bounds
+            )
+    
+    def update(
+        self,
+        simulator: Simulator,
+        action: Optional[Union[str, Dict[str, Any]]] = None,
+        episode: Optional[VLNEpisode] = None
+    ) -> None:
+        """Update the top-down map after an action.
+        
+        Args:
+            simulator: Simulator instance.
+            action: Action that was taken (unused).
+            episode: Current episode (unused).
+        """
+        self._step_count += 1
+        
+        # Get current agent position
+        agent_state = simulator.get_agent_state()
+        current_position = agent_state.position.tolist()
+        
+        # Add to path if position changed
+        # Use rtol=0 to disable relative tolerance, only use absolute tolerance
+        # This is important for geographic coordinates where values are large (e.g., 114 degrees)
+        # and we want to detect small absolute changes (e.g., 0.00003 degrees ≈ 3 meters)
+        if self._previous_position is None or not np.allclose(
+            self._previous_position, current_position, atol=1e-6, rtol=0
+        ):
+            self._agent_path.append(current_position)
+            self._previous_position = current_position
+        
+        # Update metric
+        self._update_metric_internal()
+    
+    def _update_metric_internal(self) -> None:
+        """Update the metric (rendered map image)."""
+        from satnav.utils.maps import draw_agent, draw_path, geo_to_pixel
+        
+        if self._top_down_map is None:
+            return
+        
+        # Get current agent state (always use latest state, not from path)
+        agent_state = self._sim.get_agent_state()
+        current_position = agent_state.position.tolist()
+        current_rotation = agent_state.rotation
+        
+        # Create a copy of the base map
+        rendered_map = self._top_down_map.copy()
+        map_shape = rendered_map.shape[:2]
+        
+        # Draw agent path (gradient colored)
+        # Include current position in path even if it hasn't changed (for real-time visualization)
+        path_to_draw = self._agent_path.copy()
+        
+        # Always add current position to show complete path up to current step
+        # This ensures the path is drawn even when agent is turning (position unchanged)
+        if not path_to_draw:
+            path_to_draw.append(current_position)
+        
+        if len(path_to_draw) >= 2:
+            path_pixels = []
+            for point in path_to_draw:
+                row, col = geo_to_pixel(point[0], point[1], self._bounds, map_shape)
+                path_pixels.append((row, col))
+            
+            draw_path(
+                rendered_map,
+                path_pixels,
+                color="gradient",
+                thickness=self._path_thickness,
+                max_steps=self._max_episode_steps
+            )
+        
+        # Draw current agent position with heading (always use latest position and rotation)
+        rendered_map = draw_agent(
+            rendered_map,
+            current_position,
+            current_rotation,
+            self._bounds,
+            sprite_size=self._agent_sprite_size
+        )
+        
+        # Calculate agent position in pixel coordinates for output
+        row, col = geo_to_pixel(current_position[0], current_position[1], self._bounds, map_shape)
+        agent_map_coord = (row, col)
+        agent_angle = current_rotation
+        
+        # Store metric
+        self._metric = {
+            "map": rendered_map,
+            "agent_map_coord": agent_map_coord,
+            "agent_angle": agent_angle,
+            "bounds": self._bounds,
+            "step_count": self._step_count,
+        }
+    
+    def get_metric(self) -> Dict[str, Any]:
+        """Get the current top-down map metric.
+        
+        Returns:
+            Dictionary containing:
+                - "map": RGB image of the top-down map (H, W, 3) uint8.
+                - "agent_map_coord": (row, col) agent position in pixel coordinates.
+                - "agent_angle": Agent heading in degrees.
+                - "bounds": Geographic bounds dictionary.
+                - "step_count": Current step count.
+        """
+        if self._metric is None:
+            return {
+                "map": np.zeros((100, 100, 3), dtype=np.uint8),
+                "agent_map_coord": (0, 0),
+                "agent_angle": 0.0,
+                "bounds": {},
+                "step_count": 0,
+            }
+        return self._metric
+    
+    def get_agent_path(self) -> List[List[float]]:
+        """Get the recorded agent path.
+        
+        Returns:
+            List of agent positions as [[lon, lat, alt], ...].
+        """
+        return self._agent_path.copy()
 

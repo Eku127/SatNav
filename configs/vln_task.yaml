@@ -8,7 +8,7 @@ ENVIRONMENT:
 
 SIMULATOR:
   # Forward movement step size in meters
-  FORWARD_STEP_SIZE: 0.25
+  FORWARD_STEP_SIZE: 5
   
   # Turn angle in degrees (for TURN_LEFT and TURN_RIGHT actions)
   TURN_ANGLE: 15
@@ -16,9 +16,9 @@ SIMULATOR:
   # RGB sensor configuration
   RGB_SENSOR:
     # Image width in pixels
-    WIDTH: 224
+    WIDTH: 640
     # Image height in pixels
-    HEIGHT: 224
+    HEIGHT: 480
     # Horizontal field of view in degrees
     HFOV: 90
 
@@ -28,7 +28,8 @@ TASK:
   
   # Success distance threshold in meters
   # Agent is considered successful if it stops within this distance from the goal
-  SUCCESS_DISTANCE: 3.0
+  # This distance is used for all waypoints including intermediate waypoints and final goal
+  SUCCESS_DISTANCE: 10.0
   
   # Available actions for the agent
   POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
@@ -39,7 +40,20 @@ TASK:
   #   - SUCCESS: Whether the agent successfully reached the goal
   #   - PATH_LENGTH: Total path length traveled (using geodesic distance)
   #   - SPL: Success weighted by Path Length
-  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH]
+  #   - TOP_DOWN_MAP: Top-down map visualization (for video/debugging)
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
+  
+  # Top-Down Map visualization configuration
+  # Enable by adding TOP_DOWN_MAP to MEASUREMENTS list
+  TOP_DOWN_MAP:
+    # Maximum resolution of the map image (longest side in pixels)
+    MAP_RESOLUTION: 1024
+    # Padding around the reference path in meters
+    PADDING_METERS: 50.0
+    # Whether to draw the reference path (green line)
+    DRAW_REFERENCE_PATH: True
+    # Whether to draw start (blue) and goal (red) markers
+    DRAW_SOURCE_AND_TARGET: True
 
 DATASET:
   # Dataset type identifier (informational only, not used in current implementation)
@@ -47,13 +61,15 @@ DATASET:
   TYPE: SatNav
   
   # Dataset split: train, val_seen, val_unseen, test
-  SPLIT: train
+  SPLIT: test
   
   # Path to the dataset JSON file
   # Supports both .json and .json.gz formats
   # Use {split} placeholder to be replaced with the SPLIT value
-  DATA_PATH: data/datasets/satnav/{split}/{split}.json.gz
+  # For example testing, use: tests/test_data/satnav_dataset_complex.json
+  DATA_PATH: tests/test_data/satnav_dataset_complex.json
   
   # Directory containing scene datasets (satellite maps)
-  SCENES_DIR: data/scene_datasets/
+  # For example testing, use: tests/test_data/
+  SCENES_DIR: tests/test_data/
 

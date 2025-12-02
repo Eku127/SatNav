@@ -260,11 +260,10 @@ class TestReferencePathFollower:
         """Test initialization."""
         follower = ReferencePathFollower(
             goal_radius=3.0,
-            turn_angle=15.0,
-            waypoint_radius=5.0
+            turn_angle=15.0
         )
         assert follower.goal_radius == 3.0
-        assert follower.waypoint_radius == 5.0
+        assert follower.turn_angle == 15.0
     
     def test_reset(self):
         """Test reset with reference path."""
