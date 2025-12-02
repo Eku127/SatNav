@@ -47,24 +47,6 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-### 1.3 依赖说明
-
-**核心依赖**：
-- `numpy>=1.19.0` - 数值计算
-- `omegaconf>=2.1.0` - 配置管理
-- `pyyaml>=5.4.0` - YAML文件解析
-- `attrs>=21.0.0` - 数据类支持
-
-**SatSim 仿真器依赖**：
-- `rasterio>=1.3.0` - TIF文件处理和重投影
-- `pyproj>=3.4.0` - 坐标转换（WGS84 ↔ EPSG:3857）
-- `scipy>=1.7.0` - 图像旋转
-- `opencv-python>=4.5.0` - 图像缩放
-
-**测试依赖**：
-- `pytest>=7.0.0` - 测试框架
-- `pytest-cov>=4.0.0` - 测试覆盖率
-
 ---
 
 ## 2. SatSim 仿真器工作原理
@@ -140,117 +122,16 @@ SatSim 使用 `SatelliteCamera` 类生成 RGB 观测：
 - 如果相机视野超出地图边界，会抛出 `ValueError`
 - 确保所有渲染的图像都完全在地图范围内
 
-### 2.5 模块结构
-
-SatSim 分为三个核心模块：
-
-```
-satnav/sims/satsim/
-├── satsim.py      # 核心引擎：场景管理、动作执行、状态管理
-├── camera.py      # 相机渲染：视野计算、图像裁剪/旋转/缩放
-└── geoutils.py    # 坐标工具：WGS84 ↔ EPSG:3857 转换、移动计算
-```
-
 ---
 
-## 3. SatNav 架构解析
+## 3. SatNav 架构
 
-SatNav 采用分层架构设计，从上层到下层依次为：**Env** → **VLNTask** → **SatSimWrapper** → **SatSim**。
+SatNav 采用分层架构：**Env** → **VLNTask** → **SatSimWrapper** → **SatSim**。
 
-### 3.1 架构层次
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Env (环境层)                         │
-│  - 管理 Episode 迭代                                    │
-│  - 连接 Dataset、Simulator、Task                        │
-│  - 提供统一的 reset() 和 step() 接口                    │
-└────────────────────┬────────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────────────┐
-│                 VLNTask (任务层)                        │
-│  - 管理传感器（RGB、Instruction）                        │
-│  - 管理评价指标（Success、SPL、DistanceToGoal等）        │
-│  - 验证动作有效性                                        │
-└────────────────────┬────────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────────────┐
-│            SatSimWrapper (适配器层)                      │
-│  - 适配 SatNav.core.Simulator 接口                      │
-│  - 处理场景路径组合（SCENES_DIR + scene_id）             │
-│  - 转换 WGS84 坐标（对上层透明）                         │
-└────────────────────┬────────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────────────┐
-│                SatSim (仿真器层)                         │
-│  - 场景加载和缓存                                        │
-│  - 动作执行（EPSG:3857 内部）                           │
-│  - 图像渲染                                             │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 3.2 各层职责详解
-
-#### **Env 层（环境层）**
-
-**职责**：
-- 管理 Episode 生命周期（从 Dataset 获取、迭代）
-- 协调 Dataset、Simulator、Task 三个组件
-- 提供标准的 RL 环境接口：`reset()` 和 `step(action)`
-
-**关键方法**：
-- `reset()`: 获取下一个 episode，重置 simulator 和 task，返回初始观测
-- `step(action)`: 执行动作，更新状态，返回 (obs, done, info)
-- `get_metrics()`: 获取当前评价指标
-
-**数据流**：
-```
-reset() → 获取 episode → task.reset() → sim.reset() → 返回观测
-step() → task.step() → sim.step() → 更新指标 → 返回观测
-```
-
-#### **VLNTask 层（任务层）**
-
-**职责**：
-- 管理传感器：RGB（从 Simulator 获取）、Instruction（从 Episode 获取）
-- 管理评价指标：Success、SPL、DistanceToGoal、PathLength
-- 验证动作是否在允许的动作列表中
-
-**传感器**：
-- `RGBSensor`: 从 `simulator.get_observations()["rgb"]` 获取图像
-- `InstructionSensor`: 从 `episode.instruction.instruction_text` 获取文本
-
-**评价指标**：
-- `DistanceToGoal`: 使用 `simulator.geodesic_distance()` 计算到目标的测地距离
-- `Success`: 当调用 STOP 且距离目标 < SUCCESS_DISTANCE 时为 1.0
-- `PathLength`: 累计路径长度（使用测地距离）
-- `SPL`: Success weighted by Path Length
-
-#### **SatSimWrapper 层（适配器层）**
-
-**职责**：
-- 实现 `SatNav.core.Simulator` 抽象接口
-- 处理场景路径组合：`{SCENES_DIR}/{scene_id}.tif`
-- 在 WGS84（外部）和 EPSG:3857（内部）之间转换坐标
-- 委托所有核心功能给 `SatSim` 实例
-
-**关键转换**：
-- `set_agent_state(position_wgs84, rotation)`: 将 WGS84 位置转换为 EPSG:3857 后传给 SatSim
-- `get_agent_state()`: 从 SatSim 获取 EPSG:3857 位置，转换为 WGS84 返回
-- `geodesic_distance()`: 使用 `satnav.core.utils.geodesic_distance()` 计算测地距离
-
-#### **SatSim 层（仿真器层）**
-
-**职责**：
-- 场景管理：加载、缓存、重投影 TIF 文件
-- 动作执行：在 EPSG:3857 坐标系中执行移动和旋转
-- 图像渲染：根据位置、高度、旋转生成 RGB 图像
-- 边界检查：防止智能体移动到地图外
-
-**内部状态**：
-- `_agent_position`: `(x_mercator, y_mercator, altitude)` - EPSG:3857 坐标
-- `_agent_rotation`: 航向角（度，0=正北）
-- `_current_scene`: 当前加载的 rasterio DatasetReader
+- **Env（环境层）**：管理 Episode 迭代，提供 `reset()` 和 `step(action)` 接口
+- **VLNTask（任务层）**：管理传感器（RGB、Instruction）和评价指标（Success、SPL、DistanceToGoal等）
+- **SatSimWrapper（适配器层）**：适配 Simulator 接口，处理场景路径和坐标转换（WGS84 ↔ EPSG:3857）
+- **SatSim（仿真器层）**：场景加载、动作执行、图像渲染
 
 ---
 
@@ -409,20 +290,6 @@ pytest tests/test_geoutils.py -v
 pytest tests/test_utils.py -v
 ```
 
-### 5.3 运行特定测试类或测试方法
-
-```bash
-# 运行特定测试类
-pytest tests/test_env.py::TestEnvIntegration -v
-
-# 运行特定测试方法
-pytest tests/test_env.py::TestEnvIntegration::test_multiple_steps_with_real_satsim -v
-
-# 运行多个测试方法（使用模式匹配）
-pytest tests/test_env.py -k "test_metric" -v
-```
-
-
 ---
 
 ## 6. 快速开始示例
@@ -503,70 +370,28 @@ python examples/reference_follower_example.py
 - 最终可视化图像：`output/topdown_map_example.png`
 - 控制台输出评估指标
 
-### 6.3 基本使用（编程接口）
-
-如果需要自定义导航策略，可以直接使用 SatNav 的编程接口：
-
-```python
-from satnav.core import Env
-from satnav.core.config import load_config
-
-# 加载配置
-config = load_config("configs/vln_task.yaml")
-
-# 创建环境
-env = Env(config)
-
-# 运行一个 episode
-obs = env.reset()
-done = False
-step_count = 0
-
-while not done and step_count < 100:
-    # 随机选择动作（实际应用中应该使用策略网络）
-    action = env.action_space.sample()
-    
-    # 执行动作
-    obs, done, info = env.step(action)
-    step_count += 1
-    
-    # 打印当前状态
-    state = env._task._sim.get_agent_state()
-    print(f"Step {step_count}: Position={state.position}, Rotation={state.rotation}")
-
-# 获取评价指标
-metrics = env.get_metrics()
-print(f"\nEpisode finished!")
-print(f"Success: {metrics['success']}")
-print(f"SPL: {metrics['spl']}")
-print(f"Distance to goal: {metrics['distance_to_goal']:.2f}m")
-print(f"Path length: {metrics['path_length']:.2f}m")
-```
-
-### 6.4 验证安装
-
-```bash
-# 验证导入
-python3 -c "from satnav.core import Env; from satnav.sims.satsim import SatSim; print('✓ Installation successful')"
-
-# 运行示例
-python examples/satnav_path_follower_example.py --no-video
-python examples/reference_follower_example.py
-```
-
 ---
 
 ## 7. 应用工具
 
-SatNav 提供了两个实用工具应用，位于 `applications/` 目录下：
+SatNav 提供了多个实用工具应用，位于 `applications/` 目录下：
 
-### 7.1 Interactive Viewer（交互式查看器）
+### 7.1 SatSim Viewer（交互式查看器）
 
-用于交互式探索卫星地图的工具，支持键盘控制导航。
+`applications/satsim_viewer/` 目录包含两个交互式查看器应用：
+
+#### 7.1.1 Free Viewer（自由探索查看器）
+
+用于自由探索卫星地图的工具，支持键盘控制导航。
 
 **快速开始**：
 ```bash
+# 使用 -m 模块方式（默认运行 free viewer）
 python -m applications.satsim_viewer
+python -m applications.satsim_viewer free
+
+# 或直接运行
+python -m applications.satsim_viewer.free_viewer
 ```
 
 **控制方式**：
@@ -576,9 +401,33 @@ python -m applications.satsim_viewer
 - `d`: 向右转
 - `q`: 上升（增加高度）
 - `e`: 下降（减少高度）
+- `p`: 保存当前图像
 - `ESC`: 退出
 
 **配置**：编辑 `applications/satsim_viewer/config.yaml` 设置 TIF 文件路径、相机参数等。
+
+#### 7.1.2 Task Viewer（任务查看器）
+
+用于交互式浏览 VLN 任务的工具，支持键盘控制导航和任务评估。
+
+**快速开始**：
+```bash
+# 使用 -m 模块方式
+python -m applications.satsim_viewer task
+
+# 或直接运行
+python -m applications.satsim_viewer.task_viewer
+```
+
+**控制方式**：
+- `w`: 向前移动
+- `a`: 向左转
+- `d`: 向右转
+- `t`: 切换 topdown 视图
+- `SPACE`: 停止并显示评估指标，然后加载下一个 episode
+- `ESC`: 退出
+
+**配置**：使用 VLN 任务配置文件（如 `configs/vln_task.yaml`）。
 
 详细文档：`applications/satsim_viewer/README.md`
 
@@ -696,6 +545,8 @@ SatNav/
 │   └── test_geoutils.py
 ├── applications/             # 应用工具
 │   ├── satsim_viewer/       # 交互式查看器
+│   │   ├── free_viewer.py   # 自由探索查看器
+│   │   └── task_viewer.py   # 任务查看器
 │   ├── aerial_viewer/        # 3D 航拍查看器
 │   └── map_downloader/      # 地图下载器
 ├── doc/                      # 文档目录

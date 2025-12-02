@@ -1,6 +1,6 @@
 """Interactive viewer application for SatNav."""
 
-from .viewer import InteractiveViewer, main
+from .free_viewer import InteractiveViewer
 
-__all__ = ["InteractiveViewer", "main"]
+__all__ = ["InteractiveViewer"]
 

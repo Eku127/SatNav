@@ -8,7 +8,7 @@ ENVIRONMENT:
 
 SIMULATOR:
   # Forward movement step size in meters
-  FORWARD_STEP_SIZE: 5
+  FORWARD_STEP_SIZE: 10
   
   # Turn angle in degrees (for TURN_LEFT and TURN_RIGHT actions)
   TURN_ANGLE: 15
