@@ -372,15 +372,85 @@ python examples/reference_follower_example.py
 
 ---
 
-## 7. 应用工具
+## 7. Baseline Models（基线模型）
+
+SatNav 提供了 VLN 基线模型实现，用于训练和评估导航智能体。
+
+### 7.1 Seq2Seq Model
+
+**架构**：Sequence-to-Sequence baseline model
+- **Instruction Encoder**: LSTM with GloVe 50d embeddings (128d hidden)
+- **Visual Encoder**: ResNet-50 pretrained on ImageNet (256d output)
+- **State Encoder**: GRU recurrent network (512d hidden)
+- **Action Space**: 4 discrete actions (STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT)
+
+**Quick Start**:
+```bash
+# Install dependencies
+pip install torch torchvision
+
+# Download GloVe embeddings
+wget http://nlp.stanford.edu/data/glove.6B.zip
+unzip glove.6B.zip -d data/glove/
+
+# Build vocabulary and embeddings
+python -m satnav.utils.build_vocab \
+    --dataset tests/test_data/satnav_dataset_complex.json \
+    --output data/vocab/vocab.json
+
+python -m satnav.utils.build_glove_embeddings \
+    --vocab data/vocab/vocab.json \
+    --glove data/glove/glove.6B.50d.txt \
+    --output data/embeddings/glove_embeddings.json.gz
+```
+
+**Usage**:
+```python
+from satnav.models import ModelRegistry
+from omegaconf import OmegaConf
+
+# Load model
+config = OmegaConf.load("configs/baselines/seq2seq.yaml")
+model_class = ModelRegistry.get_model("seq2seq")
+model = model_class.from_config(config, obs_space, act_space)
+
+# Forward pass
+action, rnn_states = model.act(observations, rnn_states, prev_actions, masks)
+```
+
+**Documentation**:
+- 📖 **Architecture Design**: `doc/models/SEQ2SEQ_BASELINE.md`
+- 🚀 **Quick Start Guide**: `doc/models/QUICKSTART.md`
+- 📝 **Embedding Guide**: `doc/EMBEDDING_GUIDE.md`
+- ✅ **Implementation Summary**: `doc/models/IMPLEMENTATION_SUMMARY.md`
+
+**Tests**:
+```bash
+pytest tests/test_seq2seq_model.py -v
+```
+
+**Key Features**:
+- ✅ VLN-CE compatible architecture
+- ✅ GloVe pretrained embeddings support
+- ✅ Flexible configuration system
+- ✅ Model registry for easy model management
+
+**Differences from VLN-CE**:
+- ❌ No depth encoder (SatNav uses satellite overhead imagery)
+- ✅ Same instruction and RGB encoders
+- ✅ Compatible configuration format
+
+---
+
+## 8. 应用工具
 
 SatNav 提供了多个实用工具应用，位于 `applications/` 目录下：
 
-### 7.1 SatSim Viewer（交互式查看器）
+### 8.1 SatSim Viewer（交互式查看器）
 
 `applications/satsim_viewer/` 目录包含两个交互式查看器应用：
 
-#### 7.1.1 Free Viewer（自由探索查看器）
+#### 8.1.1 Free Viewer（自由探索查看器）
 
 用于自由探索卫星地图的工具，支持键盘控制导航。
 
@@ -406,7 +476,7 @@ python -m applications.satsim_viewer.free_viewer
 
 **配置**：编辑 `applications/satsim_viewer/config.yaml` 设置 TIF 文件路径、相机参数等。
 
-#### 7.1.2 Task Viewer（任务查看器）
+#### 8.1.2 Task Viewer（任务查看器）
 
 用于交互式浏览 VLN 任务的工具，支持键盘控制导航和任务评估。
 
@@ -431,7 +501,7 @@ python -m applications.satsim_viewer.task_viewer
 
 详细文档：`applications/satsim_viewer/README.md`
 
-### 7.2 Map Downloader（地图下载器）
+### 8.2 Map Downloader（地图下载器）
 
 从 Google Maps Static API 下载卫星图像并生成 GeoTIFF 文件的工具。
 

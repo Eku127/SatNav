@@ -1,0 +1,59 @@
+# Seq2Seq baseline model configuration for SatNav
+# 
+# This configuration follows VLN-CE's config structure but is adapted
+# for SatNav (satellite navigation without depth information).
+#
+# Reference:
+#   - VLN-CE: vlnce_baselines/config/default.py (lines 214-261)
+#   - VLN-CE: vlnce_baselines/config/r2r_baselines/seq2seq.yaml
+
+MODEL:
+  # Model type and policy name
+  TYPE: seq2seq
+  policy_name: Seq2SeqPolicy
+  
+  # Visual input normalization (ImageNet stats)
+  normalize_rgb: false
+  
+  # Ablation flags (for ablation studies)
+  ablate_instruction: false
+  ablate_rgb: false
+  
+  # Instruction Encoder Configuration
+  # Reference: VLN-CE default.py lines 222-237
+  INSTRUCTION_ENCODER:
+    sensor_uuid: instruction
+    vocab_size: null  # Will be determined from dataset/vocabulary file
+    
+    # GloVe embedding settings
+    use_pretrained_embeddings: true
+    embedding_file: data/embeddings/glove_embeddings.json.gz
+    fine_tune_embeddings: false
+    embedding_size: 50  # GloVe 6B.50d
+    
+    # RNN settings
+    hidden_size: 128
+    rnn_type: LSTM
+    bidirectional: false
+    final_state_only: true
+  
+  # RGB Visual Encoder Configuration
+  # Reference: VLN-CE default.py lines 239-242
+  # Note: SatNav uses satellite imagery, NO depth encoder
+  RGB_ENCODER:
+    cnn_type: TorchVisionResNet50  # or TorchVisionResNet18
+    output_size: 256
+    trainable: false  # Freeze pretrained ResNet
+    normalize_visual_inputs: false
+  
+  # RNN State Encoder Configuration
+  # Reference: VLN-CE default.py lines 255-257
+  STATE_ENCODER:
+    hidden_size: 512
+    rnn_type: GRU
+    num_layers: 1
+  
+  # Seq2Seq specific settings
+  SEQ2SEQ:
+    use_prev_action: true
+
