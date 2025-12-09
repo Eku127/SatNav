@@ -229,7 +229,9 @@ class BaseILTrainer:
         Returns:
             Dictionary containing checkpoint data
         """
-        return torch.load(checkpoint_path, map_location=self.device)
+        # Use weights_only=False because checkpoint contains model state_dict and optimizer state
+        # which are safe to load (they come from our own training process)
+        return torch.load(checkpoint_path, map_location=self.device, weights_only=False)
     
     def _make_checkpoint_dir(self) -> None:
         """Create checkpoint directory if it doesn't exist."""

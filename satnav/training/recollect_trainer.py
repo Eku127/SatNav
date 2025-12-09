@@ -142,6 +142,10 @@ class RecollectTrainer(BaseILTrainer):
             )
             
             try:
+                max_batches = len(self.dataset.trajectories) // self.config.IL.batch_size
+                if max_batches == 0:
+                    print(f"Warning: No batches to process! trajectories={len(self.dataset.trajectories)}, batch_size={self.config.IL.batch_size}")
+                
                 for batch_idx, batch in enumerate(dataloader):
                     batch_start_time = time.time()
                     
@@ -162,6 +166,11 @@ class RecollectTrainer(BaseILTrainer):
                         not_done_masks,
                         teacher_actions
                     )
+                    
+                    # Check for invalid loss
+                    if not torch.isfinite(torch.tensor(loss)):
+                        print(f"Warning: Invalid loss value {loss} at batch {batch_idx}")
+                        continue
                     
                     # Accumulate loss
                     epoch_loss += loss
@@ -185,11 +194,16 @@ class RecollectTrainer(BaseILTrainer):
                     self.step_id += 1
                     
                     # Break after processing all episodes once
-                    if batch_idx + 1 >= len(self.dataset.trajectories) // self.config.IL.batch_size:
+                    if max_batches > 0 and batch_idx + 1 >= max_batches:
                         break
                         
             except StopIteration:
                 pass
+            except Exception as e:
+                print(f"Error during training: {e}")
+                import traceback
+                traceback.print_exc()
+                raise
             finally:
                 pbar.close()
             
@@ -200,6 +214,14 @@ class RecollectTrainer(BaseILTrainer):
             print(f"\nEpoch {epoch+1} completed:")
             print(f"  Average Loss: {avg_epoch_loss:.4f}")
             print(f"  Epoch Time: {epoch_time:.2f}s")
+            print(f"  Number of batches: {num_batches}")
+            
+            # Check for invalid loss values
+            if not (torch.isfinite(torch.tensor(avg_epoch_loss)) and num_batches > 0):
+                print(f"  Warning: Invalid loss value ({avg_epoch_loss}) or no batches processed!")
+                if num_batches == 0:
+                    print("  No batches were processed in this epoch. Check dataset and batch_size configuration.")
+                continue
             
             # Log epoch metrics to wandb
             if use_wandb:
@@ -226,7 +248,13 @@ class RecollectTrainer(BaseILTrainer):
         
         print("\n" + "="*80)
         print("Training completed!")
-        print(f"Best loss: {best_loss:.4f}")
+        if best_loss == float('inf'):
+            print("Warning: Best loss is inf. This usually means:")
+            print("  - No batches were processed during training")
+            print("  - Loss values were invalid (nan/inf)")
+            print("  - Check dataset configuration and batch_size")
+        else:
+            print(f"Best loss: {best_loss:.4f}")
         print("="*80)
         
         # Finish wandb

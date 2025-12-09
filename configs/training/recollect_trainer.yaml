@@ -12,9 +12,9 @@ TRAINER_NAME: recollect_trainer
 IL:
   lr: 2.5e-4                      # Learning rate
   batch_size: 5                  # Batch size (reduced to avoid OOM)
-  epochs: 1                      # Number of training epochs
-  load_from_ckpt: false           # Whether to load from checkpoint
-  ckpt_to_load: ""                # Path to checkpoint file
+  epochs: 3                     # Number of training epochs
+  load_from_ckpt: true           # Whether to load from checkpoint
+  ckpt_to_load: "data/checkpoints/seq2seq/best.pth"                # Path to checkpoint file
   
   # RecollectTrainer specific settings
   RECOLLECT_TRAINER:

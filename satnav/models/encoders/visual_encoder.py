@@ -19,6 +19,13 @@ import torch.nn.functional as F
 import torchvision.models as models
 from torch import Tensor
 
+# Try to import weights enum for newer torchvision versions
+try:
+    from torchvision.models import ResNet50_Weights, ResNet18_Weights
+    TORCHVISION_HAS_WEIGHTS = True
+except ImportError:
+    TORCHVISION_HAS_WEIGHTS = False
+
 
 class TorchVisionResNet50(nn.Module):
     """ResNet-50 visual encoder using torchvision's pretrained model.
@@ -73,7 +80,11 @@ class TorchVisionResNet50(nn.Module):
         self.spatial_output = spatial_output
         
         # Load pretrained ResNet-50 from torchvision
-        resnet = models.resnet50(pretrained=True)
+        # Use new weights API if available, fallback to pretrained for older versions
+        if TORCHVISION_HAS_WEIGHTS:
+            resnet = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+        else:
+            resnet = models.resnet50(pretrained=True)
         
         # Remove the final classification layer
         modules = list(resnet.children())
@@ -230,7 +241,11 @@ class TorchVisionResNet18(TorchVisionResNet50):
         single_spatial_filter = kwargs.get("single_spatial_filter", True)
         
         # Load pretrained ResNet-18 (not ResNet-50)
-        resnet = models.resnet18(pretrained=True)
+        # Use new weights API if available, fallback to pretrained for older versions
+        if TORCHVISION_HAS_WEIGHTS:
+            resnet = models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+        else:
+            resnet = models.resnet18(pretrained=True)
         
         modules = list(resnet.children())
         self.resnet_layer_size = modules[-1].in_features
