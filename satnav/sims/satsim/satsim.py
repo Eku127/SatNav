@@ -108,10 +108,11 @@ class SatSim:
         scene_path = Path(scene_path)
         
         # Add .tif extension if not present
-        if not scene_path.suffix:
-            scene_path = scene_path.with_suffix('.tif')
-        elif scene_path.suffix.lower() != '.tif':
-            scene_path = scene_path.with_suffix('.tif')
+        # Check if path ends with .tif (case-insensitive)
+        if not str(scene_path).lower().endswith('.tif'):
+            # Append .tif instead of using with_suffix to avoid issues with
+            # filenames containing dots (e.g., map_center_40.712800_-74.006000.tif)
+            scene_path = Path(str(scene_path) + '.tif')
         
         scene_path_str = str(scene_path)
         

@@ -18,9 +18,9 @@ SIMULATOR:
   # RGB sensor configuration
   RGB_SENSOR:
     # Image width in pixels
-    WIDTH: 640
+    WIDTH: 512
     # Image height in pixels
-    HEIGHT: 480
+    HEIGHT: 512
     # Horizontal field of view in degrees
     HFOV: 90
 

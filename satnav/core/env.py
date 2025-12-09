@@ -144,6 +144,26 @@ class Env:
         
         return observations
     
+    def reset_to_episode(self, episode: VLNEpisode) -> Dict[str, Any]:
+        """Reset environment directly to a specified episode.
+        
+        This bypasses the dataset iterator and is useful for training-time
+        data collection where we want deterministic control of episode order.
+        """
+        if episode is None:
+            raise RuntimeError("Cannot reset_to_episode: episode is None")
+
+        self._current_episode = episode
+
+        # Reset task (which resets simulator and measures)
+        observations = self._task.reset(self._current_episode)
+
+        # Reset episode state
+        self._elapsed_steps = 0
+        self._episode_over = False
+
+        return observations
+    
     def step(
         self,
         action: Union[str, Dict[str, Any], int]

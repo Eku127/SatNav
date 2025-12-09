@@ -10,7 +10,7 @@
 MODEL:
   # Model type and policy name
   TYPE: seq2seq
-  policy_name: Seq2SeqPolicy
+  policy_name: seq2seq  # Must match registry name, not class name
   
   # Visual input normalization (ImageNet stats)
   normalize_rgb: false
@@ -27,7 +27,7 @@ MODEL:
     
     # GloVe embedding settings
     use_pretrained_embeddings: true
-    embedding_file: data/embeddings/glove_embeddings.json.gz
+    embedding_file: data/debug_data/embeddings.json.gz
     fine_tune_embeddings: false
     embedding_size: 50  # GloVe 6B.50d
     

@@ -1,0 +1,75 @@
+# SatNav VLN Task Configuration
+# This configuration file defines the settings for Vision-and-Language Navigation
+# tasks in continuous space using satellite maps.
+
+ENVIRONMENT:
+  # Maximum number of steps allowed per episode
+  MAX_EPISODE_STEPS: 500
+
+SIMULATOR:
+  # Forward movement step size in meters
+  FORWARD_STEP_SIZE: 10
+  
+  # Turn angle in degrees (for TURN_LEFT and TURN_RIGHT actions)
+  TURN_ANGLE: 15
+  
+  # RGB sensor configuration
+  RGB_SENSOR:
+    # Image width in pixels
+    WIDTH: 512
+    # Image height in pixels
+    HEIGHT: 512
+    # Horizontal field of view in degrees
+    HFOV: 90
+
+TASK:
+  # Task type identifier
+  TYPE: VLN
+  
+  # Success distance threshold in meters
+  # Agent is considered successful if it stops within this distance from the goal
+  # This distance is used for all waypoints including intermediate waypoints and final goal
+  SUCCESS_DISTANCE: 10.0
+  
+  # Available actions for the agent
+  POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+  
+  # Enabled evaluation measures
+  # Available measures:
+  #   - DISTANCE_TO_GOAL: Geodesic distance to the goal
+  #   - SUCCESS: Whether the agent successfully reached the goal
+  #   - PATH_LENGTH: Total path length traveled (using geodesic distance)
+  #   - SPL: Success weighted by Path Length
+  #   - TOP_DOWN_MAP: Top-down map visualization (for video/debugging)
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
+  
+  # Top-Down Map visualization configuration
+  # Enable by adding TOP_DOWN_MAP to MEASUREMENTS list
+  TOP_DOWN_MAP:
+    # Maximum resolution of the map image (longest side in pixels)
+    MAP_RESOLUTION: 1024
+    # Padding around the reference path in meters
+    PADDING_METERS: 50.0
+    # Whether to draw the reference path (green line)
+    DRAW_REFERENCE_PATH: True
+    # Whether to draw start (blue) and goal (red) markers
+    DRAW_SOURCE_AND_TARGET: True
+
+DATASET:
+  # Dataset type identifier (informational only, not used in current implementation)
+  # Since we don't use a registry system, this field is informational only.
+  TYPE: SatNav
+  
+  # Dataset split: train, val_seen, val_unseen, test
+  SPLIT: train
+  
+  # Path to the dataset JSON file
+  # Supports both .json and .json.gz formats
+  # Use {split} placeholder to be replaced with the SPLIT value
+  # For example testing, use: tests/test_data/satnav_dataset_complex.json
+  DATA_PATH: data/debug_data/{split}/{split}.json
+  
+  # Directory containing scene datasets (satellite maps)
+  # For example testing, use: tests/test_data/
+  SCENES_DIR: data/scene_datasets/
+

@@ -1,0 +1,51 @@
+# RecollectTrainer Configuration
+# Complete configuration for training with real-time trajectory collection
+
+# Task configuration path (auto-loaded if specified)
+# This follows VLN-CE style for better organization
+TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+
+# Trainer name
+TRAINER_NAME: recollect_trainer
+
+# Imitation Learning configuration
+IL:
+  lr: 2.5e-4                      # Learning rate
+  batch_size: 5                  # Batch size (reduced to avoid OOM)
+  epochs: 1                      # Number of training epochs
+  load_from_ckpt: false           # Whether to load from checkpoint
+  ckpt_to_load: ""                # Path to checkpoint file
+  
+  # RecollectTrainer specific settings
+  RECOLLECT_TRAINER:
+    preload_size: 5               # Number of episodes to preload (reduced to avoid OOM)
+    max_traj_len: 500             # Maximum trajectory length
+
+# Checkpoint configuration
+CHECKPOINT_FOLDER: "data/checkpoints/seq2seq"
+
+# W&B (Weights & Biases) configuration
+WANDB:
+  project: "satnav-vln"           # W&B project name
+  run_name: "recollect-seq2seq"   # W&B run name
+  entity: null                    # W&B team name (optional)
+  mode: "online"                  # W&B mode: online, offline, disabled
+
+# Device configuration
+TORCH_GPU_ID: 0                   # GPU ID to use
+NUM_PROCESSES: 1                  # Number of processes (single process for SatNav)
+
+# Note: Task config (DATASET, SIMULATOR, TASK, ENVIRONMENT) is automatically
+# loaded from TASK_CONFIG_PATH. Model config should be specified via --model-config.
+# 
+# Example usage:
+#   python -m satnav.training.recollect_trainer \
+#     --config configs/training/recollect_trainer.yaml \
+#     --model-config configs/baselines/seq2seq.yaml
+#
+# To use a different task config:
+#   python -m satnav.training.recollect_trainer \
+#     --config configs/training/recollect_trainer.yaml \
+#     --model-config configs/baselines/seq2seq.yaml \
+#     --opts TASK_CONFIG_PATH configs/debug_vln_task.yaml
+

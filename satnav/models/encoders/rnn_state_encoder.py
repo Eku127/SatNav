@@ -48,31 +48,33 @@ class RNNStateEncoder(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward for a non-sequence input (single timestep).
         
+        Following Habitat-Lab's approach.
+        
         Args:
             x: Input features [batch_size, input_size]
-            hidden_states: Hidden states [batch_size, num_layers, hidden_size]
+            hidden_states: Hidden states [num_layers, batch_size, hidden_size]
             masks: Episode boundary masks [batch_size, 1]
         
         Returns:
             Tuple of (output, hidden_states)
                 output: [batch_size, hidden_size]
-                hidden_states: [batch_size, num_layers, hidden_size]
+                hidden_states: [num_layers, batch_size, hidden_size]
         """
-        # Reset hidden state where mask is False (episode ended)
-        # Shapes: hidden_states [batch, num_layers, hidden], masks [batch, 1]
-        hidden_states = hidden_states * masks.view(-1, 1, 1)
-        
-        # Permute to [num_layers, batch, hidden] for RNN
-        hidden_states_rnn = hidden_states.permute(1, 0, 2)
+        # Reset hidden state where mask is 0 (episode boundary)
+        # hidden_states: [num_layers, batch, hidden], masks: [batch, 1]
+        # Reshape masks to [1, batch, 1] for broadcasting
+        hidden_states = torch.where(
+            masks.view(1, -1, 1).bool(),
+            hidden_states,
+            hidden_states.new_zeros(())
+        )
         
         # Add sequence dimension and forward through RNN
-        x, hidden_states_rnn = self.rnn(
-            x.unsqueeze(0), self.unpack_hidden(hidden_states_rnn)
+        # hidden_states is already [num_layers, batch, hidden]
+        x, hidden_states = self.rnn(
+            x.unsqueeze(0), self.unpack_hidden(hidden_states)
         )
-        hidden_states_rnn = self.pack_hidden(hidden_states_rnn)
-        
-        # Permute back to [batch, num_layers, hidden]
-        hidden_states = hidden_states_rnn.permute(1, 0, 2)
+        hidden_states = self.pack_hidden(hidden_states)
         
         # Remove sequence dimension
         x = x.squeeze(0)
@@ -84,6 +86,7 @@ class RNNStateEncoder(nn.Module):
         """Forward pass through the RNN.
         
         Automatically handles both single-step and sequence inputs.
+        Following Habitat-Lab's simpler approach without unnecessary permutes.
         
         Args:
             x: Input features [batch_size, input_size] or [T*batch_size, input_size]
@@ -91,12 +94,10 @@ class RNNStateEncoder(nn.Module):
             masks: Episode boundary masks [batch_size, 1] or [T*batch_size, 1]
         
         Returns:
-            Tuple of (output, hidden_states)
+            Tuple of (output, hidden_states) where hidden_states is [num_layers, batch, hidden]
         """
-        # Permute hidden states to [batch_size, num_layers, hidden_size]
-        hidden_states = hidden_states.permute(1, 0, 2)
-        
-        batch_size = hidden_states.size(0)
+        # Get batch_size from hidden_states (which is [num_layers, batch, hidden])
+        batch_size = hidden_states.size(1)
 
         # Single-step forward (common case for IL/RL)
         if x.dim() == 2 and masks.dim() == 2 and x.size(0) == batch_size:
@@ -105,31 +106,31 @@ class RNNStateEncoder(nn.Module):
             # Sequence forward: reshape to [T, batch, feat]
             assert (
                 x.size(0) % batch_size == 0
-            ), "Sequence length must be a multiple of batch size"
+            ), f"Sequence length {x.size(0)} must be a multiple of batch size {batch_size}"
             T = x.size(0) // batch_size
             x = x.view(T, batch_size, -1)
             masks = masks.view(T, batch_size, 1)
 
             outputs = []
             for t in range(T):
-                # Reset hidden where episode ended at previous step
-                hidden_states = hidden_states * masks[t]
-
-                # Permute to [num_layers, batch, hidden] for RNN
-                hidden_states_rnn = hidden_states.permute(1, 0, 2)
-                out, hidden_states_rnn = self.rnn(
-                    x[t].unsqueeze(0), self.unpack_hidden(hidden_states_rnn)
+                # Reset hidden where mask is 0 (episode boundary)
+                # masks[t] is [batch, 1], reshape to [1, batch, 1] for broadcasting
+                hidden_states = torch.where(
+                    masks[t].view(1, batch_size, 1).bool(),
+                    hidden_states,
+                    hidden_states.new_zeros(())
                 )
-                hidden_states_rnn = self.pack_hidden(hidden_states_rnn)
-                # Permute back to [batch, num_layers, hidden]
-                hidden_states = hidden_states_rnn.permute(1, 0, 2)
+
+                # Forward through RNN
+                # hidden_states is already [num_layers, batch, hidden]
+                out, hidden_states = self.rnn(
+                    x[t].unsqueeze(0), self.unpack_hidden(hidden_states)
+                )
+                hidden_states = self.pack_hidden(hidden_states)
                 outputs.append(out)
 
             # Collapse time dimension back to [T*batch, hidden]
             x = torch.cat(outputs, dim=0).view(T * batch_size, -1)
-        
-        # Permute hidden states back to [num_layers, batch_size, hidden_size]
-        hidden_states = hidden_states.permute(1, 0, 2)
         
         return x, hidden_states
 

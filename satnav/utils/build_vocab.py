@@ -186,6 +186,100 @@ def build_vocab(
     print(f"Sample words: {idx2word[2:min(12, len(idx2word))]}")
 
 
+class VocabDict:
+    """Vocabulary dictionary wrapper for tokenization.
+    
+    This class provides a simple interface for converting tokens to indices,
+    similar to Habitat-Lab's VocabDict class.
+    
+    Attributes:
+        word2idx: Dictionary mapping word to index
+        idx2word: List mapping index to word
+        vocab_size: Size of vocabulary
+    """
+    
+    def __init__(self, word2idx: Dict[str, int]):
+        """Initialize VocabDict from word2idx mapping.
+        
+        Args:
+            word2idx: Dictionary mapping word to index
+        """
+        self.word2idx = word2idx
+        self.idx2word = [""] * len(word2idx)
+        for word, idx in word2idx.items():
+            self.idx2word[idx] = word
+        self.vocab_size = len(word2idx)
+    
+    def tokens_to_indices(self, tokens: List[str]) -> List[int]:
+        """Convert list of tokens to list of indices.
+        
+        Args:
+            tokens: List of token strings
+            
+        Returns:
+            List of token indices (UNK for unknown tokens)
+        """
+        unk_idx = self.word2idx.get("<unk>", 1)
+        return [self.word2idx.get(token, unk_idx) for token in tokens]
+    
+    def __len__(self) -> int:
+        """Return vocabulary size."""
+        return self.vocab_size
+    
+    @classmethod
+    def load(cls, vocab_path: str) -> "VocabDict":
+        """Load VocabDict from JSON file.
+        
+        Args:
+            vocab_path: Path to vocabulary JSON file
+            
+        Returns:
+            VocabDict instance
+        """
+        with open(vocab_path, "r") as f:
+            vocab_data = json.load(f)
+        return cls(vocab_data["word2idx"])
+    
+    def save(self, vocab_path: str) -> None:
+        """Save VocabDict to JSON file.
+        
+        Args:
+            vocab_path: Path to save vocabulary JSON file
+        """
+        vocab_data = {
+            "word2idx": self.word2idx,
+            "idx2word": self.idx2word,
+            "vocab_size": self.vocab_size,
+        }
+        with open(vocab_path, "w") as f:
+            json.dump(vocab_data, f, indent=2)
+
+
+def build_vocab_from_dataset(dataset_path: str, min_count: int = 1) -> VocabDict:
+    """Build vocabulary from dataset and return VocabDict.
+    
+    This is a convenience function that combines load_vocab_from_dataset
+    and build_vocab_from_episodes to create a VocabDict.
+    
+    Args:
+        dataset_path: Path to dataset JSON file
+        min_count: Minimum frequency for a word to be included
+        
+    Returns:
+        VocabDict instance
+    """
+    # Try to load from dataset first
+    word2idx = load_vocab_from_dataset(dataset_path)
+    
+    if word2idx is None:
+        # Extract from episodes
+        with open(dataset_path, "r") as f:
+            data = json.load(f)
+        word2idx = build_vocab_from_episodes(data["episodes"], min_count)
+    
+    return VocabDict(word2idx)
+
+
 if __name__ == "__main__":
     import argparse
     
