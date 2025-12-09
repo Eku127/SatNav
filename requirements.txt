@@ -6,6 +6,10 @@ omegaconf>=2.1.0
 pyyaml>=5.4.0
 attrs>=21.0.0
 
+# Model dependencies
+torch>=1.7.0
+torchvision>=0.8.0
+
 # SatSim dependencies
 rasterio>=1.3.0  # TIF file handling and reprojection
 pyproj>=3.4.0  # Coordinate transformations (WGS84 <-> EPSG:3857)

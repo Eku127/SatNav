@@ -61,15 +61,15 @@ DATASET:
   TYPE: SatNav
   
   # Dataset split: train, val_seen, val_unseen, test
-  SPLIT: test
+  SPLIT: train
   
   # Path to the dataset JSON file
   # Supports both .json and .json.gz formats
   # Use {split} placeholder to be replaced with the SPLIT value
   # For example testing, use: tests/test_data/satnav_dataset_complex.json
-  DATA_PATH: tests/test_data/satnav_dataset_complex.json
+  DATA_PATH: data/debug_data/{split}/{split}.json
   
   # Directory containing scene datasets (satellite maps)
   # For example testing, use: tests/test_data/
-  SCENES_DIR: tests/test_data/
+  SCENES_DIR: data/scene_datasets/
 
