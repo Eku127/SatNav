@@ -1,29 +1,86 @@
-# Seq2Seq baseline model configuration for SatNav
-# 
-# This configuration follows VLN-CE's config structure but is adapted
-# for SatNav (satellite navigation without depth information).
+# Seq2Seq Baseline - Unified Configuration
 #
-# Reference:
-#   - VLN-CE: vlnce_baselines/config/default.py (lines 214-261)
-#   - VLN-CE: vlnce_baselines/config/r2r_baselines/seq2seq.yaml
+# This configuration follows VLN-CE's unified config structure with support for
+# train/eval/inference modes through a single config file.
+#
+# Usage:
+#   Training:   python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+#   Evaluation: python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+#   Override:   python run.py --exp-config CONFIG --run-type eval EVAL.SPLIT val_unseen
 
-MODEL:
-  # Model type and policy name
-  TYPE: seq2seq
-  policy_name: seq2seq  # Must match registry name, not class name
+# ============================================================================
+# BASE CONFIGURATION
+# ============================================================================
+
+# Path to task configuration (auto-loaded and merged)
+BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+
+# Trainer to use (from registry)
+TRAINER_NAME: recollect_trainer
+
+# Directories
+CHECKPOINT_FOLDER: data/checkpoints/seq2seq
+RESULTS_DIR: data/results/seq2seq
+
+# Device configuration
+TORCH_GPU_ID: 0
+NUM_PROCESSES: 1
+
+# ============================================================================
+# TRAINING CONFIGURATION (IL - Imitation Learning)
+# ============================================================================
+IL:
+  # Optimizer settings
+  lr: 2.5e-4
+  batch_size: 5
+  epochs: 5
   
-  # Visual input normalization (ImageNet stats)
+  # Checkpoint loading
+  load_from_ckpt: false
+  ckpt_to_load: data/checkpoints/seq2seq/best.pth
+  
+  # RecollectTrainer specific settings
+  RECOLLECT_TRAINER:
+    preload_size: 5        # Number of episodes to preload
+    max_traj_len: 500      # Maximum trajectory length (-1 for no limit)
+
+# ============================================================================
+# EVALUATION CONFIGURATION
+# ============================================================================
+EVAL:
+  SPLIT: val_seen          # Dataset split: train, val_seen, val_unseen, test
+  EPISODE_COUNT: -1        # Number of episodes to evaluate (-1 for all)
+  SAVE_RESULTS: true       # Save evaluation results to JSON
+  CKPT_PATH: data/checkpoints/seq2seq/best.pth  # Checkpoint to evaluate
+
+# ============================================================================
+# INFERENCE CONFIGURATION
+# ============================================================================
+INFERENCE:
+  SPLIT: test
+  CKPT_PATH: data/checkpoints/seq2seq/best.pth
+  PREDICTIONS_FILE: data/predictions/seq2seq_test.json
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+MODEL:
+  # Model identification
+  policy_name: seq2seq  # Must match registry name
+  
+  # Visual input normalization
   normalize_rgb: false
   
   # Ablation flags (for ablation studies)
   ablate_instruction: false
   ablate_rgb: false
   
-  # Instruction Encoder Configuration
-  # Reference: VLN-CE default.py lines 222-237
+  # --------------------------------------------------------------------------
+  # Instruction Encoder
+  # --------------------------------------------------------------------------
   INSTRUCTION_ENCODER:
     sensor_uuid: instruction
-    vocab_size: null  # Will be determined from dataset/vocabulary file
+    vocab_size: null  # Will be determined from dataset
     
     # GloVe embedding settings
     use_pretrained_embeddings: true
@@ -31,29 +88,41 @@ MODEL:
     fine_tune_embeddings: false
     embedding_size: 50  # GloVe 6B.50d
     
-    # RNN settings
+    # RNN encoder settings
     hidden_size: 128
     rnn_type: LSTM
     bidirectional: false
+    num_layers: 1
     final_state_only: true
   
-  # RGB Visual Encoder Configuration
-  # Reference: VLN-CE default.py lines 239-242
-  # Note: SatNav uses satellite imagery, NO depth encoder
+  # --------------------------------------------------------------------------
+  # RGB Visual Encoder (Satellite Imagery)
+  # --------------------------------------------------------------------------
   RGB_ENCODER:
     cnn_type: TorchVisionResNet50  # or TorchVisionResNet18
     output_size: 256
     trainable: false  # Freeze pretrained ResNet
     normalize_visual_inputs: false
   
-  # RNN State Encoder Configuration
-  # Reference: VLN-CE default.py lines 255-257
+  # --------------------------------------------------------------------------
+  # RNN State Encoder
+  # --------------------------------------------------------------------------
   STATE_ENCODER:
     hidden_size: 512
     rnn_type: GRU
     num_layers: 1
   
-  # Seq2Seq specific settings
+  # --------------------------------------------------------------------------
+  # Seq2Seq Specific Settings
+  # --------------------------------------------------------------------------
   SEQ2SEQ:
     use_prev_action: true
 
+# ============================================================================
+# WEIGHTS & BIASES LOGGING
+# ============================================================================
+WANDB:
+  project: satnav-vln
+  run_name: seq2seq-baseline
+  entity: null  # Set to your W&B team name if applicable
+  mode: online  # Options: online, offline, disabled

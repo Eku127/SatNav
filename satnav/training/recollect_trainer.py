@@ -17,8 +17,10 @@ from omegaconf import DictConfig, OmegaConf
 from satnav.training.base_il_trainer import BaseILTrainer
 from satnav.dataset.recollect_dataset import RecollectionDataset
 from satnav.training.utils import collate_fn
+from satnav.training.registry import register_trainer
 
 
+@register_trainer("recollect_trainer")
 class RecollectTrainer(BaseILTrainer):
     """Trainer that collects trajectories in real-time and trains with IL.
     
@@ -260,71 +262,3 @@ class RecollectTrainer(BaseILTrainer):
         # Finish wandb
         if use_wandb:
             wandb.finish()
-
-
-def main():
-    """Main entry point for training."""
-    import argparse
-    import os
-    
-    parser = argparse.ArgumentParser(description="Train SatNav VLN agent")
-    parser.add_argument(
-        "--config",
-        type=str,
-        required=True,
-        help="Path to training config file"
-    )
-    parser.add_argument(
-        "--model-config",
-        type=str,
-        required=True,
-        help="Path to model config file"
-    )
-    parser.add_argument(
-        "--opts",
-        nargs=argparse.REMAINDER,
-        help="Modify config options from command line"
-    )
-    
-    args = parser.parse_args()
-    
-    # Load configs
-    from omegaconf import OmegaConf
-    
-    # Load training config
-    training_config = OmegaConf.load(args.config)
-    
-    # Auto-load task config if specified in training config
-    # This follows VLN-CE style: task config path specified in training config
-    task_config = None
-    if "TASK_CONFIG_PATH" in training_config:
-        task_config_path = training_config.TASK_CONFIG_PATH
-        if os.path.exists(task_config_path):
-            print(f"Loading task config from: {task_config_path}")
-            task_config = OmegaConf.load(task_config_path)
-        else:
-            print(f"Warning: Task config not found at {task_config_path}, skipping")
-    
-    # Load model config
-    model_config = OmegaConf.load(args.model_config)
-    
-    # Merge configs with priority: training < task < model
-    # This allows model config to override task config if needed
-    if task_config is not None:
-        config = OmegaConf.merge(training_config, task_config, model_config)
-    else:
-        config = OmegaConf.merge(training_config, model_config)
-    
-    # Apply command line overrides (highest priority)
-    if args.opts:
-        override_config = OmegaConf.from_dotlist(args.opts)
-        config = OmegaConf.merge(config, override_config)
-    
-    # Create trainer and train
-    trainer = RecollectTrainer(config)
-    trainer.train()
-
-
-if __name__ == "__main__":
-    main()
-

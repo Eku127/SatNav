@@ -236,4 +236,115 @@ class BaseILTrainer:
     def _make_checkpoint_dir(self) -> None:
         """Create checkpoint directory if it doesn't exist."""
         os.makedirs(self.config.CHECKPOINT_FOLDER, exist_ok=True)
+    
+    def eval(self) -> None:
+        """Main evaluation entry point.
+        
+        This method is called when run.py is invoked with --run-type eval.
+        It loads the checkpoint specified in config.EVAL and runs evaluation.
+        """
+        print("=" * 80)
+        print("Starting Evaluation")
+        print("=" * 80)
+        
+        # Get evaluation config
+        eval_config = self.config.get('EVAL', {})
+        
+        # Determine checkpoint path
+        if 'CKPT_PATH' in eval_config:
+            ckpt_path = eval_config.CKPT_PATH
+        elif hasattr(self.config, 'IL') and hasattr(self.config.IL, 'ckpt_to_load'):
+            ckpt_path = self.config.IL.ckpt_to_load
+        else:
+            print("Error: No checkpoint path specified in config")
+            print("  Please set EVAL.CKPT_PATH or IL.ckpt_to_load")
+            return
+        
+        # Validate checkpoint exists
+        if not os.path.exists(ckpt_path):
+            print(f"Error: Checkpoint not found: {ckpt_path}")
+            return
+        
+        # Run evaluation
+        self._eval_checkpoint(ckpt_path, checkpoint_index=0)
+    
+    def _eval_checkpoint(
+        self,
+        checkpoint_path: str,
+        checkpoint_index: int = 0
+    ) -> Dict[str, float]:
+        """Evaluate a single checkpoint (basic implementation stub).
+        
+        This is a basic stub implementation that validates checkpoint loading.
+        
+        TODO: Implement complete evaluation loop:
+            - Create environment from config
+            - Load checkpoint into policy
+            - Initialize policy in eval mode
+            - Run episodes and collect trajectories
+            - Compute metrics (SPL, Success, Oracle Success, etc.)
+            - Save results to JSON if EVAL.SAVE_RESULTS is true
+            - Return aggregated metrics
+        
+        Args:
+            checkpoint_path: Path to checkpoint file
+            checkpoint_index: Index for logging purposes
+            
+        Returns:
+            Dictionary of aggregated metrics (empty in stub implementation)
+        """
+        print(f"\nEvaluating checkpoint: {checkpoint_path}")
+        print("Note: This is a basic evaluation stub")
+        print("      Full evaluation implementation is TODO\n")
+        
+        # Get evaluation config
+        from omegaconf import OmegaConf
+        
+        # Use OmegaConf.select() with default values  
+        split = OmegaConf.select(self.config, 'EVAL.SPLIT', default='val_seen')
+        episode_count = OmegaConf.select(self.config, 'EVAL.EPISODE_COUNT', default=-1)
+        save_results = OmegaConf.select(self.config, 'EVAL.SAVE_RESULTS', default=True)
+        
+        # Handle None values explicitly
+        if split is None:
+            split = 'val_seen'
+        if episode_count is None:
+            episode_count = -1
+        if save_results is None:
+            save_results = True
+        
+        print(f"Evaluation configuration:")
+        print(f"  Split: {split}")
+        print(f"  Episode count: {episode_count if episode_count > 0 else 'all'}")
+        print(f"  Save results: {save_results}")
+        
+        # Basic implementation: Just load and validate checkpoint
+        try:
+            ckpt = self.load_checkpoint(checkpoint_path)
+            epoch = ckpt.get('epoch', 'N/A')
+            step_id = ckpt.get('step_id', 'N/A')
+            loss = ckpt.get('loss', 'N/A')
+            
+            print(f"\nCheckpoint loaded successfully:")
+            print(f"  Epoch: {epoch}")
+            print(f"  Step: {step_id}")
+            print(f"  Loss: {loss}")
+            
+            # Check if state_dict exists
+            if 'state_dict' in ckpt:
+                num_params = sum(p.numel() for p in ckpt['state_dict'].values())
+                print(f"  Parameters: {num_params:,}")
+            
+        except Exception as e:
+            print(f"\nError loading checkpoint: {e}")
+            import traceback
+            traceback.print_exc()
+            return {}
+        
+        print("\n" + "=" * 80)
+        print("Evaluation stub completed")
+        print("TODO: Implement full evaluation with environment rollouts")
+        print("=" * 80)
+        
+        return {}
 

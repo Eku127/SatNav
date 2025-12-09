@@ -163,10 +163,16 @@ pytest tests/test_seq2seq_model.py -v --tb=short
 
 ## Next Steps
 
-- **Training**: Implement a trainer (coming in future releases)
+- **Training**: See [Training Guide](../training/TRAINING_GUIDE.md) for training the model
+  ```bash
+  python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+  ```
 - **Evaluation**: Run model on validation set
+  ```bash
+  python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+  ```
 - **Custom Models**: Extend Seq2Seq to create attention-based models
-- **Documentation**: See `doc/models/SEQ2SEQ_BASELINE.md` for details
+- **Documentation**: See `doc/models/SEQ2SEQ_BASELINE.md` for architecture details
 
 ## Quick Reference
 

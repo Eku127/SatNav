@@ -3,35 +3,31 @@
 
 This module provides trainers and utilities for training navigation models
 using imitation learning.
+
+The trainer registry system allows trainers to be registered and retrieved
+by name, similar to VLN-CE's baseline_registry.
 """
 
 from satnav.training.base_il_trainer import BaseILTrainer
 from satnav.training.utils import collate_fn, pad_helper, tokenize_instruction
+from satnav.training.registry import register_trainer, get_trainer
 
-# Lazy imports to avoid RuntimeWarning when running as module
-# These will be imported on first access
-def _lazy_import_recollect_trainer():
-    from satnav.training.recollect_trainer import RecollectTrainer
-    return RecollectTrainer
-
-def _lazy_import_recollection_dataset():
-    from satnav.dataset.recollect_dataset import RecollectionDataset
-    return RecollectionDataset
-
-# Use __getattr__ for lazy imports (Python 3.7+)
-def __getattr__(name):
-    if name == "RecollectTrainer":
-        return _lazy_import_recollect_trainer()
-    elif name == "RecollectionDataset":
-        return _lazy_import_recollection_dataset()
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+# Import trainers to trigger registration via @register_trainer decorator
+from satnav.training.recollect_trainer import RecollectTrainer
 
 __all__ = [
+    # Base classes
     "BaseILTrainer",
+    
+    # Trainers
     "RecollectTrainer",
-    "RecollectionDataset",
+    
+    # Registry functions
+    "register_trainer",
+    "get_trainer",
+    
+    # Utilities
     "collate_fn",
     "pad_helper",
     "tokenize_instruction",
 ]
-

@@ -1,0 +1,205 @@
+# SatNav Default Configuration Template
+#
+# This file serves as a reference for all available configuration options.
+# Experiment configs (e.g., configs/baselines/seq2seq.yaml) should override
+# these defaults as needed.
+#
+# Configuration Structure:
+#   - BASE_TASK_CONFIG_PATH: Path to task configuration
+#   - TRAINER_NAME: Name of the trainer to use
+#   - IL: Imitation learning / training settings
+#   - EVAL: Evaluation settings
+#   - INFERENCE: Inference/prediction settings
+#   - MODEL: Model architecture settings
+#   - WANDB: Weights & Biases logging settings
+#   - Device settings
+
+# ============================================================================
+# BASE CONFIGURATION
+# ============================================================================
+
+# Path to task configuration file (will be auto-loaded and merged)
+BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+
+# Name of the trainer to use (must be registered in registry)
+# Available: recollect_trainer
+TRAINER_NAME: recollect_trainer
+
+# Directory for saving model checkpoints
+CHECKPOINT_FOLDER: data/checkpoints/default
+
+# Directory for saving evaluation results
+RESULTS_DIR: data/results/default
+
+# GPU device ID to use for PyTorch operations
+TORCH_GPU_ID: 0
+
+# Number of parallel processes (currently only supports 1 for SatNav)
+NUM_PROCESSES: 1
+
+# ============================================================================
+# IMITATION LEARNING (TRAINING) CONFIGURATION
+# ============================================================================
+IL:
+  # Learning rate for optimizer
+  lr: 2.5e-4
+  
+  # Batch size for training
+  batch_size: 5
+  
+  # Number of training epochs
+  epochs: 10
+  
+  # Whether to load from a checkpoint for fine-tuning
+  load_from_ckpt: false
+  
+  # Path to checkpoint file (used if load_from_ckpt is true)
+  ckpt_to_load: data/checkpoints/default/best.pth
+  
+  # RecollectTrainer-specific settings
+  RECOLLECT_TRAINER:
+    # Number of episodes to preload into memory
+    preload_size: 5
+    
+    # Maximum trajectory length (episodes longer than this are skipped)
+    # Set to -1 to disable filtering
+    max_traj_len: 500
+
+# ============================================================================
+# EVALUATION CONFIGURATION
+# ============================================================================
+EVAL:
+  # Dataset split to evaluate on
+  # Options: train, val_seen, val_unseen, test
+  SPLIT: val_seen
+  
+  # Number of episodes to evaluate (-1 for all episodes)
+  EPISODE_COUNT: -1
+  
+  # Whether to save evaluation results to JSON file
+  SAVE_RESULTS: true
+  
+  # Path to checkpoint to evaluate
+  CKPT_PATH: data/checkpoints/default/best.pth
+
+# ============================================================================
+# INFERENCE CONFIGURATION
+# ============================================================================
+INFERENCE:
+  # Dataset split for inference
+  SPLIT: test
+  
+  # Path to checkpoint for inference
+  CKPT_PATH: data/checkpoints/default/best.pth
+  
+  # Output file for predictions
+  PREDICTIONS_FILE: data/predictions/default_predictions.json
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+MODEL:
+  # Model type identifier (used by ModelRegistry)
+  policy_name: seq2seq
+  
+  # Whether to normalize RGB inputs (ImageNet normalization)
+  normalize_rgb: false
+  
+  # Ablation study flags
+  ablate_instruction: false  # Remove instruction encoder
+  ablate_rgb: false          # Remove visual encoder
+  
+  # -------------------------------------------------------------------------
+  # Instruction Encoder Configuration
+  # -------------------------------------------------------------------------
+  INSTRUCTION_ENCODER:
+    # Sensor UUID for instruction input
+    sensor_uuid: instruction
+    
+    # Vocabulary size (set to null to determine from data)
+    vocab_size: null
+    
+    # GloVe embedding settings
+    use_pretrained_embeddings: true
+    embedding_file: data/debug_data/embeddings.json.gz
+    fine_tune_embeddings: false
+    embedding_size: 50  # GloVe 6B.50d dimension
+    
+    # RNN encoder settings
+    hidden_size: 128
+    rnn_type: LSTM  # Options: LSTM, GRU
+    bidirectional: false
+    num_layers: 1
+    final_state_only: true  # Use only final hidden state
+  
+  # -------------------------------------------------------------------------
+  # RGB Visual Encoder Configuration
+  # -------------------------------------------------------------------------
+  RGB_ENCODER:
+    # CNN backbone type
+    # Options: TorchVisionResNet18, TorchVisionResNet50
+    cnn_type: TorchVisionResNet50
+    
+    # Output feature dimension
+    output_size: 256
+    
+    # Whether to fine-tune the CNN
+    trainable: false
+    
+    # Whether to normalize visual inputs
+    normalize_visual_inputs: false
+  
+  # -------------------------------------------------------------------------
+  # State Encoder (RNN) Configuration
+  # -------------------------------------------------------------------------
+  STATE_ENCODER:
+    # Hidden state dimension
+    hidden_size: 512
+    
+    # RNN type
+    # Options: GRU, LSTM
+    rnn_type: GRU
+    
+    # Number of RNN layers
+    num_layers: 1
+  
+  # -------------------------------------------------------------------------
+  # Seq2Seq-specific Configuration
+  # -------------------------------------------------------------------------
+  SEQ2SEQ:
+    # Whether to use previous action as input
+    use_prev_action: true
+
+# ============================================================================
+# WEIGHTS & BIASES (W&B) LOGGING CONFIGURATION
+# ============================================================================
+WANDB:
+  # W&B project name
+  project: satnav-vln
+  
+  # W&B run name (identifies this experiment)
+  run_name: default-experiment
+  
+  # W&B team/entity name (set to null for personal account)
+  entity: null
+  
+  # W&B mode
+  # Options: online, offline, disabled
+  mode: online
+
+# ============================================================================
+# NOTES
+# ============================================================================
+#
+# Usage Example:
+#   python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+#
+# Override from command line:
+#   python run.py --exp-config CONFIG.yaml --run-type eval \
+#       EVAL.SPLIT val_unseen EVAL.CKPT_PATH path/to/ckpt.pth
+#
+# Configuration Loading Order (later overrides earlier):
+#   1. Task config (BASE_TASK_CONFIG_PATH)
+#   2. Experiment config (--exp-config)
+#   3. Command line opts
+
