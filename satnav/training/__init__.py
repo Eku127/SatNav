@@ -9,8 +9,9 @@ by name, similar to VLN-CE's baseline_registry.
 """
 
 from satnav.training.base_il_trainer import BaseILTrainer
-from satnav.training.utils import collate_fn, pad_helper, tokenize_instruction
+from satnav.training.utils import collate_fn, pad_helper
 from satnav.training.registry import register_trainer, get_trainer
+from satnav.training.evaluator import Evaluator
 
 # Import trainers to trigger registration via @register_trainer decorator
 from satnav.training.recollect_trainer import RecollectTrainer
@@ -22,6 +23,9 @@ __all__ = [
     # Trainers
     "RecollectTrainer",
     
+    # Evaluator
+    "Evaluator",
+    
     # Registry functions
     "register_trainer",
     "get_trainer",
@@ -29,5 +33,4 @@ __all__ = [
     # Utilities
     "collate_fn",
     "pad_helper",
-    "tokenize_instruction",
 ]

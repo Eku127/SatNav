@@ -8,8 +8,10 @@ Reference: VLN-CE vlnce_baselines/common/base_il_trainer.py
 """
 
 import os
+import random
 from typing import Any, Dict, Optional
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from omegaconf import DictConfig, OmegaConf
@@ -56,6 +58,100 @@ class BaseILTrainer:
         # Training state
         self.start_epoch = 0
         self.step_id = 0
+        
+        # Scheduled sampling state
+        self._init_scheduled_sampling()
+        
+        # Loss weighting state
+        self._init_loss_weighting()
+    
+    def _init_scheduled_sampling(self):
+        """Initialize scheduled sampling configuration.
+        
+        Reads scheduled sampling settings from config:
+        - IL.RECOLLECT_TRAINER.use_scheduled_sampling: Enable/disable scheduled sampling
+        - IL.RECOLLECT_TRAINER.scheduled_sampling_ratio: Fixed ratio (0.0-1.0)
+          or "decay" for exponential decay
+        - IL.RECOLLECT_TRAINER.scheduled_sampling_p: Decay parameter (if using decay)
+        """
+        if isinstance(self.config, dict):
+            il_config = self.config.get('IL', {})
+            recollect_config = il_config.get('RECOLLECT_TRAINER', {})
+            self.use_scheduled_sampling = recollect_config.get('use_scheduled_sampling', False)
+            self.scheduled_sampling_ratio = recollect_config.get('scheduled_sampling_ratio', 0.0)
+            self.scheduled_sampling_p = recollect_config.get('scheduled_sampling_p', 0.5)
+        else:
+            il_config = getattr(self.config, 'IL', {})
+            recollect_config = getattr(il_config, 'RECOLLECT_TRAINER', {})
+            self.use_scheduled_sampling = getattr(recollect_config, 'use_scheduled_sampling', False)
+            self.scheduled_sampling_ratio = getattr(recollect_config, 'scheduled_sampling_ratio', 0.0)
+            self.scheduled_sampling_p = getattr(recollect_config, 'scheduled_sampling_p', 0.5)
+        
+        # Track training progress for decay
+        self._scheduled_sampling_decay_mode = (
+            isinstance(self.scheduled_sampling_ratio, str) and 
+            self.scheduled_sampling_ratio.lower() == 'decay'
+        )
+    
+    def _init_loss_weighting(self):
+        """Initialize loss weighting configuration.
+        
+        Reads loss weighting settings from config:
+        - IL.use_class_weighting: Enable/disable class weighting
+        - IL.class_weights: Dictionary of action weights
+        """
+        if isinstance(self.config, dict):
+            il_config = self.config.get('IL', {})
+            self.use_class_weighting = il_config.get('use_class_weighting', False)
+            class_weights_dict = il_config.get('class_weights', {})
+        else:
+            il_config = getattr(self.config, 'IL', {})
+            self.use_class_weighting = getattr(il_config, 'use_class_weighting', False)
+            class_weights_dict = getattr(il_config, 'class_weights', {})
+        
+        # Convert class weights dict to tensor
+        # Action indices: 0=STOP, 1=MOVE_FORWARD, 2=TURN_LEFT, 3=TURN_RIGHT
+        if self.use_class_weighting and class_weights_dict:
+            # Default weights if not specified
+            default_weights = {
+                'STOP': 1.0,
+                'MOVE_FORWARD': 1.0,
+                'TURN_LEFT': 1.0,
+                'TURN_RIGHT': 1.0
+            }
+            default_weights.update(class_weights_dict)
+            
+            # Create weight tensor in action order: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+            self.class_weights = torch.tensor([
+                default_weights.get('STOP', 1.0),
+                default_weights.get('MOVE_FORWARD', 1.0),
+                default_weights.get('TURN_LEFT', 1.0),
+                default_weights.get('TURN_RIGHT', 1.0)
+            ], dtype=torch.float32)
+        else:
+            self.class_weights = None
+    
+    def _get_scheduled_sampling_ratio(self, epoch: int) -> float:
+        """Get current scheduled sampling ratio.
+        
+        Args:
+            epoch: Current epoch number (0-indexed)
+            
+        Returns:
+            Scheduled sampling ratio (0.0 = always teacher forcing, 1.0 = always autoregressive)
+        """
+        if not self.use_scheduled_sampling:
+            return 0.0
+        
+        if self._scheduled_sampling_decay_mode:
+            # Exponential decay: ratio = p^epoch
+            # Starts at 1.0 (all teacher forcing) and decays to 0.0 (all autoregressive)
+            # p=0.5 means: epoch 0: 1.0, epoch 1: 0.5, epoch 2: 0.25, epoch 3: 0.125, ...
+            ratio = self.scheduled_sampling_p ** epoch
+            return max(0.0, min(1.0, ratio))
+        else:
+            # Fixed ratio
+            return float(self.scheduled_sampling_ratio)
     
     def _initialize_policy(
         self,
@@ -127,15 +223,18 @@ class BaseILTrainer:
         observations: Dict[str, torch.Tensor],
         prev_actions: torch.Tensor,
         not_done_masks: torch.Tensor,
-        teacher_actions: torch.Tensor
+        teacher_actions: torch.Tensor,
+        epoch: int = 0,
+        weights: Optional[torch.Tensor] = None
     ) -> float:
-        """Execute one gradient update step.
+        """Execute one gradient update step with optional scheduled sampling.
         
         Args:
             observations: Dict of observations (each with shape T*N, ...)
-            prev_actions: Previous actions, shape (T*N, 1)
+            prev_actions: Previous actions (ground truth), shape (T*N, 1)
             not_done_masks: Episode boundary masks, shape (T*N, 1)
             teacher_actions: Ground truth actions, shape (T, N)
+            epoch: Current epoch number (for scheduled sampling decay)
             
         Returns:
             Loss value (float)
@@ -159,9 +258,50 @@ class BaseILTrainer:
             device=self.device
         )
         
-        # Forward pass through policy
+        # Scheduled Sampling: Replace prev_actions with model predictions probabilistically
+        # This helps bridge the gap between training (teacher forcing) and evaluation (autoregressive)
+        # 
+        # The idea: For each timestep t, prev_action[t] should be the action from timestep t-1.
+        # With scheduled sampling, we probabilistically use the model's prediction at t-1
+        # instead of the ground truth action at t-1.
+        prev_actions_to_use = prev_actions.clone()
+        
+        if self.use_scheduled_sampling:
+            sampling_ratio = self._get_scheduled_sampling_ratio(epoch)
+            
+            if sampling_ratio > 0.0:
+                # First, do a forward pass with teacher forcing to get model predictions
+                # Note: This is an approximation - ideally we'd do sequential processing,
+                # but this is more efficient and still effective
+                with torch.no_grad():
+                    distribution_pred = self.policy.build_distribution(
+                        observations, rnn_states, prev_actions, not_done_masks
+                    )
+                    # Get predicted actions (greedy)
+                    predicted_actions = distribution_pred.mode()  # Shape: (T*N, 1)
+                
+                # Reshape to (T, N, 1) for easier manipulation
+                predicted_actions_reshaped = predicted_actions.view(T, N, 1)
+                prev_actions_reshaped = prev_actions.view(T, N, 1)
+                sampled_prev_actions = prev_actions_reshaped.clone()
+                
+                # Apply scheduled sampling: for each timestep t > 0, decide whether to use
+                # predicted action from t-1 or teacher action from t-1 as prev_action
+                # At timestep 0, prev_action is always STOP (0) - keep as is
+                for t in range(1, T):
+                    # Decide whether to use predicted action from t-1 or teacher action from t-1
+                    use_predicted = random.random() < sampling_ratio
+                    if use_predicted:
+                        # Use model's prediction at t-1 as prev_action for timestep t
+                        sampled_prev_actions[t] = predicted_actions_reshaped[t-1]
+                    # else: keep teacher action (already in sampled_prev_actions)
+                
+                # Reshape back to (T*N, 1)
+                prev_actions_to_use = sampled_prev_actions.view(T * N, 1)
+        
+        # Forward pass through policy with (possibly modified) prev_actions
         distribution = self.policy.build_distribution(
-            observations, rnn_states, prev_actions, not_done_masks
+            observations, rnn_states, prev_actions_to_use, not_done_masks
         )
         
         # Get logits and reshape to (T, N, num_actions)
@@ -169,18 +309,51 @@ class BaseILTrainer:
         
         # Compute cross-entropy loss
         # Permute logits to (T, num_actions, N) for F.cross_entropy
-        action_loss = F.cross_entropy(
-            logits.permute(0, 2, 1),
-            teacher_actions,
-            reduction='mean'
-        )
+        # Use class weights if enabled
+        if self.use_class_weighting and self.class_weights is not None:
+            # Move class weights to device
+            class_weights_device = self.class_weights.to(self.device)
+            action_loss = F.cross_entropy(
+                logits.permute(0, 2, 1),
+                teacher_actions,
+                weight=class_weights_device,
+                reduction='none'  # Use 'none' to apply sample weights
+            )
+        else:
+            action_loss = F.cross_entropy(
+                logits.permute(0, 2, 1),
+                teacher_actions,
+                reduction='none'  # Use 'none' to apply sample weights
+            )
+        
+        # Apply inflection weights (sample-level weighting)
+        # weights shape: (T,), action_loss shape: (T, N)
+        if weights is not None:
+            # Reshape weights to match action_loss: (T, N)
+            weights_expanded = weights.view(T, 1).expand(T, N)
+            # Weighted average: sum(weights * loss) / sum(weights)
+            action_loss = (weights_expanded * action_loss).sum(0) / weights_expanded.sum(0)
+            action_loss = action_loss.mean()
+        else:
+            # No sample weighting: simple mean
+            action_loss = action_loss.mean()
+        
+        # Debug: Print weight info occasionally (first batch of first epoch only)
+        if self.step_id == 0 and epoch == 0:
+            if self.use_class_weighting and self.class_weights is not None:
+                print(f"\n[Weight Debug] Class weights: {self.class_weights.tolist()}")
+            if weights is not None:
+                inflection_count = (weights > 1.0).sum().item()
+                print(f"[Weight Debug] Inflection points in batch: {inflection_count}/{len(weights)}")
+                print(f"[Weight Debug] Weight range: [{weights.min().item():.2f}, {weights.max().item():.2f}]")
         
         # Backward pass
         self.optimizer.zero_grad()
         action_loss.backward()
         
         # Gradient clipping (optional, but recommended for RNNs)
-        torch.nn.utils.clip_grad_norm_(self.policy.parameters(), max_norm=1.0)
+        # Increased max_norm to allow larger gradient updates for better overfitting
+        torch.nn.utils.clip_grad_norm_(self.policy.parameters(), max_norm=5.0)
         
         # Optimizer step
         self.optimizer.step()
@@ -242,10 +415,47 @@ class BaseILTrainer:
         
         This method is called when run.py is invoked with --run-type eval.
         It loads the checkpoint specified in config.EVAL and runs evaluation.
+        
+        This method synchronizes EVAL.SPLIT to DATASET.SPLIT to ensure the
+        correct dataset split is loaded during evaluation.
         """
+        from omegaconf import OmegaConf
+        from satnav.training.evaluator import Evaluator
+        
         print("=" * 80)
         print("Starting Evaluation")
         print("=" * 80)
+        
+        # Get evaluation split
+        eval_split = OmegaConf.select(self.config, 'EVAL.SPLIT', default='val_seen')
+        if eval_split is None:
+            eval_split = 'val_seen'
+        
+        print(f"Synchronizing EVAL.SPLIT ({eval_split}) to DATASET.SPLIT")
+        
+        # Synchronize EVAL.SPLIT to DATASET.SPLIT (like VLN-CE)
+        # This ensures the correct dataset split is loaded during evaluation
+        # Ensure config is mutable
+        try:
+            # Try to defrost if frozen
+            self.config.defrost()
+        except Exception:
+            # If defrost fails, convert to dict and recreate
+            config_dict = OmegaConf.to_container(self.config, resolve=True)
+            self.config = OmegaConf.create(config_dict)
+        
+        # Update DATASET.SPLIT (create DATASET section if it doesn't exist)
+        if not hasattr(self.config, 'DATASET'):
+            self.config.DATASET = OmegaConf.create({})
+        self.config.DATASET.SPLIT = eval_split
+        
+        # Freeze config again
+        try:
+            self.config.freeze()
+        except Exception:
+            pass  # Already frozen or not freezable
+        
+        print(f"  Updated DATASET.SPLIT to: {self.config.DATASET.SPLIT}")
         
         # Get evaluation config
         eval_config = self.config.get('EVAL', {})
@@ -265,86 +475,31 @@ class BaseILTrainer:
             print(f"Error: Checkpoint not found: {ckpt_path}")
             return
         
-        # Run evaluation
-        self._eval_checkpoint(ckpt_path, checkpoint_index=0)
-    
-    def _eval_checkpoint(
-        self,
-        checkpoint_path: str,
-        checkpoint_index: int = 0
-    ) -> Dict[str, float]:
-        """Evaluate a single checkpoint (basic implementation stub).
-        
-        This is a basic stub implementation that validates checkpoint loading.
-        
-        TODO: Implement complete evaluation loop:
-            - Create environment from config
-            - Load checkpoint into policy
-            - Initialize policy in eval mode
-            - Run episodes and collect trajectories
-            - Compute metrics (SPL, Success, Oracle Success, etc.)
-            - Save results to JSON if EVAL.SAVE_RESULTS is true
-            - Return aggregated metrics
-        
-        Args:
-            checkpoint_path: Path to checkpoint file
-            checkpoint_index: Index for logging purposes
+        # Initialize policy if needed (lazy initialization)
+        if self.policy is None:
+            print(f"\nInitializing policy...")
+            from satnav.dataset.recollect_dataset import RecollectionDataset
             
-        Returns:
-            Dictionary of aggregated metrics (empty in stub implementation)
-        """
-        print(f"\nEvaluating checkpoint: {checkpoint_path}")
-        print("Note: This is a basic evaluation stub")
-        print("      Full evaluation implementation is TODO\n")
-        
-        # Get evaluation config
-        from omegaconf import OmegaConf
-        
-        # Use OmegaConf.select() with default values  
-        split = OmegaConf.select(self.config, 'EVAL.SPLIT', default='val_seen')
-        episode_count = OmegaConf.select(self.config, 'EVAL.EPISODE_COUNT', default=-1)
-        save_results = OmegaConf.select(self.config, 'EVAL.SAVE_RESULTS', default=True)
-        
-        # Handle None values explicitly
-        if split is None:
-            split = 'val_seen'
-        if episode_count is None:
-            episode_count = -1
-        if save_results is None:
-            save_results = True
-        
-        print(f"Evaluation configuration:")
-        print(f"  Split: {split}")
-        print(f"  Episode count: {episode_count if episode_count > 0 else 'all'}")
-        print(f"  Save results: {save_results}")
-        
-        # Basic implementation: Just load and validate checkpoint
-        try:
-            ckpt = self.load_checkpoint(checkpoint_path)
-            epoch = ckpt.get('epoch', 'N/A')
-            step_id = ckpt.get('step_id', 'N/A')
-            loss = ckpt.get('loss', 'N/A')
+            # Create a temporary RecollectionDataset to get observation/action spaces
+            temp_dataset = RecollectionDataset(self.config)
             
-            print(f"\nCheckpoint loaded successfully:")
-            print(f"  Epoch: {epoch}")
-            print(f"  Step: {step_id}")
-            print(f"  Loss: {loss}")
+            observation_space = temp_dataset.observation_space
+            action_space = temp_dataset.action_space
             
-            # Check if state_dict exists
-            if 'state_dict' in ckpt:
-                num_params = sum(p.numel() for p in ckpt['state_dict'].values())
-                print(f"  Parameters: {num_params:,}")
+            self._initialize_policy(
+                self.config,
+                load_from_ckpt=False,  # We'll load manually in evaluator
+                observation_space=observation_space,
+                action_space=action_space
+            )
             
-        except Exception as e:
-            print(f"\nError loading checkpoint: {e}")
-            import traceback
-            traceback.print_exc()
-            return {}
+            print(f"  Policy initialized")
         
-        print("\n" + "=" * 80)
-        print("Evaluation stub completed")
-        print("TODO: Implement full evaluation with environment rollouts")
-        print("=" * 80)
-        
-        return {}
+        # Create evaluator and run evaluation
+        evaluator = Evaluator(self.config, self.device)
+        evaluator.evaluate_checkpoint(
+            checkpoint_path=ckpt_path,
+            policy=self.policy,
+            checkpoint_index=0
+        )
 

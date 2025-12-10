@@ -152,7 +152,13 @@ class RecollectTrainer(BaseILTrainer):
                     batch_start_time = time.time()
                     
                     # Move batch to device
-                    observations, prev_actions, not_done_masks, teacher_actions = batch
+                    # Handle both old format (without weights) and new format (with weights)
+                    if len(batch) == 4:
+                        observations, prev_actions, not_done_masks, teacher_actions = batch
+                        weights = None
+                    else:
+                        observations, prev_actions, not_done_masks, teacher_actions, weights = batch
+                    
                     observations = {
                         k: v.to(self.device, non_blocking=True)
                         for k, v in observations.items()
@@ -160,13 +166,17 @@ class RecollectTrainer(BaseILTrainer):
                     prev_actions = prev_actions.to(self.device, non_blocking=True)
                     not_done_masks = not_done_masks.to(self.device, non_blocking=True)
                     teacher_actions = teacher_actions.to(self.device, non_blocking=True)
+                    if weights is not None:
+                        weights = weights.to(self.device, non_blocking=True)
                     
-                    # Gradient update
+                    # Gradient update (pass epoch for scheduled sampling decay)
                     loss = self._update_agent(
                         observations,
                         prev_actions,
                         not_done_masks,
-                        teacher_actions
+                        teacher_actions,
+                        epoch=epoch,
+                        weights=weights
                     )
                     
                     # Check for invalid loss
