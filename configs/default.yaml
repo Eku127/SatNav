@@ -37,6 +37,10 @@ TORCH_GPU_ID: 0
 # Number of parallel processes (currently only supports 1 for SatNav)
 NUM_PROCESSES: 1
 
+# Video configuration (optional)
+GENERATE_VIDEOS: false  # Set to true to generate evaluation videos
+VIDEO_DIR: data/videos/default  # Directory to save videos (if GENERATE_VIDEOS is true)
+
 # ============================================================================
 # IMITATION LEARNING (TRAINING) CONFIGURATION
 # ============================================================================
@@ -64,6 +68,21 @@ IL:
     # Maximum trajectory length (episodes longer than this are skipped)
     # Set to -1 to disable filtering
     max_traj_len: 500
+  
+  # Loss weighting configuration
+  # Inflection weighting: Give higher weight to timesteps where action changes
+  # This helps the model learn critical decision points in navigation
+  use_inflection_weighting: true  # Enable/disable inflection weighting
+  inflection_weight_coef: 3.2      # Weight multiplier for inflection points (default: 3.2, same as VLN-CE R2R)
+  
+  # Class weighting: Balance loss across different action classes
+  # This helps handle imbalanced action distributions (e.g., MOVE_FORWARD dominates)
+  use_class_weighting: true        # Enable/disable class weighting
+  class_weights:
+    STOP: 1.0          # Weight for STOP action
+    MOVE_FORWARD: 0.1  # Weight for MOVE_FORWARD (reduce weight since it's overrepresented)
+    TURN_LEFT: 10.0    # Weight for TURN_LEFT (increase weight since it's underrepresented)
+    TURN_RIGHT: 10.0   # Weight for TURN_RIGHT (same as TURN_LEFT)
 
 # ============================================================================
 # EVALUATION CONFIGURATION

@@ -88,13 +88,35 @@ Examples:
     # Load experiment configuration
     config = OmegaConf.load(args.exp_config)
     
+    # Load default config if specified (for inheritance)
+    # Support both _base_ (OmegaConf style) and BASE_CONFIG_PATH (custom)
+    base_config_path = None
+    if "_base_" in config:
+        base_config_path = config._base_
+    elif "BASE_CONFIG_PATH" in config:
+        base_config_path = config.BASE_CONFIG_PATH
+    
+    if base_config_path:
+        if os.path.exists(base_config_path):
+            print(f"Loading base config: {base_config_path}")
+            base_config = OmegaConf.load(base_config_path)
+            # Merge: base config first, then experiment config (experiment config overrides)
+            config = OmegaConf.merge(base_config, config)
+            # Remove _base_ from final config to avoid confusion
+            if "_base_" in config:
+                del config._base_
+            if "BASE_CONFIG_PATH" in config:
+                del config.BASE_CONFIG_PATH
+        else:
+            print(f"Warning: Base config not found: {base_config_path}")
+    
     # Load and merge task config if specified
     if "BASE_TASK_CONFIG_PATH" in config:
         task_config_path = config.BASE_TASK_CONFIG_PATH
         if os.path.exists(task_config_path):
             print(f"Loading task config: {task_config_path}")
             task_config = OmegaConf.load(task_config_path)
-            # Merge: experiment config takes priority over task config
+            # Merge: task config first, then experiment config (experiment config overrides)
             config = OmegaConf.merge(task_config, config)
         else:
             print(f"Warning: Task config not found: {task_config_path}")

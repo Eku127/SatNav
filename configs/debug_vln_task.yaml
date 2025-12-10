@@ -41,6 +41,8 @@ TASK:
   #   - PATH_LENGTH: Total path length traveled (using geodesic distance)
   #   - SPL: Success weighted by Path Length
   #   - TOP_DOWN_MAP: Top-down map visualization (for video/debugging)
+  # Note: TOP_DOWN_MAP is automatically filtered out during training for faster preload.
+  # It will still be enabled during evaluation/inference if included here.
   MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
   
   # Top-Down Map visualization configuration

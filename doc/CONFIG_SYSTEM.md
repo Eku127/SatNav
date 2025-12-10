@@ -219,6 +219,10 @@ EVAL:
   CKPT_PATH: ""             # 评估的 checkpoint 路径
 ```
 
+**重要说明**：`EVAL.SPLIT` 会在评估时**自动同步**到 `DATASET.SPLIT`，确保加载正确的数据集文件。这是参考 VLN-CE 的设计，评估时不需要手动修改 task config 中的 `DATASET.SPLIT`。
+
+数据集路径使用 `{split}` 占位符（如 `data/debug_data/{split}/{split}.json`），会根据同步后的 `DATASET.SPLIT` 自动替换。
+
 #### INFERENCE (Inference)
 
 推理相关的配置：
