@@ -77,12 +77,11 @@ def visualize_feature_usage():
     from satnav.utils.build_vocab import tokenize_instruction_in_observation
     obs = tokenize_instruction_in_observation(obs, vocab, max_length=None, output_format="numpy")
     
-    state_encoder = policy.net.state_encoder
-    rnn_num_layers = state_encoder.rnn.num_layers
+    # Use policy.net.num_recurrent_layers for compatibility with both Seq2Seq and CMA
     hidden_size = config.MODEL.STATE_ENCODER.hidden_size
     
     rnn_state = torch.zeros(
-        rnn_num_layers, 1, hidden_size,
+        policy.net.num_recurrent_layers, 1, hidden_size,
         device=device
     )
     prev_action = torch.zeros(1, 1, device=device, dtype=torch.long)

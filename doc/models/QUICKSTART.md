@@ -172,7 +172,7 @@ pytest tests/test_seq2seq_model.py -v --tb=short
   python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
   ```
 - **Custom Models**: Extend Seq2Seq to create attention-based models
-- **Documentation**: See `doc/models/SEQ2SEQ_BASELINE.md` for architecture details
+- **Documentation**: See `doc/models/SEQ2SEQ_IMPLEMENTATION.md` for architecture details
 
 ## Quick Reference
 
@@ -185,7 +185,8 @@ pytest tests/test_seq2seq_model.py -v --tb=short
 
 ## Resources
 
-- **Full Documentation**: `doc/models/SEQ2SEQ_BASELINE.md`
+- **Seq2Seq Documentation**: `doc/models/SEQ2SEQ_IMPLEMENTATION.md`
+- **CMA Documentation**: `doc/models/CMA_IMPLEMENTATION.md`
 - **Embedding Guide**: `doc/EMBEDDING_GUIDE.md`
 - **Baseline README**: `satnav/models/baselines/README.md`
 - **VLN-CE Repository**: https://github.com/jacobkrantz/VLN-CE

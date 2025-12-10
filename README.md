@@ -495,7 +495,7 @@ action, rnn_states = model.act(observations, rnn_states, prev_actions, masks)
 ```
 
 **Documentation**:
-- 📖 **Architecture Design**: `doc/models/SEQ2SEQ_BASELINE.md`
+- 📖 **Architecture Design**: `doc/models/SEQ2SEQ_IMPLEMENTATION.md`
 - 🚀 **Quick Start Guide**: `doc/models/QUICKSTART.md`
 - 🎓 **Training Guide**: `doc/training/TRAINING_GUIDE.md`
 - ⚙️ **Config System**: `doc/CONFIG_SYSTEM.md`
@@ -726,7 +726,8 @@ SatNav/
 │   ├── CONFIG_SYSTEM.md      # 配置系统文档
 │   ├── EMBEDDING_GUIDE.md    # Embedding 指南
 │   ├── models/               # 模型文档
-│   │   ├── SEQ2SEQ_BASELINE.md
+│   │   ├── SEQ2SEQ_IMPLEMENTATION.md
+│   │   ├── CMA_IMPLEMENTATION.md
 │   │   ├── QUICKSTART.md
 │   │   └── IMPLEMENTATION_SUMMARY.md
 │   ├── training/             # 训练文档

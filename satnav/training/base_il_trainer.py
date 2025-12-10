@@ -242,17 +242,12 @@ class BaseILTrainer:
         T, N = teacher_actions.size()
         
         # Initialize RNN hidden states
-        # Format: [num_layers, batch_size, hidden_size] as expected by RNNStateEncoder
-        # Note: We need the actual RNN num_layers, not num_recurrent_layers
-        # For GRU: num_recurrent_layers = num_layers
-        # For LSTM: num_recurrent_layers = num_layers * 2 (because it stores both hidden and cell states)
-        # The RNN itself expects [num_layers, batch_size, hidden_size], not [num_recurrent_layers, ...]
-        # Get num_layers from the RNN module directly
-        state_encoder = self.policy.net.state_encoder
-        rnn_num_layers = state_encoder.rnn.num_layers
-        
+        # Format: [num_recurrent_layers, batch_size, hidden_size]
+        # For single RNN (Seq2Seq): num_recurrent_layers = num_layers (GRU) or num_layers * 2 (LSTM)
+        # For multiple RNNs (CMA): num_recurrent_layers = sum of all RNN layers
+        # Use the policy's num_recurrent_layers property which handles both cases
         rnn_states = torch.zeros(
-            rnn_num_layers,
+            self.policy.net.num_recurrent_layers,
             N,
             self.config.MODEL.STATE_ENCODER.hidden_size,
             device=self.device

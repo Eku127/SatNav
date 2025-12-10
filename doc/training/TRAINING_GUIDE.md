@@ -548,7 +548,8 @@ python run.py \
 
 ## 参考资料
 
-- [Seq2Seq 模型文档](../models/SEQ2SEQ_BASELINE.md)
+- [Seq2Seq 模型文档](../models/SEQ2SEQ_IMPLEMENTATION.md)
+- [CMA 模型文档](../models/CMA_IMPLEMENTATION.md)
 - [Embedding 生成指南](../EMBEDDING_GUIDE.md)
 - [默认配置模板](../../configs/default.yaml)
 - [VLN-CE 参考实现](https://github.com/jacobkrantz/VLN-CE)

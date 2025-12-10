@@ -20,8 +20,10 @@ from satnav.models.registry import ModelRegistry
 
 # Register baseline models
 from satnav.models.baselines.seq2seq_policy import Seq2SeqPolicy
+from satnav.models.baselines.cma_policy import CMAPolicy
 
 ModelRegistry.register_baseline("seq2seq", Seq2SeqPolicy)
+ModelRegistry.register_baseline("cma", CMAPolicy)
 
 __all__ = [
     "ILPolicy",
@@ -30,5 +32,6 @@ __all__ = [
     "FixedCategorical",
     "ModelRegistry",
     "Seq2SeqPolicy",
+    "CMAPolicy",
 ]
 

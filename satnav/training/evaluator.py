@@ -329,12 +329,14 @@ class Evaluator:
             action_names = {0: "STOP", 1: "MOVE_FORWARD", 2: "TURN_LEFT", 3: "TURN_RIGHT"}
         
         # Initialize RNN state for this episode
-        state_encoder = policy.net.state_encoder
-        rnn_num_layers = state_encoder.rnn.num_layers
+        # Use policy.net.num_recurrent_layers to support both single RNN (Seq2Seq)
+        # and multiple RNN (CMA) architectures
         hidden_size = self.config.MODEL.STATE_ENCODER.hidden_size
         
         rnn_state = torch.zeros(
-            rnn_num_layers, 1, hidden_size,
+            policy.net.num_recurrent_layers,  # CMA: 2, Seq2Seq: 1
+            1, 
+            hidden_size,
             device=self.device
         )
         prev_action = torch.zeros(1, 1, device=self.device, dtype=torch.long)
