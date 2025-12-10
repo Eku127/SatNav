@@ -246,6 +246,16 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
     EVAL.EPISODE_COUNT 100
 ```
 
+**重要说明**：`EVAL.SPLIT` 会在评估时**自动同步**到 `DATASET.SPLIT`，确保加载正确的数据集文件。你**不需要**手动修改 task config (`debug_vln_task.yaml`) 中的 `DATASET.SPLIT`。
+
+评估时会看到类似输出：
+```
+Synchronizing EVAL.SPLIT (val_unseen) to DATASET.SPLIT
+  Updated DATASET.SPLIT to: val_unseen
+```
+
+数据集路径中的 `{split}` 占位符会根据同步后的 `DATASET.SPLIT` 自动替换。
+
 ### 评估特定 Checkpoint
 
 ```bash
@@ -257,17 +267,44 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
 
 评估结果会保存到 `RESULTS_DIR` 目录（如果 `EVAL.SAVE_RESULTS: true`）：
 
+**文件位置**: `data/results/seq2seq/eval_ckpt_{checkpoint_index}_{split}.json`
+
+**JSON格式**:
 ```json
 {
-  "spl": 0.45,
-  "success": 0.52,
-  "oracle_success": 0.68,
-  "distance_to_goal": 5.23,
-  "steps_taken": 12.4
+  "spl": 0.4523,
+  "success": 0.5200,
+  "distance_to_goal": 5.2341,
+  "path_length": 125.34,
+  "steps_taken": 45.2,
+  "num_episodes": 50,
+  "split": "val_seen",
+  "checkpoint_index": 0
 }
 ```
 
-**注意**: 当前评估功能为基础实现，完整的环境 rollout 评估待实现。
+**指标说明**:
+- `spl`: Success weighted by Path Length（成功率加权路径长度）
+- `success`: 成功率（到达目标并执行STOP）
+- `distance_to_goal`: 最终位置到目标的平均距离（米）
+- `path_length`: 平均路径长度（米）
+- `steps_taken`: 平均步数
+- `num_episodes`: 评估的episode数量
+- `split`: 数据集split
+- `checkpoint_index`: Checkpoint索引
+
+### 视频生成（可选）
+
+启用视频生成：
+
+```bash
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+    'VIDEO_OPTION' '["disk"]'
+```
+
+视频将保存到 `VIDEO_DIR` 目录（默认: `data/videos/seq2seq/`），文件名格式: `episode_{episode_id}_ckpt_{checkpoint_index}.mp4`
+
+**注意**: 视频生成需要在 `TASK.MEASUREMENTS` 中启用 `TOP_DOWN_MAP`。
 
 ## 使用 W&B 监控
 
