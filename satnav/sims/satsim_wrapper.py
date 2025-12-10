@@ -78,13 +78,18 @@ class SatSimWrapper(Simulator):
             Initial observations from the simulator. Returns empty dict if
             agent state has not been set yet (should be set via set_agent_state).
         """
-        self._scene_id = scene_id
-        
-        # Combine scene path
-        scene_path = self._combine_scene_path(scene_id)
-        
-        # Load scene in SatSim
-        self._satsim.load_scene(scene_path)
+        # Check if we need to load a new scene
+        # If scene_id is the same, skip loading (scene is already loaded)
+        # This optimization avoids path processing and load_scene() overhead
+        # Note: SatSim.load_scene() already has caching, but checking scene_id
+        # first avoids unnecessary path processing and function calls
+        if self._scene_id != scene_id:
+            # Combine scene path
+            scene_path = self._combine_scene_path(scene_id)
+            # Load scene in SatSim (will use cache if already loaded)
+            self._satsim.load_scene(scene_path)
+            self._scene_id = scene_id
+        # else: scene_id is the same, scene is already loaded, skip loading
         
         # Return initial observations if agent state is set, otherwise return empty dict
         # Agent state should be set via set_agent_state() after reset()
