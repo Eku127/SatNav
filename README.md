@@ -372,7 +372,46 @@ python examples/reference_follower_example.py
 
 ---
 
-## 7. Baseline Models（基线模型）
+## 7. Training and Evaluation（训练和评估）
+
+### 7.1 Quick Start
+
+SatNav 使用统一的入口点 `run.py` 进行训练和评估：
+
+```bash
+# Training
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+
+# Evaluation
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+```
+
+### 7.2 Configuration System
+
+采用 VLN-CE 风格的统一配置系统：
+- **单一配置文件**：包含训练（IL）、评估（EVAL）、推理（INFERENCE）配置
+- **灵活覆盖**：支持命令行参数覆盖任何配置项
+- **自动同步**：评估时自动将 `EVAL.SPLIT` 同步到 `DATASET.SPLIT`
+
+配置文件结构：
+- `configs/default.yaml` - 默认配置模板（参考文档）
+- `configs/baselines/seq2seq.yaml` - Seq2Seq实验配置
+- `configs/debug_vln_task.yaml` - 调试任务配置
+
+详细文档: [配置系统文档](doc/CONFIG_SYSTEM.md)
+
+### 7.3 Evaluation Features
+
+完整的评估功能包括：
+- ✅ 环境中运行完整的 episode rollouts
+- ✅ 计算所有 metrics（SPL, Success, DistanceToGoal, PathLength）
+- ✅ 进度条显示和实时指标更新
+- ✅ 保存 aggregated metrics 到 JSON
+- ✅ 可选的视频生成（需启用 TOP_DOWN_MAP）
+
+---
+
+## 8. Baseline Models（基线模型）
 
 SatNav 提供了 VLN 基线模型实现，用于训练和评估导航智能体。
 
@@ -426,7 +465,20 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
 # Evaluate on val_unseen
 python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
     EVAL.SPLIT val_unseen
+
+# Evaluate with video generation (requires TOP_DOWN_MAP in TASK.MEASUREMENTS)
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+    'VIDEO_OPTION' '["disk"]'
+
+# Quick evaluation (first 5 episodes)
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+    EVAL.EPISODE_COUNT 5
 ```
+
+**Evaluation Output**:
+- Metrics JSON: `data/results/seq2seq/eval_ckpt_0_{split}.json`
+- Videos (if enabled): `data/videos/seq2seq/episode_{id}_ckpt_0.mp4`
+- Console: Progress bar, aggregated metrics, timing info
 
 **Programmatic Usage**:
 ```python
@@ -598,7 +650,7 @@ python -m applications.aerial_viewer
 
 ---
 
-## 8. 项目结构
+## 9. 项目结构
 
 ```
 SatNav/
@@ -691,6 +743,6 @@ SatNav/
 
 ---
 
-## 9. 许可证
+## 10. 许可证
 
 MIT License
