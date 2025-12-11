@@ -142,8 +142,10 @@ class TestBaseILTrainer:
             'CHECKPOINT_FOLDER': tempfile.mkdtemp(),
             'MODEL': {
                 'policy_name': 'seq2seq',
-                'STATE_ENCODER': {
-                    'hidden_size': 512
+                'SEQ2SEQ': {
+                    'hidden_size': 512,
+                    'rnn_type': 'GRU',
+                    'use_prev_action': True
                 }
             }
         })
@@ -287,10 +289,10 @@ class TestRecollectTrainer:
                     'output_size': 256,
                     'trainable': False
                 },
-                'STATE_ENCODER': {
+                'SEQ2SEQ': {
                     'hidden_size': 512,
                     'rnn_type': 'GRU',
-                    'num_layers': 1
+                    'use_prev_action': True
                 }
             },
             'IL': {

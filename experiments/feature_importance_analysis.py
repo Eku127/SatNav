@@ -129,15 +129,9 @@ class FeatureImportanceAnalyzer:
             from satnav.utils.build_vocab import tokenize_instruction_in_observation
             obs = tokenize_instruction_in_observation(obs, self.vocab, max_length=None, output_format="numpy")
             
-            # Initialize RNN state
-            # Use policy.net.num_recurrent_layers for compatibility with both Seq2Seq and CMA
-            hidden_size = self.config.MODEL.STATE_ENCODER.hidden_size
-            
-            rnn_state = torch.zeros(
-                self.policy.net.num_recurrent_layers, 1, hidden_size,
-                device=self.device,
-                requires_grad=True
-            )
+            # Initialize model state
+            rnn_state = self.policy.net.get_initial_state(1, self.device)
+            rnn_state.requires_grad = True
             prev_action = torch.zeros(1, 1, device=self.device, dtype=torch.long)
             not_done_mask = torch.ones(1, 1, device=self.device, dtype=torch.uint8)
             
@@ -224,13 +218,8 @@ class FeatureImportanceAnalyzer:
         from satnav.utils.build_vocab import tokenize_instruction_in_observation
         obs = tokenize_instruction_in_observation(obs, self.vocab, max_length=None, output_format="numpy")
         
-        # Use policy.net.num_recurrent_layers for compatibility with both Seq2Seq and CMA
-        hidden_size = self.config.MODEL.STATE_ENCODER.hidden_size
-        
-        rnn_state = torch.zeros(
-            self.policy.net.num_recurrent_layers, 1, hidden_size,
-            device=self.device
-        )
+        # Initialize model state
+        rnn_state = self.policy.net.get_initial_state(1, self.device)
         prev_action = torch.zeros(1, 1, device=self.device, dtype=torch.long)
         not_done_mask = torch.ones(1, 1, device=self.device, dtype=torch.uint8)
         
@@ -360,13 +349,8 @@ class FeatureImportanceAnalyzer:
         from satnav.utils.build_vocab import tokenize_instruction_in_observation
         obs = tokenize_instruction_in_observation(obs, self.vocab, max_length=None, output_format="numpy")
         
-        # Use policy.net.num_recurrent_layers for compatibility with both Seq2Seq and CMA
-        hidden_size = self.config.MODEL.STATE_ENCODER.hidden_size
-        
-        rnn_state = torch.zeros(
-            self.policy.net.num_recurrent_layers, 1, hidden_size,
-            device=self.device
-        )
+        # Initialize model state
+        rnn_state = self.policy.net.get_initial_state(1, self.device)
         prev_action = torch.zeros(1, 1, device=self.device, dtype=torch.long)
         not_done_mask = torch.ones(1, 1, device=self.device, dtype=torch.uint8)
         

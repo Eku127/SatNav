@@ -19,8 +19,8 @@ class Net(nn.Module, metaclass=abc.ABCMeta):
     """Base network class for VLN models.
     
     This is the base class for neural networks that will be used as the 
-    backbone for policies. Follows the interface from Habitat-Lab's 
-    habitat_baselines.rl.ppo.policy.Net.
+    backbone for policies. Models are responsible for managing their own
+    internal states through the get_initial_state() method.
     """
     
     @abc.abstractmethod
@@ -29,7 +29,7 @@ class Net(nn.Module, metaclass=abc.ABCMeta):
         
         Args:
             observations: Dict of observations from the environment
-            rnn_states: Hidden states of the recurrent network
+            rnn_states: Hidden states (managed by model)
             prev_actions: Previous actions taken by the agent
             masks: Binary masks indicating episode boundaries
             
@@ -39,16 +39,39 @@ class Net(nn.Module, metaclass=abc.ABCMeta):
         """
         pass
     
-    @property
     @abc.abstractmethod
-    def output_size(self):
-        """Size of the network's output features."""
+    def get_initial_state(self, batch_size: int, device: torch.device) -> torch.Tensor:
+        """Create initial hidden states for the model.
+        
+        Each model is responsible for creating its own initial state with
+        the appropriate shape and structure. This removes the need for the
+        trainer to know about model internals like number of RNN layers.
+        
+        Args:
+            batch_size: Number of parallel sequences
+            device: Device to create tensors on
+            
+        Returns:
+            Initial hidden states tensor. Shape depends on model architecture:
+            - For RNN models: typically (num_layers, batch_size, hidden_size)
+            - For Transformer/stateless models: can return dummy tensor
+            
+        Example:
+            >>> # In Seq2Seq model
+            >>> def get_initial_state(self, batch_size, device):
+            >>>     return torch.zeros(
+            >>>         self.state_encoder.num_recurrent_layers,
+            >>>         batch_size,
+            >>>         self.hidden_size,
+            >>>         device=device
+            >>>     )
+        """
         pass
     
     @property
     @abc.abstractmethod
-    def num_recurrent_layers(self):
-        """Number of recurrent layers in the network."""
+    def output_size(self):
+        """Size of the network's output features."""
         pass
     
     @property

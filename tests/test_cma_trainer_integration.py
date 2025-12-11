@@ -49,10 +49,10 @@ def test_cma_trainer_rnn_states():
                 'trainable': False,
                 'normalize_visual_inputs': False,
             },
-            'STATE_ENCODER': {
+            'CMA': {
                 'hidden_size': 512,
                 'rnn_type': 'GRU',
-                'num_layers': 1,
+                'use_prev_action': True,
             },
         }
     })
@@ -79,17 +79,11 @@ def test_cma_trainer_rnn_states():
     # Check that policy is CMA
     assert isinstance(trainer.policy, CMAPolicy)
     
-    # Check num_recurrent_layers
-    assert trainer.policy.net.num_recurrent_layers == 2
-    
-    # Simulate trainer's RNN state initialization
+    # Test state initialization
     N = 2  # batch size
-    rnn_states = torch.zeros(
-        trainer.policy.net.num_recurrent_layers,
-        N,
-        config.MODEL.STATE_ENCODER.hidden_size,
-        device=trainer.device
-    )
+    rnn_states = trainer.policy.net.get_initial_state(N, trainer.device)
+    # CMA has 2 RNN encoders, each with 1 layer = 2 total layers
+    assert rnn_states.shape == (2, N, 512)
     
     # Check shape
     assert rnn_states.shape == (2, N, 512)
@@ -147,10 +141,10 @@ def test_cma_update_agent():
                 'trainable': False,
                 'normalize_visual_inputs': False,
             },
-            'STATE_ENCODER': {
+            'CMA': {
                 'hidden_size': 512,
                 'rnn_type': 'GRU',
-                'num_layers': 1,
+                'use_prev_action': True,
             },
         }
     })

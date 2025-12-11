@@ -83,12 +83,10 @@ def test_prev_action_pattern():
     from satnav.utils.build_vocab import tokenize_instruction_in_observation
     obs = tokenize_instruction_in_observation(obs, vocab, max_length=None, output_format="numpy")
     
-    # Use policy.net.num_recurrent_layers for compatibility with both Seq2Seq and CMA
-    hidden_size = config.MODEL.STATE_ENCODER.hidden_size
-    
+    # Initialize model states
     # Scenario A: History of MOVE_FORWARD actions
     print("\nScenario A: History = [MOVE_FORWARD, MOVE_FORWARD, MOVE_FORWARD]")
-    rnn_state_A = torch.zeros(policy.net.num_recurrent_layers, 1, hidden_size, device=device)
+    rnn_state_A = policy.net.get_initial_state(1, device)
     prev_action_A = torch.zeros(1, 1, device=device, dtype=torch.long)
     
     # Simulate 3 steps of MOVE_FORWARD (update RNN state properly)

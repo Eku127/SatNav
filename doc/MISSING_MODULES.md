@@ -932,9 +932,10 @@ MODEL:
   VISUAL_ENCODER:
     backbone: resnet50
     output_size: 256
-  STATE_ENCODER:
+  SEQ2SEQ:
     hidden_size: 512
     rnn_type: GRU
+    use_prev_action: true
 ```
 
 **外部模型配置** (`configs/external/navid.yaml`):

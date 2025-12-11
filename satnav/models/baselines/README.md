@@ -92,10 +92,11 @@ model_class = ModelRegistry.get_model("cma")
 # Create model instance
 model = model_class.from_config(config, obs_space, act_space)
 
+# Initialize states
+rnn_states = model.net.get_initial_state(batch_size=1, device=device)
+
 # Forward pass
 action, rnn_states = model.act(observations, rnn_states, prev_actions, masks)
-
-# Note: CMA has 2 RNN encoders, so num_recurrent_layers = 2
 ```
 
 **Training:**
@@ -190,7 +191,7 @@ python run.py --exp-config configs/baselines/random_agent.yaml --run-type eval G
 
 #### Configuration
 
-The configuration inherits from `configs/default.yaml` for common settings like `IL` and `STATE_ENCODER`. Only agent-specific parameters need to be specified:
+The configuration inherits from `configs/default.yaml` for common settings like `IL`. Only agent-specific parameters need to be specified:
 
 ```yaml
 _base_: configs/default.yaml  # Inherit default configurations

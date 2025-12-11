@@ -14,59 +14,42 @@
 #   Evaluation: python run.py --exp-config configs/baselines/cma.yaml --run-type eval
 #   Override:   python run.py --exp-config CONFIG --run-type eval EVAL.SPLIT val_unseen
 
-# ============================================================================
-# BASE CONFIGURATION
-# ============================================================================
-
-# Inherit from default.yaml (provides default values for all settings)
 _base_: configs/default.yaml
 
-# Path to task configuration (auto-loaded and merged)
-BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
-
-# Trainer to use (from registry)
-TRAINER_NAME: recollect_trainer
-
-# Directories
+# ============================================================================
+# DIRECTORIES
+# ============================================================================
 CHECKPOINT_FOLDER: output/checkpoints/cma
 RESULTS_DIR: output/results/cma
-
-# Device configuration
-TORCH_GPU_ID: 0
-NUM_PROCESSES: 1
-
-# Video configuration (optional)
-GENERATE_VIDEOS: true
 VIDEO_DIR: output/videos/cma
 
 # ============================================================================
-# TRAINING CONFIGURATION (IL - Imitation Learning)
+# VIDEO GENERATION
+# ============================================================================
+GENERATE_VIDEOS: true
+
+# ============================================================================
+# TRAINING CONFIGURATION
 # ============================================================================
 IL:
-  # Optimizer settings
-  # Reduced learning rate for better convergence on small dataset
+  # Override optimizer settings for better convergence on small dataset
   # Note: VLN-CE uses 2.5e-4 for large R2R dataset, but smaller lr works better for debug data
   lr: 1e-4
-  # Smaller batch size for more frequent gradient updates
   batch_size: 1
-  # Increased epochs to allow model to overfit training data
-  epochs: 30
-  
-  # Checkpoint loading
+  epochs: 2
   load_from_ckpt: false
   ckpt_to_load: output/checkpoints/cma/best.pth
   
-  # RecollectTrainer specific settings
   RECOLLECT_TRAINER:
-    preload_size: 5
-    max_traj_len: 500
+    preload_size: 5        # Number of episodes to preload
+    max_traj_len: 500      # Maximum trajectory length (-1 for no limit)
     
-    # Scheduled sampling (optional for CMA)
-    use_scheduled_sampling: false
-    scheduled_sampling_ratio: 0.0
-    scheduled_sampling_p: 0.5
+    # Scheduled Sampling configuration (to reduce exposure bias)
+    use_scheduled_sampling: false  # Enable/disable scheduled sampling
+    scheduled_sampling_ratio: 0.0  # or "decay" for exponential decay
+    scheduled_sampling_p: 0.5       
   
-  # Loss weighting configuration
+  # Loss weighting configuration (inherited from default.yaml, can override here)
   # Inflection weighting: Give higher weight to timesteps where action changes
   use_inflection_weighting: true
   inflection_weight_coef: 3.2
@@ -86,10 +69,10 @@ IL:
 # EVALUATION CONFIGURATION
 # ============================================================================
 EVAL:
-  SPLIT: val_seen
-  EPISODE_COUNT: -1
-  SAVE_RESULTS: true
-  CKPT_PATH: output/checkpoints/cma/best.pth
+  SPLIT: val_seen          # Dataset split: train, val_seen, val_unseen, test
+  EPISODE_COUNT: -1        # Number of episodes to evaluate (-1 for all)
+  SAVE_RESULTS: true       # Save evaluation results to JSON
+  CKPT_PATH: output/checkpoints/cma/best.pth  # Checkpoint to evaluate
 
 # ============================================================================
 # INFERENCE CONFIGURATION
@@ -103,61 +86,21 @@ INFERENCE:
 # MODEL CONFIGURATION
 # ============================================================================
 MODEL:
-  # Model identification
-  policy_name: cma  # Must match registry name
+  policy_name: cma
   
-  # Visual input normalization
-  normalize_rgb: false
-  
-  # Ablation flags
-  ablate_instruction: false
-  ablate_rgb: false
-  
-  # --------------------------------------------------------------------------
-  # Instruction Encoder
-  # --------------------------------------------------------------------------
+  # CMA-specific instruction encoder settings (override defaults)
   INSTRUCTION_ENCODER:
-    sensor_uuid: instruction
-    vocab_size: null  # Will be determined from dataset
-    
-    # GloVe embedding settings
-    use_pretrained_embeddings: true
-    embedding_file: data/debug_data/embeddings.json.gz
-    fine_tune_embeddings: false
-    embedding_size: 50  # GloVe 6B.50d
-    
-    # RNN encoder settings
-    # CMA uses bidirectional LSTM for instruction encoding
-    hidden_size: 128
-    rnn_type: LSTM
-    bidirectional: true  # Important: CMA uses bidirectional
-    num_layers: 1
+    bidirectional: true  # Important: CMA uses bidirectional LSTM
     final_state_only: false  # Important: CMA needs all timesteps for attention
   
-  # --------------------------------------------------------------------------
-  # RGB Visual Encoder (Satellite Imagery)
-  # --------------------------------------------------------------------------
-  RGB_ENCODER:
-    cnn_type: TorchVisionResNet50
-    output_size: 256
-    trainable: false  # Freeze pretrained ResNet
-    normalize_visual_inputs: false
-    # Note: spatial_output=True is set in code for CMA (required for attention)
-  
-  # --------------------------------------------------------------------------
-  # RNN State Encoder
-  # --------------------------------------------------------------------------
-  STATE_ENCODER:
+  # CMA specific settings
+  CMA:
     hidden_size: 512
-    rnn_type: GRU  # CMA uses GRU for state encoding
-    num_layers: 1
+    rnn_type: GRU
+    use_prev_action: true
 
 # ============================================================================
 # WEIGHTS & BIASES LOGGING
 # ============================================================================
 WANDB:
-  project: satnav-vln
   run_name: cma-baseline
-  entity: null
-  mode: online
-

@@ -186,7 +186,7 @@ class CMANet(Net):
         # Previous action embedding
         self.prev_action_embedding = nn.Embedding(num_actions + 1, 32)
         
-        hidden_size = model_config.STATE_ENCODER.hidden_size
+        hidden_size = model_config.CMA.hidden_size
         self._hidden_size = hidden_size
         
         # RGB linear layer (pool spatial features to vector)
@@ -208,13 +208,13 @@ class CMANet(Net):
         
         self.state_encoder = build_rnn_state_encoder(
             input_size=rnn_input_size,
-            hidden_size=model_config.STATE_ENCODER.hidden_size,
-            rnn_type=model_config.STATE_ENCODER.rnn_type,
+            hidden_size=model_config.CMA.hidden_size,
+            rnn_type=model_config.CMA.rnn_type,
             num_layers=1,
         )
         
         # Output size calculation (for action distribution)
-        self._output_size = model_config.STATE_ENCODER.hidden_size
+        self._output_size = model_config.CMA.hidden_size
         
         # Cross-modal attention components
         # 1. RGB key-value projection
@@ -261,14 +261,38 @@ class CMANet(Net):
         self.second_state_encoder = build_rnn_state_encoder(
             input_size=self._hidden_size,
             hidden_size=self._hidden_size,
-            rnn_type=model_config.STATE_ENCODER.rnn_type,
+            rnn_type=model_config.CMA.rnn_type,
             num_layers=1,
         )
         
         # Final output size is from second state encoder
-        self._output_size = model_config.STATE_ENCODER.hidden_size
+        self._output_size = model_config.CMA.hidden_size
         
         self.train()
+    
+    def get_initial_state(self, batch_size: int, device: torch.device) -> torch.Tensor:
+        """Create initial hidden states for the CMA model.
+        
+        CMA has two RNN encoders, so we create states for both.
+        
+        Args:
+            batch_size: Number of parallel sequences
+            device: Device to create tensors on
+            
+        Returns:
+            Initial hidden states with shape (num_total_layers, batch_size, hidden_size)
+            where num_total_layers = 2 (one layer for each encoder)
+        """
+        num_total_layers = (
+            self.state_encoder.num_recurrent_layers
+            + self.second_state_encoder.num_recurrent_layers
+        )
+        return torch.zeros(
+            num_total_layers,
+            batch_size,
+            self._hidden_size,
+            device=device
+        )
     
     @property
     def output_size(self) -> int:
@@ -279,17 +303,6 @@ class CMANet(Net):
     def is_blind(self) -> bool:
         """Whether the network is blind (no visual input)."""
         return self.rgb_encoder.is_blind
-    
-    @property
-    def num_recurrent_layers(self) -> int:
-        """Number of recurrent layers in the network.
-        
-        CMA has two RNN encoders, so we return the sum of their layers.
-        """
-        return (
-            self.state_encoder.num_recurrent_layers
-            + self.second_state_encoder.num_recurrent_layers
-        )
     
     def _attn(
         self, q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None

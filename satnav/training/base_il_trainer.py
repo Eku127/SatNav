@@ -241,17 +241,9 @@ class BaseILTrainer:
         """
         T, N = teacher_actions.size()
         
-        # Initialize RNN hidden states
-        # Format: [num_recurrent_layers, batch_size, hidden_size]
-        # For single RNN (Seq2Seq): num_recurrent_layers = num_layers (GRU) or num_layers * 2 (LSTM)
-        # For multiple RNNs (CMA): num_recurrent_layers = sum of all RNN layers
-        # Use the policy's num_recurrent_layers property which handles both cases
-        rnn_states = torch.zeros(
-            self.policy.net.num_recurrent_layers,
-            N,
-            self.config.MODEL.STATE_ENCODER.hidden_size,
-            device=self.device
-        )
+        # Initialize model states
+        # Let the model create its own initial state based on its architecture
+        states = self.policy.net.get_initial_state(N, self.device)
         
         # Scheduled Sampling: Replace prev_actions with model predictions probabilistically
         # This helps bridge the gap between training (teacher forcing) and evaluation (autoregressive)
@@ -270,7 +262,7 @@ class BaseILTrainer:
                 # but this is more efficient and still effective
                 with torch.no_grad():
                     distribution_pred = self.policy.build_distribution(
-                        observations, rnn_states, prev_actions, not_done_masks
+                        observations, states, prev_actions, not_done_masks
                     )
                     # Get predicted actions (greedy)
                     predicted_actions = distribution_pred.mode()  # Shape: (T*N, 1)
@@ -296,7 +288,7 @@ class BaseILTrainer:
         
         # Forward pass through policy with (possibly modified) prev_actions
         distribution = self.policy.build_distribution(
-            observations, rnn_states, prev_actions_to_use, not_done_masks
+            observations, states, prev_actions_to_use, not_done_masks
         )
         
         # Get logits and reshape to (T, N, num_actions)

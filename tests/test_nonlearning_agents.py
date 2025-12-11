@@ -22,8 +22,12 @@ def test_dummy_net_instantiation():
     """Test that DummyNet can be instantiated."""
     net = DummyNet(output_size=512)
     assert net.output_size == 512
-    assert net.num_recurrent_layers == 1
     assert net.is_blind == True
+    
+    # Test get_initial_state
+    device = torch.device('cpu')
+    initial_state = net.get_initial_state(batch_size=2, device=device)
+    assert initial_state.shape == (1, 2, 512)  # (layers, batch, hidden)
 
 
 def test_dummy_net_forward():

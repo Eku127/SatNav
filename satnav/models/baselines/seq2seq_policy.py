@@ -132,8 +132,7 @@ class Seq2SeqNet(Net):
         model_config: Model configuration with:
             - INSTRUCTION_ENCODER: Config for instruction encoder
             - RGB_ENCODER: Config for RGB visual encoder
-            - STATE_ENCODER: Config for RNN state encoder
-            - SEQ2SEQ.use_prev_action: Whether to use previous action
+            - SEQ2SEQ: Config for Seq2Seq model (hidden_size, rnn_type, use_prev_action)
             - normalize_rgb: Whether to normalize RGB inputs
     
     Reference:
@@ -196,27 +195,39 @@ class Seq2SeqNet(Net):
         # Initialize RNN state encoder
         self.state_encoder = build_rnn_state_encoder(
             input_size=rnn_input_size,
-            hidden_size=model_config.STATE_ENCODER.hidden_size,
-            rnn_type=model_config.STATE_ENCODER.rnn_type,
+            hidden_size=model_config.SEQ2SEQ.hidden_size,
+            rnn_type=model_config.SEQ2SEQ.rnn_type,
             num_layers=1,
         )
         
         self.train()
     
+    def get_initial_state(self, batch_size: int, device: torch.device) -> torch.Tensor:
+        """Create initial hidden states for the Seq2Seq model.
+        
+        Args:
+            batch_size: Number of parallel sequences
+            device: Device to create tensors on
+            
+        Returns:
+            Initial hidden states with shape (num_recurrent_layers, batch_size, hidden_size)
+        """
+        return torch.zeros(
+            self.state_encoder.num_recurrent_layers,
+            batch_size,
+            self.model_config.SEQ2SEQ.hidden_size,
+            device=device
+        )
+    
     @property
     def output_size(self):
-        """Output size of the network (STATE_ENCODER.hidden_size)."""
-        return self.model_config.STATE_ENCODER.hidden_size
+        """Output size of the network (SEQ2SEQ.hidden_size)."""
+        return self.model_config.SEQ2SEQ.hidden_size
     
     @property
     def is_blind(self):
         """Whether the network is blind (no visual input)."""
         return self.rgb_encoder.is_blind
-    
-    @property
-    def num_recurrent_layers(self):
-        """Number of recurrent layers in the state encoder."""
-        return self.state_encoder.num_recurrent_layers
     
     def forward(
         self, observations, rnn_states, prev_actions, masks
