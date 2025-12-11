@@ -51,28 +51,31 @@ class Evaluator:
     
     def evaluate_checkpoint(
         self,
-        checkpoint_path: str,
+        checkpoint_path: Optional[str],
         policy: torch.nn.Module,
         checkpoint_index: int = 0
     ) -> Dict[str, float]:
         """Evaluate a single checkpoint with full environment rollouts.
         
         This method:
-        1. Loads checkpoint and initializes policy
+        1. Loads checkpoint and initializes policy (skipped for non-learning agents)
         2. Creates evaluation environment
         3. Runs episodes and collects metrics
         4. Optionally generates videos
         5. Saves aggregated results to JSON
         
         Args:
-            checkpoint_path: Path to checkpoint file
-            policy: Policy network to evaluate (will load weights from checkpoint)
+            checkpoint_path: Path to checkpoint file, or None for non-learning agents
+            policy: Policy network to evaluate (will load weights from checkpoint if provided)
             checkpoint_index: Index for logging purposes
             
         Returns:
             Dictionary of aggregated metrics
         """
-        print(f"\nEvaluating checkpoint: {checkpoint_path}")
+        if checkpoint_path is not None:
+            print(f"\nEvaluating checkpoint: {checkpoint_path}")
+        else:
+            print(f"\nEvaluating non-learning agent (no checkpoint required)")
         
         # Get evaluation config
         split = OmegaConf.select(self.config, 'EVAL.SPLIT', default='val_seen')
@@ -108,24 +111,29 @@ class Evaluator:
         print(f"  Video generation: {'Enabled' if video_enabled else 'Disabled'}")
         
         # ===================================================================
-        # 1. Load checkpoint
+        # 1. Load checkpoint (skip for non-learning agents)
         # ===================================================================
-        print(f"\nLoading checkpoint...")
-        try:
-            ckpt = self._load_checkpoint(checkpoint_path)
-            print(f"  Checkpoint info: Epoch {ckpt.get('epoch', 'N/A')}, "
-                  f"Step {ckpt.get('step_id', 'N/A')}, "
-                  f"Loss {ckpt.get('loss', 'N/A')}")
-        except Exception as e:
-            print(f"Error loading checkpoint: {e}")
-            import traceback
-            traceback.print_exc()
-            return {}
+        if checkpoint_path is not None:
+            print(f"\nLoading checkpoint...")
+            try:
+                ckpt = self._load_checkpoint(checkpoint_path)
+                print(f"  Checkpoint info: Epoch {ckpt.get('epoch', 'N/A')}, "
+                      f"Step {ckpt.get('step_id', 'N/A')}, "
+                      f"Loss {ckpt.get('loss', 'N/A')}")
+                
+                # Load checkpoint weights
+                policy.load_state_dict(ckpt['state_dict'])
+                print(f"  Policy loaded and set to eval mode")
+            except Exception as e:
+                print(f"Error loading checkpoint: {e}")
+                import traceback
+                traceback.print_exc()
+                return {}
+        else:
+            print(f"\nSkipping checkpoint loading (non-learning agent)")
         
-        # Load checkpoint weights
-        policy.load_state_dict(ckpt['state_dict'])
+        # Set policy to eval mode
         policy.eval()
-        print(f"  Policy loaded and set to eval mode")
         
         # ===================================================================
         # 2. Create evaluation environment
@@ -149,6 +157,11 @@ class Evaluator:
         env = Env(self.config, dataset=dataset, cycle=False)
         max_steps = env.max_episode_steps
         print(f"  Max steps per episode: {max_steps}")
+        
+        # Pass environment to policy if it has set_env method (for GreedyAgent)
+        if hasattr(policy, 'set_env'):
+            policy.set_env(env)
+            print(f"  Environment passed to policy (set_env method)")
         
         # Create video directory if needed
         if video_enabled:

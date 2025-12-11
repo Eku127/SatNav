@@ -1,0 +1,58 @@
+# =============================================================================
+# RandomAgent Configuration
+# =============================================================================
+# Random baseline agent that samples actions according to a distribution.
+# This provides a minimal baseline - any learning agent should significantly
+# outperform a random agent.
+#
+# Reference: VLN-CE vlnce_baselines/nonlearning_agents.py (RandomAgent)
+
+# Inherit default configuration
+_base_: configs/default.yaml
+
+# Base task configuration
+BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+TRAINER_NAME: recollect_trainer
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+MODEL:
+  policy_name: random  # Must match registry name
+  
+  # RandomAgent specific configuration
+  RANDOM_AGENT:
+    # Use VLN-CE default probabilities (R2R training set statistics)
+    # SatNav dataset format doesn't include action fields in reference_path
+    action_probs: [0.02, 0.68, 0.15, 0.15]  # [STOP, FORWARD, LEFT, RIGHT]
+    
+    # Random seed for reproducibility (optional)
+    # Set to null or remove for non-deterministic behavior
+    seed: null  # Use null for truly random behavior, or set a number for reproducibility
+
+# Note: IL and STATE_ENCODER configurations are inherited from default.yaml
+# They are not used by RandomAgent but required by the trainer framework
+
+# ============================================================================
+# EVALUATION CONFIGURATION
+# ============================================================================
+EVAL:
+  SPLIT: val_seen
+  EPISODE_COUNT: -1  # Evaluate all episodes (-1 = all)
+  SAVE_RESULTS: true
+  CKPT_PATH: null  # Non-learning agent doesn't need checkpoint
+
+# ============================================================================
+# VIDEO GENERATION CONFIGURATION
+# ============================================================================
+GENERATE_VIDEOS: true  # Set to true to enable video generation
+VIDEO_DIR: output/videos/random_agent
+
+# ============================================================================
+# SYSTEM CONFIGURATION
+# ============================================================================
+TORCH_GPU_ID: 0
+
+# Note: Other configurations (TASK, DATASET, SIMULATOR, etc.) are inherited
+# from default.yaml and the base task config (debug_vln_task.yaml)
+

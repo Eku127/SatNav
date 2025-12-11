@@ -21,9 +21,13 @@ from satnav.models.registry import ModelRegistry
 # Register baseline models
 from satnav.models.baselines.seq2seq_policy import Seq2SeqPolicy
 from satnav.models.baselines.cma_policy import CMAPolicy
+from satnav.models.baselines.random_agent import RandomAgent
+from satnav.models.baselines.greedy_agent import GreedyAgent
 
 ModelRegistry.register_baseline("seq2seq", Seq2SeqPolicy)
 ModelRegistry.register_baseline("cma", CMAPolicy)
+ModelRegistry.register_baseline("random", RandomAgent)
+ModelRegistry.register_baseline("greedy", GreedyAgent)
 
 __all__ = [
     "ILPolicy",
@@ -33,5 +37,7 @@ __all__ = [
     "ModelRegistry",
     "Seq2SeqPolicy",
     "CMAPolicy",
+    "RandomAgent",
+    "GreedyAgent",
 ]
 

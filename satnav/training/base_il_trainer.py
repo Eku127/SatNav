@@ -465,8 +465,8 @@ class BaseILTrainer:
             print("  Please set EVAL.CKPT_PATH or IL.ckpt_to_load")
             return
         
-        # Validate checkpoint exists
-        if not os.path.exists(ckpt_path):
+        # Validate checkpoint exists (skip for non-learning agents)
+        if ckpt_path is not None and not os.path.exists(ckpt_path):
             print(f"Error: Checkpoint not found: {ckpt_path}")
             return
         

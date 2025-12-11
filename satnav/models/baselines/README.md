@@ -148,3 +148,135 @@ To add a custom baseline model:
 - **Seq2Seq Implementation:** `doc/models/SEQ2SEQ_IMPLEMENTATION.md`
 - **CMA Implementation:** `doc/models/CMA_IMPLEMENTATION.md`
 
+---
+
+## Non-learning Agents
+
+### Random Agent
+
+A random baseline agent that samples actions according to a probability distribution. This provides the simplest possible baseline - any learning-based agent should significantly outperform a random agent.
+
+#### Features
+- No training required
+- Samples actions based on dataset statistics or manual probabilities
+- Performance reflects dataset's average behavior
+
+#### Configuration
+
+```yaml
+MODEL:
+  policy_name: random
+  RANDOM_AGENT:
+    # Option 1: Compute from training data (recommended)
+    stats_dataset: data/debug_data/train/train.json
+    
+    # Option 2: Manual probabilities (optional)
+    # action_probs: [0.02, 0.68, 0.15, 0.15]  # STOP, FORWARD, LEFT, RIGHT
+
+EVAL:
+  SPLIT: val_seen
+  CKPT_PATH: null  # No checkpoint needed
+```
+
+#### Usage
+
+```bash
+# Evaluate RandomAgent
+python run.py --exp-config configs/baselines/random_agent.yaml --run-type eval
+
+# With video generation
+python run.py --exp-config configs/baselines/random_agent.yaml --run-type eval GENERATE_VIDEOS=true
+```
+
+#### Configuration
+
+The configuration inherits from `configs/default.yaml` for common settings like `IL` and `STATE_ENCODER`. Only agent-specific parameters need to be specified:
+
+```yaml
+_base_: configs/default.yaml  # Inherit default configurations
+
+MODEL:
+  policy_name: random
+  RANDOM_AGENT:
+    action_probs: [0.02, 0.68, 0.15, 0.15]  # STOP, FORWARD, LEFT, RIGHT
+
+EVAL:
+  CKPT_PATH: null  # No checkpoint needed
+
+GENERATE_VIDEOS: false  # Set to true for video generation
+```
+
+#### Expected Performance
+- SPL: ~0.0-0.1 (very low, as expected for random behavior)
+- Success: ~0% (random actions rarely reach the goal)
+
+### Greedy Agent
+
+A greedy baseline agent that follows the reference path waypoints sequentially. This provides an oracle-like upper bound for VLN performance.
+
+#### Features
+- No training required
+- Uses ground-truth reference path waypoints
+- Always selects the optimal action to reach current waypoint
+- Reuses `SatNavPathFollower` for navigation logic
+- Follows the same logic as `examples/satnav_path_follower_example.py`
+
+#### Algorithm
+1. Extract waypoints from episode's reference_path
+2. Navigate to current waypoint using greedy strategy:
+   - Calculate distance and bearing to current waypoint
+   - If distance < goal_radius: Move to next waypoint
+   - If heading is close to target bearing: MOVE_FORWARD
+   - Otherwise: TURN_LEFT or TURN_RIGHT toward waypoint
+3. When all waypoints reached: STOP
+
+#### Configuration
+
+```yaml
+MODEL:
+  policy_name: greedy
+  GREEDY_AGENT:
+    goal_radius: 3.0   # Distance threshold (meters)
+    turn_angle: 15.0   # Turn angle (degrees)
+
+EVAL:
+  SPLIT: val_seen
+  CKPT_PATH: null  # No checkpoint needed
+```
+
+#### Usage
+
+```bash
+# Evaluate GreedyAgent
+python run.py --exp-config configs/baselines/greedy_agent.yaml --run-type eval
+
+# With video generation
+python run.py --exp-config configs/baselines/greedy_agent.yaml --run-type eval GENERATE_VIDEOS=true
+```
+
+#### Configuration
+
+The configuration inherits from `configs/default.yaml` for common settings. Only agent-specific parameters need to be specified:
+
+```yaml
+_base_: configs/default.yaml  # Inherit default configurations
+
+MODEL:
+  policy_name: greedy
+  GREEDY_AGENT:
+    goal_radius: 3.0   # Distance threshold (meters)
+    turn_angle: 15.0   # Turn angle (degrees)
+
+EVAL:
+  CKPT_PATH: null  # No checkpoint needed
+
+GENERATE_VIDEOS: false  # Set to true for video generation
+```
+
+#### Expected Performance
+- SPL: ~0.7-1.0 (high, as it has perfect goal knowledge)
+- Success: ~80-100% (depends on environment complexity)
+
+#### Note
+GreedyAgent requires environment access to get current position and extract waypoints from the reference path. This is automatically handled by the evaluator via the `set_env()` method, which is called at the start of each episode.
+
