@@ -372,7 +372,46 @@ python examples/reference_follower_example.py
 
 ---
 
-## 7. Baseline Models（基线模型）
+## 7. Training and Evaluation（训练和评估）
+
+### 7.1 Quick Start
+
+SatNav 使用统一的入口点 `run.py` 进行训练和评估：
+
+```bash
+# Training
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+
+# Evaluation
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+```
+
+### 7.2 Configuration System
+
+采用 VLN-CE 风格的统一配置系统：
+- **单一配置文件**：包含训练（IL）、评估（EVAL）、推理（INFERENCE）配置
+- **灵活覆盖**：支持命令行参数覆盖任何配置项
+- **自动同步**：评估时自动将 `EVAL.SPLIT` 同步到 `DATASET.SPLIT`
+
+配置文件结构：
+- `configs/default.yaml` - 默认配置模板（参考文档）
+- `configs/baselines/seq2seq.yaml` - Seq2Seq实验配置
+- `configs/debug_vln_task.yaml` - 调试任务配置
+
+详细文档: [配置系统文档](doc/CONFIG_SYSTEM.md)
+
+### 7.3 Evaluation Features
+
+完整的评估功能包括：
+- ✅ 环境中运行完整的 episode rollouts
+- ✅ 计算所有 metrics（SPL, Success, DistanceToGoal, PathLength）
+- ✅ 进度条显示和实时指标更新
+- ✅ 保存 aggregated metrics 到 JSON
+- ✅ 可选的视频生成（需启用 TOP_DOWN_MAP）
+
+---
+
+## 8. Baseline Models（基线模型）
 
 SatNav 提供了 VLN 基线模型实现，用于训练和评估导航智能体。
 
@@ -404,7 +443,44 @@ python -m satnav.utils.build_glove_embeddings \
     --output data/embeddings/glove_embeddings.json.gz
 ```
 
-**Usage**:
+**Training**:
+```bash
+# Train with default config
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+
+# Train with custom parameters
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+    IL.epochs 20 IL.batch_size 8 IL.lr 1e-4
+
+# Continue from checkpoint
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+    IL.load_from_ckpt true IL.ckpt_to_load data/checkpoints/seq2seq/best.pth
+```
+
+**Evaluation**:
+```bash
+# Evaluate on val_seen
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+
+# Evaluate on val_unseen
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+    EVAL.SPLIT val_unseen
+
+# Evaluate with video generation (requires TOP_DOWN_MAP in TASK.MEASUREMENTS)
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+    'VIDEO_OPTION' '["disk"]'
+
+# Quick evaluation (first 5 episodes)
+python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+    EVAL.EPISODE_COUNT 5
+```
+
+**Evaluation Output**:
+- Metrics JSON: `data/results/seq2seq/eval_ckpt_0_{split}.json`
+- Videos (if enabled): `data/videos/seq2seq/episode_{id}_ckpt_0.mp4`
+- Console: Progress bar, aggregated metrics, timing info
+
+**Programmatic Usage**:
 ```python
 from satnav.models import ModelRegistry
 from omegaconf import OmegaConf
@@ -419,8 +495,10 @@ action, rnn_states = model.act(observations, rnn_states, prev_actions, masks)
 ```
 
 **Documentation**:
-- 📖 **Architecture Design**: `doc/models/SEQ2SEQ_BASELINE.md`
+- 📖 **Architecture Design**: `doc/models/SEQ2SEQ_IMPLEMENTATION.md`
 - 🚀 **Quick Start Guide**: `doc/models/QUICKSTART.md`
+- 🎓 **Training Guide**: `doc/training/TRAINING_GUIDE.md`
+- ⚙️ **Config System**: `doc/CONFIG_SYSTEM.md`
 - 📝 **Embedding Guide**: `doc/EMBEDDING_GUIDE.md`
 - ✅ **Implementation Summary**: `doc/models/IMPLEMENTATION_SUMMARY.md`
 
@@ -572,10 +650,11 @@ python -m applications.aerial_viewer
 
 ---
 
-## 8. 项目结构
+## 9. 项目结构
 
 ```
 SatNav/
+├── run.py                     # 统一训练/评估入口点 ⭐
 ├── satnav/                    # 主包
 │   ├── core/                 # 核心组件
 │   │   ├── env.py           # 环境类
@@ -589,7 +668,25 @@ SatNav/
 │   │   ├── actions.py        # 动作定义
 │   │   └── measures.py       # 评价指标
 │   ├── dataset/              # 数据集
-│   │   └── satnav_dataset.py  # SatNav数据集加载器
+│   │   ├── satnav_dataset.py     # SatNav数据集加载器
+│   │   └── recollect_dataset.py  # 实时收集数据集
+│   ├── models/               # 模型
+│   │   ├── registry.py       # 模型注册表
+│   │   ├── base.py           # 基类
+│   │   ├── baselines/        # 基线模型
+│   │   │   └── seq2seq_policy.py  # Seq2Seq 模型
+│   │   └── encoders/         # 编码器
+│   │       ├── instruction_encoder.py
+│   │       ├── visual_encoder.py
+│   │       └── rnn_state_encoder.py
+│   ├── training/             # 训练模块 ⭐
+│   │   ├── registry.py       # Trainer 注册表
+│   │   ├── base_il_trainer.py  # 基础 IL trainer
+│   │   ├── recollect_trainer.py  # 实时收集 trainer
+│   │   └── utils.py          # 训练工具
+│   ├── navigation/           # 导航策略
+│   │   ├── path_follower.py  # 路径跟随器
+│   │   └── discrete_planner.py  # 离散规划器
 │   └── sims/                 # 仿真器
 │       ├── satsim_wrapper.py # SatSim适配器
 │       └── satsim/           # SatSim核心模块
@@ -597,8 +694,12 @@ SatNav/
 │           ├── satsim.py     # 核心引擎
 │           ├── camera.py     # 相机渲染
 │           └── geoutils.py   # 坐标工具
-├── configs/                   # 配置文件
-│   └── vln_task.yaml         # VLN任务配置
+├── configs/                   # 配置文件 ⭐
+│   ├── default.yaml          # 默认配置模板
+│   ├── debug_vln_task.yaml   # 调试任务配置
+│   ├── vln_task.yaml         # 完整任务配置
+│   └── baselines/            # 基线模型配置
+│       └── seq2seq.yaml      # Seq2Seq 统一配置
 ├── examples/                  # 示例代码
 │   ├── satnav_path_follower_example.py  # SatNavPathFollower 示例（批量运行）
 │   └── reference_follower_example.py    # ReferencePathFollower 示例（单 episode）
@@ -612,6 +713,8 @@ SatNav/
 │   ├── test_env.py
 │   ├── test_satsim.py
 │   ├── test_camera.py
+│   ├── test_seq2seq_model.py  # 模型测试
+│   ├── test_training.py       # 训练测试
 │   └── test_geoutils.py
 ├── applications/             # 应用工具
 │   ├── satsim_viewer/       # 交互式查看器
@@ -619,15 +722,28 @@ SatNav/
 │   │   └── task_viewer.py   # 任务查看器
 │   ├── aerial_viewer/        # 3D 航拍查看器
 │   └── map_downloader/      # 地图下载器
-├── doc/                      # 文档目录
+├── doc/                      # 文档目录 ⭐
+│   ├── CONFIG_SYSTEM.md      # 配置系统文档
+│   ├── EMBEDDING_GUIDE.md    # Embedding 指南
+│   ├── models/               # 模型文档
+│   │   ├── SEQ2SEQ_IMPLEMENTATION.md
+│   │   ├── CMA_IMPLEMENTATION.md
+│   │   ├── QUICKSTART.md
+│   │   └── IMPLEMENTATION_SUMMARY.md
+│   ├── training/             # 训练文档
+│   │   ├── TRAINING_GUIDE.md
+│   │   └── SEQ2SEQ_SHAPE.md
 │   └── refactor/             # 设计文档
+│       └── ARCHITECTURE.md
 ├── setup.py                  # 安装脚本
 ├── requirements.txt          # 依赖列表
 └── README.md                 # 本文件
 ```
 
+**⭐ 标记的是新增或重要更新的部分**
+
 ---
 
-## 9. 许可证
+## 10. 许可证
 
 MIT License

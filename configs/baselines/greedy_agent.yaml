@@ -1,0 +1,68 @@
+# =============================================================================
+# GreedyAgent Configuration
+# =============================================================================
+# Greedy baseline agent that always navigates directly toward the goal.
+# This provides an oracle-like upper bound for VLN performance, since it
+# always knows the exact goal location.
+#
+# Reference: 
+#   - VLN-CE vlnce_baselines/nonlearning_agents.py (HandcraftedAgent)
+#   - SatNav satnav/navigation/path_follower.py (SatNavPathFollower)
+
+# Inherit default configuration
+_base_: configs/default.yaml
+
+# Base task configuration
+BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+TRAINER_NAME: recollect_trainer
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+MODEL:
+  policy_name: greedy  # Must match registry name
+  
+  # GreedyAgent specific configuration
+  GREEDY_AGENT:
+    # Distance threshold for considering goal reached (meters)
+    # Agent will STOP when within this distance of the goal
+    goal_radius: 10.0
+    
+    # Turn angle per TURN_LEFT/TURN_RIGHT action (degrees)
+    # Used to determine when agent is "facing" the goal
+    # Should match SIMULATOR.TURN_ANGLE
+    turn_angle: 15.0
+
+# Note: IL and STATE_ENCODER configurations are inherited from default.yaml
+# They are not used by GreedyAgent but required by the trainer framework
+
+# ============================================================================
+# EVALUATION CONFIGURATION
+# ============================================================================
+EVAL:
+  SPLIT: val_seen
+  EPISODE_COUNT: -1  # Evaluate all episodes (-1 = all)
+  SAVE_RESULTS: true
+  CKPT_PATH: null  # Non-learning agent doesn't need checkpoint
+
+# ============================================================================
+# VIDEO GENERATION CONFIGURATION
+# ============================================================================
+GENERATE_VIDEOS: true  # Set to true to enable video generation
+VIDEO_DIR: output/videos/greedy_agent
+
+# ============================================================================
+# SYSTEM CONFIGURATION
+# ============================================================================
+TORCH_GPU_ID: 0
+
+# Note: Other configurations (TASK, DATASET, SIMULATOR, etc.) are inherited
+# from default.yaml and the base task config (debug_vln_task.yaml)
+#
+# The greedy agent uses SatNavPathFollower for navigation logic, which
+# implements a greedy strategy to navigate through waypoints sequentially:
+# 1. Extract waypoints from reference_path
+# 2. Navigate to current waypoint
+# 3. When waypoint reached, move to next waypoint
+# 4. When all waypoints reached: STOP
+

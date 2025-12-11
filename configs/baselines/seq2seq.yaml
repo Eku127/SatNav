@@ -1,29 +1,133 @@
-# Seq2Seq baseline model configuration for SatNav
-# 
-# This configuration follows VLN-CE's config structure but is adapted
-# for SatNav (satellite navigation without depth information).
+# Seq2Seq Baseline - Unified Configuration
 #
-# Reference:
-#   - VLN-CE: vlnce_baselines/config/default.py (lines 214-261)
-#   - VLN-CE: vlnce_baselines/config/r2r_baselines/seq2seq.yaml
+# This configuration follows VLN-CE's unified config structure with support for
+# train/eval/inference modes through a single config file.
+#
+# Usage:
+#   Training:   python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+#   Evaluation: python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+#   Override:   python run.py --exp-config CONFIG --run-type eval EVAL.SPLIT val_unseen
+#
+# Configuration Inheritance:
+#   - Inherits from configs/default.yaml (via _base_)
+#   - Inherits from task config (via BASE_TASK_CONFIG_PATH)
+#   - This config overrides any inherited values
 
-MODEL:
-  # Model type and policy name
-  TYPE: seq2seq
-  policy_name: seq2seq  # Must match registry name, not class name
+# ============================================================================
+# BASE CONFIGURATION
+# ============================================================================
+
+# Inherit from default.yaml (provides default values for all settings)
+_base_: configs/default.yaml
+
+# Path to task configuration (auto-loaded and merged)
+BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+
+# Trainer to use (from registry)
+TRAINER_NAME: recollect_trainer
+
+# Directories
+CHECKPOINT_FOLDER: output/checkpoints/seq2seq
+RESULTS_DIR: output/results/seq2seq
+
+# Device configuration
+TORCH_GPU_ID: 0
+NUM_PROCESSES: 1
+
+# Video configuration (optional)
+GENERATE_VIDEOS: true  # Set to true to generate evaluation videos
+VIDEO_DIR: output/videos/seq2seq  # Directory to save videos (if GENERATE_VIDEOS is true)
+
+# ============================================================================
+# TRAINING CONFIGURATION (IL - Imitation Learning)
+# ============================================================================
+IL:
+  # Optimizer settings
+  # Reduced learning rate for more stable convergence and better overfitting
+  lr: 1e-4
+  # Smaller batch size for more frequent gradient updates
+  batch_size: 1
+  # Increased epochs to allow model to overfit training data
+  epochs: 20
   
-  # Visual input normalization (ImageNet stats)
+  # Checkpoint loading
+  load_from_ckpt: false
+  ckpt_to_load: output/checkpoints/seq2seq/best.pth
+  
+  # RecollectTrainer specific settings
+  RECOLLECT_TRAINER:
+    # Reduced preload_size for faster startup (can be increased if needed)
+    # Smaller preload_size = faster preload, but may need more frequent refilling
+    preload_size: 5        # Number of episodes to preload
+    max_traj_len: 500      # Maximum trajectory length (-1 for no limit)
+    
+    # Scheduled Sampling configuration (to reduce exposure bias)
+    # Scheduled sampling helps bridge the gap between training (teacher forcing) 
+    # and evaluation (autoregressive) by gradually using model predictions during training
+    use_scheduled_sampling: false  # Enable/disable scheduled sampling
+    # scheduled_sampling_ratio options:
+    #   - Fixed value (0.0-1.0): Probability of using model prediction as prev_action
+    #     0.0 = always teacher forcing (default)
+    #     1.0 = always autoregressive (full exposure bias)
+    #   - "decay": Exponential decay from 1.0 to 0.0 over epochs
+    scheduled_sampling_ratio: 0.0  # or "decay" for exponential decay
+    scheduled_sampling_p: 0.5       # Decay parameter (if using "decay" mode)
+                                    # ratio = p^epoch, so p=0.5 means:
+                                    # epoch 0: 1.0, epoch 1: 0.5, epoch 2: 0.25, ...
+  
+  # Loss weighting configuration (inherited from default.yaml, can override here)
+  # These settings override the defaults from default.yaml
+  # Inflection weighting: Give higher weight to timesteps where action changes
+  use_inflection_weighting: true
+  inflection_weight_coef: 3.2
+  
+  # Class weighting: Balance loss across different action classes
+  # Critical for handling imbalanced data (MOVE_FORWARD dominates)
+  # Note: MOVE_FORWARD is ~90% of data, so we need strong weighting
+  use_class_weighting: true
+  class_weights:
+    STOP: 1.0
+    MOVE_FORWARD: 0.1     # Strongly reduce weight (overrepresented: ~90%)
+    TURN_LEFT: 10.0        # Strongly increase weight (underrepresented: ~1.5%)
+    TURN_RIGHT: 10.0       # Strongly increase weight (underrepresented: ~9%)
+
+# ============================================================================
+# EVALUATION CONFIGURATION
+# ============================================================================
+EVAL:
+  SPLIT: val_seen          # Dataset split: train, val_seen, val_unseen, test
+  EPISODE_COUNT: -1        # Number of episodes to evaluate (-1 for all)
+  SAVE_RESULTS: true       # Save evaluation results to JSON
+  CKPT_PATH: output/checkpoints/seq2seq/best.pth  # Checkpoint to evaluate
+
+# ============================================================================
+# INFERENCE CONFIGURATION
+# ============================================================================
+INFERENCE:
+  SPLIT: test
+  CKPT_PATH: output/checkpoints/seq2seq/best.pth
+  PREDICTIONS_FILE: output/predictions/seq2seq_test.json
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+MODEL:
+  # Model identification
+  policy_name: seq2seq  # Must match registry name
+  
+  # Visual input normalization
   normalize_rgb: false
   
   # Ablation flags (for ablation studies)
   ablate_instruction: false
   ablate_rgb: false
   
-  # Instruction Encoder Configuration
-  # Reference: VLN-CE default.py lines 222-237
+  # --------------------------------------------------------------------------
+  # Instruction Encoder
+  # --------------------------------------------------------------------------
   INSTRUCTION_ENCODER:
     sensor_uuid: instruction
-    vocab_size: null  # Will be determined from dataset/vocabulary file
+    vocab_size: null  # Will be determined from dataset
     
     # GloVe embedding settings
     use_pretrained_embeddings: true
@@ -31,29 +135,41 @@ MODEL:
     fine_tune_embeddings: false
     embedding_size: 50  # GloVe 6B.50d
     
-    # RNN settings
+    # RNN encoder settings
     hidden_size: 128
     rnn_type: LSTM
     bidirectional: false
+    num_layers: 1
     final_state_only: true
   
-  # RGB Visual Encoder Configuration
-  # Reference: VLN-CE default.py lines 239-242
-  # Note: SatNav uses satellite imagery, NO depth encoder
+  # --------------------------------------------------------------------------
+  # RGB Visual Encoder (Satellite Imagery)
+  # --------------------------------------------------------------------------
   RGB_ENCODER:
     cnn_type: TorchVisionResNet50  # or TorchVisionResNet18
     output_size: 256
     trainable: false  # Freeze pretrained ResNet
     normalize_visual_inputs: false
   
-  # RNN State Encoder Configuration
-  # Reference: VLN-CE default.py lines 255-257
+  # --------------------------------------------------------------------------
+  # RNN State Encoder
+  # --------------------------------------------------------------------------
   STATE_ENCODER:
     hidden_size: 512
     rnn_type: GRU
     num_layers: 1
   
-  # Seq2Seq specific settings
+  # --------------------------------------------------------------------------
+  # Seq2Seq Specific Settings
+  # --------------------------------------------------------------------------
   SEQ2SEQ:
     use_prev_action: true
 
+# ============================================================================
+# WEIGHTS & BIASES LOGGING
+# ============================================================================
+WANDB:
+  project: satnav-vln
+  run_name: seq2seq-baseline
+  entity: null  # Set to your W&B team name if applicable
+  mode: online  # Options: online, offline, disabled

@@ -12,7 +12,10 @@ Reference:
 import json
 import re
 from collections import Counter
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union, Any
+
+import numpy as np
+import torch
 
 
 # Tokenization regex (same as Habitat-Lab)
@@ -278,6 +281,77 @@ def build_vocab_from_dataset(dataset_path: str, min_count: int = 1) -> VocabDict
         word2idx = build_vocab_from_episodes(data["episodes"], min_count)
     
     return VocabDict(word2idx)
+
+
+def tokenize_instruction_in_observation(
+    obs: Dict[str, Any],
+    vocab: VocabDict,
+    max_length: Optional[int] = None,
+    output_format: str = "numpy"
+) -> Dict[str, Any]:
+    """Tokenize instruction in observation dictionary.
+    
+    This is a unified function for tokenizing instructions in observations,
+    replacing the redundant implementations in different modules.
+    
+    Args:
+        obs: Observation dictionary that may contain 'instruction' field
+        vocab: VocabDict instance for tokenization
+        max_length: Maximum sequence length (pad/truncate if specified).
+                   If None, no padding/truncation is applied.
+        output_format: Output format - "numpy" (numpy array) or "tensor" (torch.Tensor)
+        
+    Returns:
+        Modified observation dictionary with tokenized instruction
+        
+    Note:
+        - If max_length is None and output_format="numpy", returns numpy array
+        - If max_length is specified and output_format="tensor", returns padded torch.Tensor
+        - If instruction is already tokenized or missing, returns obs unchanged
+    """
+    if 'instruction' not in obs:
+        return obs
+    
+    # Handle different instruction formats
+    instruction_text = None
+    if isinstance(obs['instruction'], dict):
+        if 'text' in obs['instruction']:
+            instruction_text = obs['instruction']['text']
+        elif 'instruction_text' in obs['instruction']:
+            instruction_text = obs['instruction']['instruction_text']
+    elif isinstance(obs['instruction'], str):
+        instruction_text = obs['instruction']
+    
+    # If no text found, assume already tokenized
+    if instruction_text is None:
+        return obs
+    
+    # Tokenize
+    tokens = tokenize(instruction_text)
+    indices = vocab.tokens_to_indices(tokens)
+    
+    # Format output
+    if max_length is None:
+        # No padding/truncation - return as numpy array (for evaluation)
+        if output_format == "numpy":
+            obs['instruction'] = np.array(indices, dtype=np.int64)
+        else:
+            obs['instruction'] = torch.tensor(indices, dtype=torch.long)
+    else:
+        # Pad/truncate to max_length - return as tensor (for training)
+        indices_tensor = torch.tensor(indices, dtype=torch.long)
+        if len(indices_tensor) > max_length:
+            indices_tensor = indices_tensor[:max_length]
+        elif len(indices_tensor) < max_length:
+            padding = torch.zeros(max_length - len(indices_tensor), dtype=torch.long)
+            indices_tensor = torch.cat([indices_tensor, padding])
+        
+        if output_format == "numpy":
+            obs['instruction'] = indices_tensor.numpy()
+        else:
+            obs['instruction'] = indices_tensor
+    
+    return obs
 
 
 if __name__ == "__main__":

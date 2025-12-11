@@ -7,13 +7,14 @@ the environment in real-time using teacher forcing with reference paths.
 Reference: VLN-CE vlnce_baselines/common/recollection_dataset.py
 """
 
+import copy
 from collections import defaultdict, deque
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from satnav.navigation import ReferencePathFollower
 from satnav.task.actions import Action
@@ -65,11 +66,15 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         self.target_rgb_size = target_rgb_size
         self._preload = deque()
         
+        # Filter out TOP_DOWN_MAP from measurements during training for performance
+        # This avoids the overhead of updating the map on every step during data collection
+        training_config = self._filter_topdown_map_for_training(config)
+        
         # Create environment with cycle=True for training
         # Import here to avoid circular import (Env imports SatNavDataset)
         from satnav.core.env import Env
         print("Creating environment...")
-        self.env = Env(config, cycle=True)
+        self.env = Env(training_config, cycle=True)
         
         # Initialize ReferencePathFollower
         # Get parameters from config or use defaults
@@ -110,9 +115,77 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         # Batch size
         self.batch_size = config.IL.batch_size
         
+        # Inflection weighting: weight timesteps where action changes
+        # This helps the model learn critical decision points
+        if isinstance(config, dict):
+            il_config = config.get('IL', {})
+            self.use_inflection_weighting = il_config.get('use_inflection_weighting', False)
+            self.inflection_weight_coef = il_config.get('inflection_weight_coef', 3.2)
+        else:
+            il_config = getattr(config, 'IL', {})
+            self.use_inflection_weighting = getattr(il_config, 'use_inflection_weighting', False)
+            self.inflection_weight_coef = getattr(il_config, 'inflection_weight_coef', 3.2)
+        
+        if self.use_inflection_weighting:
+            self.inflec_weights = torch.tensor([1.0, self.inflection_weight_coef])
+        else:
+            self.inflec_weights = torch.tensor([1.0, 1.0])
+        
         # Episode tracking for iteration
         self._episode_indices = list(range(len(self.env._dataset.episodes)))
         self._current_episode_idx = 0
+    
+    def _filter_topdown_map_for_training(self, config: DictConfig) -> DictConfig:
+        """Filter out TOP_DOWN_MAP from measurements during training for performance.
+        
+        This method creates a modified copy of the config that excludes TOP_DOWN_MAP
+        from the MEASUREMENTS list. This significantly speeds up data collection during
+        training since TOP_DOWN_MAP updates are computationally expensive.
+        
+        Args:
+            config: Original configuration object
+            
+        Returns:
+            Modified configuration with TOP_DOWN_MAP filtered out
+        """
+        if isinstance(config, DictConfig):
+            # Make a mutable copy
+            config_dict = OmegaConf.to_container(config, resolve=True)
+            
+            # Filter out TOP_DOWN_MAP if present
+            if "TASK" in config_dict and "MEASUREMENTS" in config_dict["TASK"]:
+                measurements = config_dict["TASK"]["MEASUREMENTS"]
+                if isinstance(measurements, list):
+                    original_count = len(measurements)
+                    config_dict["TASK"]["MEASUREMENTS"] = [
+                        m for m in measurements if m.upper() != "TOP_DOWN_MAP"
+                    ]
+                    filtered_count = len(config_dict["TASK"]["MEASUREMENTS"])
+                    
+                    if original_count > filtered_count:
+                        print("Note: TOP_DOWN_MAP automatically disabled during training for faster preload")
+                        print(f"  (filtered from {original_count} to {filtered_count} measurements)")
+            
+            return OmegaConf.create(config_dict)
+        else:
+            # Dict format - make a deep copy
+            config_dict = copy.deepcopy(config)
+            
+            # Filter out TOP_DOWN_MAP if present
+            if "TASK" in config_dict and "MEASUREMENTS" in config_dict["TASK"]:
+                measurements = config_dict["TASK"]["MEASUREMENTS"]
+                if isinstance(measurements, list):
+                    original_count = len(measurements)
+                    config_dict["TASK"]["MEASUREMENTS"] = [
+                        m for m in measurements if m.upper() != "TOP_DOWN_MAP"
+                    ]
+                    filtered_count = len(config_dict["TASK"]["MEASUREMENTS"])
+                    
+                    if original_count > filtered_count:
+                        print("Note: TOP_DOWN_MAP automatically disabled during training for faster preload")
+                        print(f"  (filtered from {original_count} to {filtered_count} measurements)")
+            
+            return config_dict
     
     def _load_vocabulary(self) -> VocabDict:
         """Load or build vocabulary from dataset.
@@ -266,33 +339,14 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
             obs: Observation dictionary
             
         Returns:
-            Modified observation with tokenized instruction
+            Modified observation with tokenized instruction (padded tensor)
         """
-        if 'instruction' in obs and 'text' in obs['instruction']:
-            from satnav.utils.build_vocab import tokenize
-            
-            # Get instruction text
-            text = obs['instruction']['text']
-            
-            # Tokenize
-            tokens = tokenize(text)
-            indices = self.vocab.tokens_to_indices(tokens)
-            
-            # Convert to tensor and pad/truncate
-            indices_tensor = torch.tensor(indices, dtype=torch.long)
-            if len(indices_tensor) > self.max_instruction_len:
-                indices_tensor = indices_tensor[:self.max_instruction_len]
-            elif len(indices_tensor) < self.max_instruction_len:
-                padding = torch.zeros(
-                    self.max_instruction_len - len(indices_tensor),
-                    dtype=torch.long
-                )
-                indices_tensor = torch.cat([indices_tensor, padding])
-            
-            # Replace text with token indices
-            obs['instruction'] = indices_tensor
+        from satnav.utils.build_vocab import tokenize_instruction_in_observation
         
-        return obs
+        # Use unified tokenization function (tensor format with padding for training)
+        return tokenize_instruction_in_observation(
+            obs, self.vocab, max_length=self.max_instruction_len, output_format="tensor"
+        )
     
     def _collect_episode(self, episode_idx: int) -> List[Tuple[Dict[str, Any], int, int]]:
         """Collect data for one episode by executing GT actions.
@@ -416,6 +470,7 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         episode_data = self._preload.popleft()
         
         # Unpack into separate lists
+        # Handle both old format (3 items) and new format (3 items, weights computed later)
         obs_list, prev_actions, teacher_actions = zip(*episode_data)
         
         # Stack observations by sensor
@@ -432,5 +487,17 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         prev_actions = torch.tensor(prev_actions, dtype=torch.long)
         teacher_actions = torch.tensor(teacher_actions, dtype=torch.long)
         
-        return dict(stacked_obs), prev_actions, teacher_actions
+        # Compute inflection weights (weight timesteps where action changes)
+        if self.use_inflection_weighting:
+            # First timestep is always an inflection point (action change from STOP)
+            inflections = torch.cat([
+                torch.tensor([1], dtype=torch.long),  # First timestep
+                (teacher_actions[1:] != teacher_actions[:-1]).long(),  # Action changes
+            ])
+            weights = self.inflec_weights[inflections]
+        else:
+            # No weighting: all timesteps have equal weight
+            weights = torch.ones(len(teacher_actions), dtype=torch.float32)
+        
+        return dict(stacked_obs), prev_actions, teacher_actions, weights
 
