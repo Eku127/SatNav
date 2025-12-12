@@ -206,12 +206,13 @@ class Env:
         
         # Check if episode is done
         # Episode ends if:
-        # 1. Success is True (agent reached goal and called STOP)
+        # 1. STOP action was called (consistent with VLN-CE behavior)
         # 2. Maximum steps reached
-        success = metrics.get("success", 0.0) == 1.0
+        # Note: Success measure is only used for metrics, not for termination
+        stop_called = self._task.is_stop_called
         max_steps_reached = self._elapsed_steps >= self.max_episode_steps
         
-        self._episode_over = success or max_steps_reached
+        self._episode_over = stop_called or max_steps_reached
         
         # Prepare info dictionary
         info = {
