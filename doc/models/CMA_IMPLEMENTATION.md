@@ -133,21 +133,22 @@ examples/
 - **Purpose:** CMA neural network backbone
 - **Properties:**
   - `output_size`: 512
-  - `num_recurrent_layers`: 2 (two GRU encoders)
   - `is_blind`: False
 - **Methods:**
   - `forward()`: Forward pass through network
+  - `get_initial_state()`: Create initial hidden states (for both encoders)
   - `_attn()`: Scaled dot-product attention
 
-### RNN State Handling
+### State Management
 
-CMA has **two RNN encoders**, so special care is needed for RNN states:
+CMA has **two RNN encoders**, so its `get_initial_state()` creates states for both:
 
 ```python
-# RNN states shape: [num_recurrent_layers, batch_size, hidden_size]
-# For CMA: [2, batch_size, 512]
+# Model creates its own initial state (for both encoders)
+rnn_states = model.net.get_initial_state(batch_size, device)
+# Shape: [2, batch_size, 512] for CMA (2 encoders, each 1 layer)
 
-# Split states for two encoders
+# CMA internally splits states for two encoders
 first_encoder_layers = self.state_encoder.num_recurrent_layers  # 1
 second_encoder_layers = self.second_state_encoder.num_recurrent_layers  # 1
 
@@ -168,23 +169,15 @@ output, rnn_states_out[1:2] = self.second_state_encoder(
 
 ### Trainer Compatibility
 
-The `BaseILTrainer` was updated to support models with multiple RNN encoders:
+The trainer is now model-agnostic and doesn't need to know about model internals:
 
 ```python
-# Before (only worked for single RNN):
-rnn_states = torch.zeros(
-    state_encoder.rnn.num_layers,
-    N,
-    hidden_size,
-    device=device
-)
+# New approach - model creates its own states
+states = self.policy.net.get_initial_state(N, self.device)
 
-# After (works for both single and multiple RNNs):
-rnn_states = torch.zeros(
-    self.policy.net.num_recurrent_layers,
-    N,
-    hidden_size,
-    device=device
+# Model handles its own state structure (single or multiple RNNs)
+distribution = self.policy.build_distribution(
+    observations, states, prev_actions, masks
 )
 ```
 
@@ -233,10 +226,10 @@ MODEL:
     trainable: false
     # spatial_output: true is set in code
   
-  STATE_ENCODER:
+  CMA:
     hidden_size: 512
     rnn_type: GRU
-    num_layers: 1
+    use_prev_action: true
 
 IL:
   lr: 2.5e-4

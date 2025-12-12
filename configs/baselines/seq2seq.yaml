@@ -13,57 +13,37 @@
 #   - Inherits from task config (via BASE_TASK_CONFIG_PATH)
 #   - This config overrides any inherited values
 
-# ============================================================================
-# BASE CONFIGURATION
-# ============================================================================
-
-# Inherit from default.yaml (provides default values for all settings)
 _base_: configs/default.yaml
 
-# Path to task configuration (auto-loaded and merged)
-BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
-
-# Trainer to use (from registry)
-TRAINER_NAME: recollect_trainer
-
-# Directories
+# ============================================================================
+# DIRECTORIES
+# ============================================================================
 CHECKPOINT_FOLDER: output/checkpoints/seq2seq
 RESULTS_DIR: output/results/seq2seq
-
-# Device configuration
-TORCH_GPU_ID: 0
-NUM_PROCESSES: 1
-
-# Video configuration (optional)
-GENERATE_VIDEOS: true  # Set to true to generate evaluation videos
-VIDEO_DIR: output/videos/seq2seq  # Directory to save videos (if GENERATE_VIDEOS is true)
+VIDEO_DIR: output/videos/seq2seq
 
 # ============================================================================
-# TRAINING CONFIGURATION (IL - Imitation Learning)
+# VIDEO GENERATION
+# ============================================================================
+GENERATE_VIDEOS: true
+
+# ============================================================================
+# TRAINING CONFIGURATION
 # ============================================================================
 IL:
-  # Optimizer settings
-  # Reduced learning rate for more stable convergence and better overfitting
-  lr: 1e-4
-  # Smaller batch size for more frequent gradient updates
-  batch_size: 1
-  # Increased epochs to allow model to overfit training data
-  epochs: 20
-  
-  # Checkpoint loading
+  # Override optimizer settings for better convergence on small dataset
+  lr: 1e-4  
+  batch_size: 1 
+  epochs: 2  
   load_from_ckpt: false
   ckpt_to_load: output/checkpoints/seq2seq/best.pth
   
-  # RecollectTrainer specific settings
+  # Scheduled Sampling (optional, currently disabled)
   RECOLLECT_TRAINER:
-    # Reduced preload_size for faster startup (can be increased if needed)
-    # Smaller preload_size = faster preload, but may need more frequent refilling
     preload_size: 5        # Number of episodes to preload
     max_traj_len: 500      # Maximum trajectory length (-1 for no limit)
     
     # Scheduled Sampling configuration (to reduce exposure bias)
-    # Scheduled sampling helps bridge the gap between training (teacher forcing) 
-    # and evaluation (autoregressive) by gradually using model predictions during training
     use_scheduled_sampling: false  # Enable/disable scheduled sampling
     # scheduled_sampling_ratio options:
     #   - Fixed value (0.0-1.0): Probability of using model prediction as prev_action
@@ -112,64 +92,16 @@ INFERENCE:
 # MODEL CONFIGURATION
 # ============================================================================
 MODEL:
-  # Model identification
-  policy_name: seq2seq  # Must match registry name
+  policy_name: seq2seq
   
-  # Visual input normalization
-  normalize_rgb: false
-  
-  # Ablation flags (for ablation studies)
-  ablate_instruction: false
-  ablate_rgb: false
-  
-  # --------------------------------------------------------------------------
-  # Instruction Encoder
-  # --------------------------------------------------------------------------
-  INSTRUCTION_ENCODER:
-    sensor_uuid: instruction
-    vocab_size: null  # Will be determined from dataset
-    
-    # GloVe embedding settings
-    use_pretrained_embeddings: true
-    embedding_file: data/debug_data/embeddings.json.gz
-    fine_tune_embeddings: false
-    embedding_size: 50  # GloVe 6B.50d
-    
-    # RNN encoder settings
-    hidden_size: 128
-    rnn_type: LSTM
-    bidirectional: false
-    num_layers: 1
-    final_state_only: true
-  
-  # --------------------------------------------------------------------------
-  # RGB Visual Encoder (Satellite Imagery)
-  # --------------------------------------------------------------------------
-  RGB_ENCODER:
-    cnn_type: TorchVisionResNet50  # or TorchVisionResNet18
-    output_size: 256
-    trainable: false  # Freeze pretrained ResNet
-    normalize_visual_inputs: false
-  
-  # --------------------------------------------------------------------------
-  # RNN State Encoder
-  # --------------------------------------------------------------------------
-  STATE_ENCODER:
+  # Seq2Seq specific settings
+  SEQ2SEQ:
     hidden_size: 512
     rnn_type: GRU
-    num_layers: 1
-  
-  # --------------------------------------------------------------------------
-  # Seq2Seq Specific Settings
-  # --------------------------------------------------------------------------
-  SEQ2SEQ:
     use_prev_action: true
 
 # ============================================================================
 # WEIGHTS & BIASES LOGGING
 # ============================================================================
 WANDB:
-  project: satnav-vln
   run_name: seq2seq-baseline
-  entity: null  # Set to your W&B team name if applicable
-  mode: online  # Options: online, offline, disabled

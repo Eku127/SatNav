@@ -82,13 +82,10 @@ act_space = MockSpace()
 # Instantiate model
 model = model_class.from_config(config, obs_space, act_space)
 
-# Initialize RNN states
+# Initialize model states
 batch_size = 1
-rnn_states = torch.zeros(
-    model.net.num_recurrent_layers,
-    batch_size,
-    config.MODEL.STATE_ENCODER.hidden_size
-)
+device = torch.device('cpu')
+rnn_states = model.net.get_initial_state(batch_size, device)
 
 # Prepare observations
 observations = {

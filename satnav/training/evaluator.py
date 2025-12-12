@@ -341,17 +341,9 @@ class Evaluator:
             waypoints = prepare_waypoints(episode)
             action_names = {0: "STOP", 1: "MOVE_FORWARD", 2: "TURN_LEFT", 3: "TURN_RIGHT"}
         
-        # Initialize RNN state for this episode
-        # Use policy.net.num_recurrent_layers to support both single RNN (Seq2Seq)
-        # and multiple RNN (CMA) architectures
-        hidden_size = self.config.MODEL.STATE_ENCODER.hidden_size
-        
-        rnn_state = torch.zeros(
-            policy.net.num_recurrent_layers,  # CMA: 2, Seq2Seq: 1
-            1, 
-            hidden_size,
-            device=self.device
-        )
+        # Initialize model state for this episode
+        # Let the model create its own initial state based on its architecture
+        rnn_state = policy.net.get_initial_state(1, self.device)
         prev_action = torch.zeros(1, 1, device=self.device, dtype=torch.long)
         not_done_mask = torch.ones(1, 1, device=self.device, dtype=torch.uint8)
         

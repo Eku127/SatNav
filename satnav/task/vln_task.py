@@ -43,6 +43,7 @@ class VLNTask:
         self._config = config
         self._sim = simulator
         self._current_episode: Optional[VLNEpisode] = None
+        self.is_stop_called: bool = False  # Track if STOP action was called
         
         # Extract configuration values
         if isinstance(config, DictConfig):
@@ -158,6 +159,7 @@ class VLNTask:
             Initial observations dictionary.
         """
         self._current_episode = episode
+        self.is_stop_called = False  # Reset stop flag for new episode
         
         # Reset simulator (load scene and set initial state)
         sim_obs = self._sim.reset(episode.scene_id)
@@ -199,6 +201,10 @@ class VLNTask:
                 f"Invalid action: {action_str}. "
                 f"Valid actions are: {Action.ALL_ACTIONS}"
             )
+        
+        # Track STOP action (for episode termination, consistent with VLN-CE)
+        if action_str == Action.STOP:
+            self.is_stop_called = True
         
         # Execute action in simulator
         sim_obs = self._sim.step(action_str)

@@ -55,15 +55,22 @@ class DummyNet(Net):
         
         return features, rnn_states
     
+    def get_initial_state(self, batch_size: int, device: torch.device) -> torch.Tensor:
+        """Create initial hidden states for the dummy network.
+        
+        Args:
+            batch_size: Number of parallel sequences
+            device: Device to create tensors on
+            
+        Returns:
+            Dummy state tensor with shape (1, batch_size, output_size)
+        """
+        return torch.zeros(1, batch_size, self._output_size, device=device)
+    
     @property
     def output_size(self) -> int:
         """Size of network output features."""
         return self._output_size
-    
-    @property
-    def num_recurrent_layers(self) -> int:
-        """Number of recurrent layers (0 for non-recurrent)."""
-        return 1  # Need at least 1 for RNN state compatibility
     
     @property
     def is_blind(self) -> bool:

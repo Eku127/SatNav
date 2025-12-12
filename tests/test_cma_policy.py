@@ -41,10 +41,10 @@ def test_cma_policy_instantiation():
                 'trainable': False,
                 'normalize_visual_inputs': False,
             },
-            'STATE_ENCODER': {
+            'CMA': {
                 'hidden_size': 512,
                 'rnn_type': 'GRU',
-                'num_layers': 1,
+                'use_prev_action': True,
             },
         }
     })
@@ -89,10 +89,10 @@ def test_cma_net_properties():
             'output_size': 256,
             'trainable': False,
         },
-        'STATE_ENCODER': {
+        'CMA': {
             'hidden_size': 512,
             'rnn_type': 'GRU',
-            'num_layers': 1,
+            'use_prev_action': True,
         },
         'normalize_rgb': False,
         'ablate_instruction': False,
@@ -111,8 +111,12 @@ def test_cma_net_properties():
     # Check properties
     assert net.output_size == 512
     assert net.is_blind == False
-    # CMA has 2 GRU encoders, each with 1 layer = 2 recurrent layers total
-    assert net.num_recurrent_layers == 2
+    
+    # Test get_initial_state
+    device = torch.device('cpu')
+    initial_state = net.get_initial_state(batch_size=2, device=device)
+    # CMA has 2 GRU encoders, each with 1 layer = 2 total layers
+    assert initial_state.shape == (2, 2, 512)  # (layers, batch, hidden)
 
 
 def test_cma_forward_pass():
@@ -133,10 +137,10 @@ def test_cma_forward_pass():
             'output_size': 256,
             'trainable': False,
         },
-        'STATE_ENCODER': {
+        'CMA': {
             'hidden_size': 512,
             'rnn_type': 'GRU',
-            'num_layers': 1,
+            'use_prev_action': True,
         },
         'normalize_rgb': False,
         'ablate_instruction': False,
@@ -159,9 +163,8 @@ def test_cma_forward_pass():
         'instruction': torch.randint(0, 100, (batch_size, 80), dtype=torch.long),
     }
     
-    # RNN states: [num_recurrent_layers, batch_size, hidden_size]
-    # CMA has 2 recurrent layers (2 GRU encoders)
-    rnn_states = torch.zeros(2, batch_size, 512)
+    # Initialize model states
+    rnn_states = policy.net.get_initial_state(batch_size, device)
     
     prev_actions = torch.zeros(batch_size, 1, dtype=torch.long)
     masks = torch.ones(batch_size, 1)
@@ -195,10 +198,10 @@ def test_cma_act():
             'output_size': 256,
             'trainable': False,
         },
-        'STATE_ENCODER': {
+        'CMA': {
             'hidden_size': 512,
             'rnn_type': 'GRU',
-            'num_layers': 1,
+            'use_prev_action': True,
         },
         'normalize_rgb': False,
         'ablate_instruction': False,
@@ -269,10 +272,10 @@ def test_cma_parameter_count():
             'output_size': 256,
             'trainable': False,
         },
-        'STATE_ENCODER': {
+        'CMA': {
             'hidden_size': 512,
             'rnn_type': 'GRU',
-            'num_layers': 1,
+            'use_prev_action': True,
         },
         'normalize_rgb': False,
         'ablate_instruction': False,

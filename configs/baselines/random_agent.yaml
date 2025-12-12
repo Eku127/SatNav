@@ -7,7 +7,6 @@
 #
 # Reference: VLN-CE vlnce_baselines/nonlearning_agents.py (RandomAgent)
 
-# Inherit default configuration
 _base_: configs/default.yaml
 
 # Base task configuration
@@ -18,23 +17,15 @@ TRAINER_NAME: recollect_trainer
 # MODEL CONFIGURATION
 # ============================================================================
 MODEL:
-  policy_name: random  # Must match registry name
+  policy_name: random
   
-  # RandomAgent specific configuration
   RANDOM_AGENT:
-    # Use VLN-CE default probabilities (R2R training set statistics)
-    # SatNav dataset format doesn't include action fields in reference_path
-    action_probs: [0.02, 0.68, 0.15, 0.15]  # [STOP, FORWARD, LEFT, RIGHT]
-    
-    # Random seed for reproducibility (optional)
-    # Set to null or remove for non-deterministic behavior
-    seed: null  # Use null for truly random behavior, or set a number for reproducibility
-
-# Note: IL and STATE_ENCODER configurations are inherited from default.yaml
-# They are not used by RandomAgent but required by the trainer framework
+    # Action probabilities: [STOP, FORWARD, LEFT, RIGHT]
+    action_probs: [0.02, 0.68, 0.15, 0.15]
+    seed: null  # null for random, or set a number for reproducibility
 
 # ============================================================================
-# EVALUATION CONFIGURATION
+# EVALUATION & VIDEO
 # ============================================================================
 EVAL:
   SPLIT: val_seen
@@ -42,17 +33,5 @@ EVAL:
   SAVE_RESULTS: true
   CKPT_PATH: null  # Non-learning agent doesn't need checkpoint
 
-# ============================================================================
-# VIDEO GENERATION CONFIGURATION
-# ============================================================================
-GENERATE_VIDEOS: true  # Set to true to enable video generation
+GENERATE_VIDEOS: true
 VIDEO_DIR: output/videos/random_agent
-
-# ============================================================================
-# SYSTEM CONFIGURATION
-# ============================================================================
-TORCH_GPU_ID: 0
-
-# Note: Other configurations (TASK, DATASET, SIMULATOR, etc.) are inherited
-# from default.yaml and the base task config (debug_vln_task.yaml)
-

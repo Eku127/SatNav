@@ -65,7 +65,7 @@
 **VLN-CE**: 
 ```python
 self.progress_monitor = nn.Linear(
-    self.model_config.STATE_ENCODER.hidden_size, 1
+    hidden_size, 1
 )
 # 作为auxiliary loss使用
 progress_hat = torch.tanh(self.progress_monitor(x))

@@ -97,11 +97,11 @@ INFERENCE:
 MODEL:
   policy_name: seq2seq
   INSTRUCTION_ENCODER:
-    # ... 编码器配置
+    # ... 指令编码器配置
   RGB_ENCODER:
     # ... 视觉编码器配置
-  STATE_ENCODER:
-    # ... 状态编码器配置
+  SEQ2SEQ:
+    # ... Seq2Seq 模型特定配置
 
 # W&B 配置
 WANDB:
@@ -254,10 +254,10 @@ MODEL:
     trainable: false
     # ...
   
-  STATE_ENCODER:            # 状态编码器 (RNN)
+  SEQ2SEQ:                  # Seq2Seq 模型特定配置
     hidden_size: 512
     rnn_type: GRU
-    num_layers: 1
+    use_prev_action: true
 ```
 
 #### WANDB

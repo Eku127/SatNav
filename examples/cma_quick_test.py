@@ -40,10 +40,10 @@ def main():
                 'trainable': False,
                 'normalize_visual_inputs': False,
             },
-            'STATE_ENCODER': {
+            'CMA': {
                 'hidden_size': 512,
                 'rnn_type': 'GRU',
-                'num_layers': 1,
+                'use_prev_action': True,
             },
         }
     })
@@ -74,7 +74,6 @@ def main():
     # 3. Check properties
     print("\n3. Checking Model Properties...")
     print(f"   - Output size: {policy.net.output_size}")
-    print(f"   - Num recurrent layers: {policy.net.num_recurrent_layers}")
     print(f"   - Is blind: {policy.net.is_blind}")
     print(f"   - Num actions: {policy.dim_actions}")
     
@@ -97,8 +96,8 @@ def main():
         'instruction': torch.randint(0, 100, (batch_size, 80), dtype=torch.long).to(device),
     }
     
-    # Initialize RNN states (2 layers for CMA)
-    rnn_states = torch.zeros(2, batch_size, 512).to(device)
+    # Initialize model states using get_initial_state
+    rnn_states = policy.net.get_initial_state(batch_size, device)
     prev_actions = torch.zeros(batch_size, 1, dtype=torch.long).to(device)
     masks = torch.ones(batch_size, 1).to(device)
     

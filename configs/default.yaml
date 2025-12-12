@@ -167,27 +167,6 @@ MODEL:
     
     # Whether to normalize visual inputs
     normalize_visual_inputs: false
-  
-  # -------------------------------------------------------------------------
-  # State Encoder (RNN) Configuration
-  # -------------------------------------------------------------------------
-  STATE_ENCODER:
-    # Hidden state dimension
-    hidden_size: 512
-    
-    # RNN type
-    # Options: GRU, LSTM
-    rnn_type: GRU
-    
-    # Number of RNN layers
-    num_layers: 1
-  
-  # -------------------------------------------------------------------------
-  # Seq2Seq-specific Configuration
-  # -------------------------------------------------------------------------
-  SEQ2SEQ:
-    # Whether to use previous action as input
-    use_prev_action: true
 
 # ============================================================================
 # WEIGHTS & BIASES (W&B) LOGGING CONFIGURATION

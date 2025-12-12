@@ -109,41 +109,40 @@ examples/
 - **Purpose:** Seq2Seq neural network backbone
 - **Properties:**
   - `output_size`: 512
-  - `num_recurrent_layers`: 1 (one GRU encoder)
   - `is_blind`: False
 - **Methods:**
   - `forward()`: Forward pass through network
+  - `get_initial_state()`: Create initial hidden states
 
-### RNN State Handling
+### State Management
 
-Seq2Seq has **one RNN encoder**, making state management straightforward:
+Seq2Seq uses **one RNN encoder**. The model is responsible for creating its own initial states:
 
 ```python
-# RNN states shape: [num_recurrent_layers, batch_size, hidden_size]
-# For Seq2Seq: [1, batch_size, 512]
-
-# Initialize states
-rnn_states = torch.zeros(1, batch_size, 512)
+# Model creates its own initial state
+rnn_states = model.net.get_initial_state(batch_size, device)
+# Shape: [1, batch_size, 512] for Seq2Seq
 
 # Forward pass
-features, rnn_states_out = self.state_encoder(
-    state_in,
+features, rnn_states_out = model.net(
+    observations,
     rnn_states,
+    prev_actions,
     masks
 )
 ```
 
 ### Trainer Compatibility
 
-Seq2Seq works seamlessly with `RecollectTrainer` and other trainers:
+Seq2Seq works seamlessly with `RecollectTrainer` and other trainers. The trainer no longer needs to know about model internals:
 
 ```python
-# Trainer automatically handles RNN state initialization
-rnn_states = torch.zeros(
-    self.policy.net.num_recurrent_layers,  # 1 for Seq2Seq
-    N,
-    hidden_size,
-    device=device
+# Trainer simply calls get_initial_state
+states = self.policy.net.get_initial_state(N, self.device)
+
+# Model handles its own state structure
+distribution = self.policy.build_distribution(
+    observations, states, prev_actions, masks
 )
 ```
 
@@ -195,12 +194,9 @@ MODEL:
     trainable: false
     # spatial_output: false (default)
   
-  STATE_ENCODER:
+  SEQ2SEQ:
     hidden_size: 512
     rnn_type: GRU
-    num_layers: 1
-  
-  SEQ2SEQ:
     use_prev_action: true
 
 IL:
