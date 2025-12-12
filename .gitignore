@@ -121,6 +121,8 @@ data/scene_datasets/
 *.tif
 # Exception: allow test data map.tif
 !tests/test_data/map.tif
+# Ignore large embedding test file
+tests/test_data/glove.6B.50d.txt
 
 # Data directory (general)
 data/

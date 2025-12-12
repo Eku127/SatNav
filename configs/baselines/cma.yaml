@@ -1,0 +1,106 @@
+# CMA (Cross-Modal Attention) Baseline - Unified Configuration
+#
+# This configuration implements the CMA model from "Improving Vision-and-Language
+# Navigation with Image-Text Pairs from the Web" (Zhu et al., 2020).
+# https://arxiv.org/abs/2004.02857
+#
+# Key differences from VLN-CE CMA:
+#   - NO depth encoder (SatNav uses satellite imagery without depth)
+#   - NO progress monitor (simplified implementation)
+#   - Core CMA mechanism (RGB-instruction cross-modal attention) preserved
+#
+# Usage:
+#   Training:   python run.py --exp-config configs/baselines/cma.yaml --run-type train
+#   Evaluation: python run.py --exp-config configs/baselines/cma.yaml --run-type eval
+#   Override:   python run.py --exp-config CONFIG --run-type eval EVAL.SPLIT val_unseen
+
+_base_: configs/default.yaml
+
+# ============================================================================
+# DIRECTORIES
+# ============================================================================
+CHECKPOINT_FOLDER: output/checkpoints/cma
+RESULTS_DIR: output/results/cma
+VIDEO_DIR: output/videos/cma
+
+# ============================================================================
+# VIDEO GENERATION
+# ============================================================================
+GENERATE_VIDEOS: true
+
+# ============================================================================
+# TRAINING CONFIGURATION
+# ============================================================================
+IL:
+  # Override optimizer settings for better convergence on small dataset
+  # Note: VLN-CE uses 2.5e-4 for large R2R dataset, but smaller lr works better for debug data
+  lr: 1e-4
+  batch_size: 1
+  epochs: 2
+  load_from_ckpt: false
+  ckpt_to_load: output/checkpoints/cma/best.pth
+  
+  RECOLLECT_TRAINER:
+    preload_size: 5        # Number of episodes to preload
+    max_traj_len: 500      # Maximum trajectory length (-1 for no limit)
+    
+    # Scheduled Sampling configuration (to reduce exposure bias)
+    use_scheduled_sampling: false  # Enable/disable scheduled sampling
+    scheduled_sampling_ratio: 0.0  # or "decay" for exponential decay
+    scheduled_sampling_p: 0.5       
+  
+  # Loss weighting configuration (inherited from default.yaml, can override here)
+  # Inflection weighting: Give higher weight to timesteps where action changes
+  use_inflection_weighting: true
+  inflection_weight_coef: 3.2
+  
+  # Class weighting: Balance loss across different action classes
+  # Critical for handling imbalanced data (MOVE_FORWARD dominates ~90%)
+  # WARNING: Extreme weights (e.g., MOVE_FORWARD=0.1, TURN=10.0) cause "spinning" behavior
+  # Use moderate weights based on sqrt of inverse frequency
+  use_class_weighting: true
+  class_weights:
+    STOP: 1.5           # Slightly increase (rare action)
+    MOVE_FORWARD: 1.0   # Baseline (most common)
+    TURN_LEFT: 3.0      # Moderate increase (very rare, ~1.5%)
+    TURN_RIGHT: 1.5     # Slight increase (less common, ~9%)
+
+# ============================================================================
+# EVALUATION CONFIGURATION
+# ============================================================================
+EVAL:
+  SPLIT: val_seen          # Dataset split: train, val_seen, val_unseen, test
+  EPISODE_COUNT: -1        # Number of episodes to evaluate (-1 for all)
+  SAVE_RESULTS: true       # Save evaluation results to JSON
+  CKPT_PATH: output/checkpoints/cma/best.pth  # Checkpoint to evaluate
+
+# ============================================================================
+# INFERENCE CONFIGURATION
+# ============================================================================
+INFERENCE:
+  SPLIT: test
+  CKPT_PATH: output/checkpoints/cma/best.pth
+  PREDICTIONS_FILE: output/predictions/cma_test.json
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+MODEL:
+  policy_name: cma
+  
+  # CMA-specific instruction encoder settings (override defaults)
+  INSTRUCTION_ENCODER:
+    bidirectional: true  # Important: CMA uses bidirectional LSTM
+    final_state_only: false  # Important: CMA needs all timesteps for attention
+  
+  # CMA specific settings
+  CMA:
+    hidden_size: 512
+    rnn_type: GRU
+    use_prev_action: true
+
+# ============================================================================
+# WEIGHTS & BIASES LOGGING
+# ============================================================================
+WANDB:
+  run_name: cma-baseline

@@ -1,0 +1,38 @@
+# =============================================================================
+# GreedyAgent Configuration
+# =============================================================================
+# Greedy baseline agent that always navigates directly toward the goal.
+# This provides an oracle-like upper bound for VLN performance, since it
+# always knows the exact goal location.
+#
+# Reference: 
+#   - VLN-CE vlnce_baselines/nonlearning_agents.py (HandcraftedAgent)
+#   - SatNav satnav/navigation/path_follower.py (SatNavPathFollower)
+
+_base_: configs/default.yaml
+
+# Base task configuration
+BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+TRAINER_NAME: recollect_trainer
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+MODEL:
+  policy_name: greedy
+  
+  GREEDY_AGENT:
+    goal_radius: 10.0  # Distance threshold for goal reached (meters)
+    turn_angle: 15.0   # Turn angle per action (degrees)
+
+# ============================================================================
+# EVALUATION & VIDEO
+# ============================================================================
+EVAL:
+  SPLIT: val_seen
+  EPISODE_COUNT: -1  # Evaluate all episodes (-1 = all)
+  SAVE_RESULTS: true
+  CKPT_PATH: null  # Non-learning agent doesn't need checkpoint
+
+GENERATE_VIDEOS: true
+VIDEO_DIR: output/videos/greedy_agent

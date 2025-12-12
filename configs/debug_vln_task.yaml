@@ -41,6 +41,8 @@ TASK:
   #   - PATH_LENGTH: Total path length traveled (using geodesic distance)
   #   - SPL: Success weighted by Path Length
   #   - TOP_DOWN_MAP: Top-down map visualization (for video/debugging)
+  # Note: TOP_DOWN_MAP is automatically filtered out during training for faster preload.
+  # It will still be enabled during evaluation/inference if included here.
   MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
   
   # Top-Down Map visualization configuration
@@ -61,15 +63,15 @@ DATASET:
   TYPE: SatNav
   
   # Dataset split: train, val_seen, val_unseen, test
-  SPLIT: test
+  SPLIT: train
   
   # Path to the dataset JSON file
   # Supports both .json and .json.gz formats
   # Use {split} placeholder to be replaced with the SPLIT value
   # For example testing, use: tests/test_data/satnav_dataset_complex.json
-  DATA_PATH: tests/test_data/satnav_dataset_complex.json
+  DATA_PATH: data/debug_data/{split}/{split}.json
   
   # Directory containing scene datasets (satellite maps)
   # For example testing, use: tests/test_data/
-  SCENES_DIR: tests/test_data/
+  SCENES_DIR: data/scene_datasets/
 

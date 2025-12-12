@@ -1,0 +1,37 @@
+# =============================================================================
+# RandomAgent Configuration
+# =============================================================================
+# Random baseline agent that samples actions according to a distribution.
+# This provides a minimal baseline - any learning agent should significantly
+# outperform a random agent.
+#
+# Reference: VLN-CE vlnce_baselines/nonlearning_agents.py (RandomAgent)
+
+_base_: configs/default.yaml
+
+# Base task configuration
+BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+TRAINER_NAME: recollect_trainer
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+MODEL:
+  policy_name: random
+  
+  RANDOM_AGENT:
+    # Action probabilities: [STOP, FORWARD, LEFT, RIGHT]
+    action_probs: [0.02, 0.68, 0.15, 0.15]
+    seed: null  # null for random, or set a number for reproducibility
+
+# ============================================================================
+# EVALUATION & VIDEO
+# ============================================================================
+EVAL:
+  SPLIT: val_seen
+  EPISODE_COUNT: -1  # Evaluate all episodes (-1 = all)
+  SAVE_RESULTS: true
+  CKPT_PATH: null  # Non-learning agent doesn't need checkpoint
+
+GENERATE_VIDEOS: true
+VIDEO_DIR: output/videos/random_agent
