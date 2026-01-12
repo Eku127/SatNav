@@ -40,7 +40,7 @@ def main():
     
     # Paths
     project_root = Path(__file__).parent.parent
-    config_path = project_root / "configs" / "vln_task.yaml"
+    config_path = project_root / "configs" / "satnav_task.yaml"
     output_dir = project_root / "output"
     
     # Setup: load config, create dataset and environment
