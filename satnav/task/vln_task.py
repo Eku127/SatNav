@@ -11,6 +11,7 @@ from satnav.task.actions import Action
 from satnav.task.measures import (
     DistanceToGoal,
     Measure,
+    OracleSuccess,
     PathLength,
     SPL,
     Success,
@@ -101,6 +102,7 @@ class VLNTask:
         # Create measure instances
         distance_to_goal = DistanceToGoal(simulator=self._sim)
         success = Success(success_distance=self.success_distance, simulator=self._sim)
+        oracle_success = OracleSuccess(success_distance=self.success_distance, simulator=self._sim)
         path_length = PathLength(simulator=self._sim)
         spl = SPL(simulator=self._sim)
         top_down_map = TopDownMapSatNav(
@@ -117,6 +119,7 @@ class VLNTask:
         self._measures_dict = {
             "DISTANCE_TO_GOAL": distance_to_goal,
             "SUCCESS": success,
+            "ORACLE_SUCCESS": oracle_success,
             "PATH_LENGTH": path_length,
             "SPL": spl,
             "TOP_DOWN_MAP": top_down_map,
@@ -126,7 +129,7 @@ class VLNTask:
         if not measurements:
             # If no measurements specified, enable all except TOP_DOWN_MAP
             # (TOP_DOWN_MAP is optional for visualization)
-            measurements = ["DISTANCE_TO_GOAL", "SUCCESS", "PATH_LENGTH", "SPL"]
+            measurements = ["DISTANCE_TO_GOAL", "SUCCESS", "ORACLE_SUCCESS", "PATH_LENGTH", "SPL"]
         
         for measure_name in measurements:
             measure_name_upper = measure_name.upper()
@@ -138,6 +141,12 @@ class VLNTask:
         # Success depends on DistanceToGoal
         if "SUCCESS" in self._measures_dict and "DISTANCE_TO_GOAL" in self._measures_dict:
             self._measures_dict["SUCCESS"].set_distance_to_goal_measure(
+                self._measures_dict["DISTANCE_TO_GOAL"]
+            )
+        
+        # OracleSuccess depends on DistanceToGoal
+        if "ORACLE_SUCCESS" in self._measures_dict and "DISTANCE_TO_GOAL" in self._measures_dict:
+            self._measures_dict["ORACLE_SUCCESS"].set_distance_to_goal_measure(
                 self._measures_dict["DISTANCE_TO_GOAL"]
             )
         
@@ -294,6 +303,7 @@ class VLNTask:
             Dictionary containing metric values:
                 - "distance_to_goal": Distance to goal in meters
                 - "success": Success value (1.0 or 0.0)
+                - "oracle_success": Oracle success value (1.0 or 0.0)
                 - "path_length": Path length in meters
                 - "spl": SPL value (0.0 to 1.0)
                 - "top_down_map": Top-down map info dict (if enabled)
@@ -305,6 +315,8 @@ class VLNTask:
                 metrics["distance_to_goal"] = measure.get_metric()
             elif isinstance(measure, Success):
                 metrics["success"] = measure.get_metric()
+            elif isinstance(measure, OracleSuccess):
+                metrics["oracle_success"] = measure.get_metric()
             elif isinstance(measure, PathLength):
                 metrics["path_length"] = measure.get_metric()
             elif isinstance(measure, SPL):
