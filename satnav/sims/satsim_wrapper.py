@@ -83,7 +83,8 @@ class SatSimWrapper(Simulator):
         # This optimization avoids path processing and load_scene() overhead
         # Note: SatSim.load_scene() already has caching, but checking scene_id
         # first avoids unnecessary path processing and function calls
-        if self._scene_id != scene_id:
+        scene_changed = (self._scene_id != scene_id)
+        if scene_changed:
             # Combine scene path
             scene_path = self._combine_scene_path(scene_id)
             # Load scene in SatSim (will use cache if already loaded)
@@ -91,8 +92,14 @@ class SatSimWrapper(Simulator):
             self._scene_id = scene_id
         # else: scene_id is the same, scene is already loaded, skip loading
         
-        # Return initial observations if agent state is set, otherwise return empty dict
-        # Agent state should be set via set_agent_state() after reset()
+        # Return initial observations if agent state is set AND scene hasn't changed
+        # If scene changed, agent state needs to be updated via set_agent_state() first
+        # (old agent position from previous scene would be invalid in new scene)
+        if scene_changed:
+            # Scene changed, don't try to get observations yet
+            # Agent state must be set via set_agent_state() before getting observations
+            return {}
+        
         try:
             return self._satsim.get_observations()
         except RuntimeError:

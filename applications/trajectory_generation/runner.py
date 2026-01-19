@@ -144,8 +144,10 @@ class SatNavTrajectoryRunner:
             return None  # Skip already completed episodes
         
         try:
-            # Reset environment
-            obs = self.env.reset()
+            # Reset environment to this specific episode
+            # Use reset_to_episode to ensure correct episode is loaded
+            # (avoids sync issues with dataset iterator)
+            obs = self.env.reset_to_episode(episode)
             
             # Prepare waypoints from reference path
             waypoints = self._prepare_waypoints(episode)
@@ -284,9 +286,6 @@ class SatNavTrajectoryRunner:
             desc="Generating trajectories",
             unit="episode"
         )):
-            # Set current episode
-            self.env._current_episode = episode
-            
             # Check if already completed - load from existing annotations
             if self._check_episode_completed(episode_idx, episode.scene_id):
                 skipped_count += 1
