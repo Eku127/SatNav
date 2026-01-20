@@ -67,11 +67,11 @@ DATASET:
   # Supports both .json and .json.gz formats
   # Use {split} placeholder to be replaced with the SPLIT value
   # For example testing, use: tests/test_data/satnav_dataset_complex.json
-  DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260114/episodes/VLN_Episodes.json
+  DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260119/episodes/train/VLN_Episodes.json
   # DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/tests/test_data/satnav_debug_merged.json
   # DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/tests/test_data/satnav_dataset_merged_2.json
   
   # Directory containing scene datasets (satellite maps)
   # For example testing, use: tests/test_data/
-  SCENES_DIR: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260107/scenes
+  SCENES_DIR: /mnt/data3/jiangjiajun/dataset/satnav_datasets/scenes/
 

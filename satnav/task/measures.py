@@ -153,24 +153,39 @@ class Success(Measure):
     
     Success is defined as the agent being within success_distance of the goal
     and having called the STOP action.
+    
+    For boundary tasks (where start == goal), uses "leave and return" logic:
+    - Agent must first leave the start area (distance > departure_threshold)
+    - Then return to the goal area and call STOP (distance < success_distance)
+    - This prevents trivial success by staying at the starting point
     """
     
     def __init__(
         self,
         success_distance: float = 3.0,
-        simulator: Optional[Simulator] = None
+        simulator: Optional[Simulator] = None,
+        departure_threshold_multiplier: float = 2.0
     ):
         """Initialize success measure.
         
         Args:
             success_distance: Distance threshold for success (in meters).
             simulator: Simulator instance (optional).
+            departure_threshold_multiplier: For boundary tasks, agent must leave
+                start area by this multiplier × success_distance before success
+                can be triggered. Default 2.0 means 2× success_distance.
         """
         super().__init__()
         self._success_distance = success_distance
+        self._departure_threshold = success_distance * departure_threshold_multiplier
         self._sim = simulator
         self._distance_to_goal: Optional[DistanceToGoal] = None
         self._is_stop_called = False
+        
+        # Boundary task detection and tracking
+        self._is_boundary_task: bool = False
+        self._has_left_start: bool = False
+        self._start_position: Optional[List[float]] = None
     
     def reset(
         self,
@@ -190,6 +205,24 @@ class Success(Measure):
         self._sim = sim
         self._is_stop_called = False
         self._metric = 0.0
+        
+        # Store start position
+        self._start_position = list(episode.start_position)
+        
+        # Check if this is a boundary task (start position ≈ goal position)
+        if len(episode.goals) > 0:
+            goal_position = episode.goals[0].position
+            distance_start_to_goal = sim.geodesic_distance(
+                self._start_position,
+                goal_position
+            )
+            # If start and goal are within success_distance, it's a boundary task
+            self._is_boundary_task = (distance_start_to_goal < self._success_distance)
+        else:
+            self._is_boundary_task = False
+        
+        # Reset boundary task tracking
+        self._has_left_start = False
     
     def update(
         self,
@@ -225,11 +258,33 @@ class Success(Measure):
         
         distance_to_target = self._distance_to_goal.get_metric()
         
-        # Success if stop was called and within success distance
-        if self._is_stop_called and distance_to_target < self._success_distance:
-            self._metric = 1.0
+        # Handle boundary tasks differently
+        if self._is_boundary_task:
+            # For boundary tasks, use "leave and return" logic
+            
+            # Check if agent has left the start area
+            if not self._has_left_start and self._start_position is not None:
+                agent_state = simulator.get_agent_state()
+                current_position = agent_state.position.tolist()
+                distance_from_start = simulator.geodesic_distance(
+                    current_position,
+                    self._start_position
+                )
+                
+                if distance_from_start > self._departure_threshold:
+                    self._has_left_start = True
+            
+            # Success only if agent has left start area, called STOP, and within success distance
+            if self._has_left_start and self._is_stop_called and distance_to_target < self._success_distance:
+                self._metric = 1.0
+            else:
+                self._metric = 0.0
         else:
-            self._metric = 0.0
+            # For normal tasks, standard logic: stop was called and within success distance
+            if self._is_stop_called and distance_to_target < self._success_distance:
+                self._metric = 1.0
+            else:
+                self._metric = 0.0
     
     def set_distance_to_goal_measure(self, distance_to_goal: DistanceToGoal) -> None:
         """Set the DistanceToGoal measure dependency.
