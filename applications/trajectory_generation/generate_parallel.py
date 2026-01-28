@@ -52,6 +52,7 @@ _worker_path_follower = None
 _worker_dataset = None
 _worker_output_path = None
 _worker_dataset_name = "satnav"
+_worker_config = None
 
 
 def init_worker(config_path: str, output_path: str):
@@ -64,9 +65,10 @@ def init_worker(config_path: str, output_path: str):
         config_path: Path to SatNav task configuration YAML file.
         output_path: Output directory for trajectory data.
     """
-    global _worker_env, _worker_path_follower, _worker_dataset, _worker_output_path
+    global _worker_env, _worker_path_follower, _worker_dataset, _worker_output_path, _worker_config
     
     config = load_config(config_path)
+    _worker_config = config
     _worker_dataset = SatNavDataset(config.DATASET)
     _worker_env = Env(config, dataset=_worker_dataset, cycle=False)
     _worker_output_path = output_path
@@ -76,6 +78,25 @@ def init_worker(config_path: str, output_path: str):
         turn_angle=config.SIMULATOR.TURN_ANGLE,
         return_action_string=True
     )
+
+
+def get_success_distance(trajectory_type: str) -> float:
+    """Get SUCCESS_DISTANCE based on trajectory type.
+    
+    Args:
+        trajectory_type: Type of trajectory ('Boundary' or 'LandmarkSet').
+        
+    Returns:
+        SUCCESS_DISTANCE value.
+    """
+    global _worker_config
+    if trajectory_type == "Boundary":
+        return 10.0
+    elif trajectory_type == "LandmarkSet":
+        return 2.0
+    else:
+        # Default to config value
+        return _worker_config.TASK.SUCCESS_DISTANCE
 
 
 def prepare_waypoints(episode) -> List[List[float]]:
@@ -117,6 +138,7 @@ def process_single_episode(episode_idx: int) -> Optional[Dict]:
     Returns:
         Annotation dictionary if successful, None otherwise.
         Returns dict with "_skipped" key if skipped due to already completed.
+        Returns dict with "_max_steps" key if discarded due to reaching max steps.
     """
     global _worker_env, _worker_path_follower, _worker_dataset, _worker_output_path, _worker_dataset_name
     
@@ -138,6 +160,11 @@ def process_single_episode(episode_idx: int) -> Optional[Dict]:
         return {"_skipped": True, "id": episode_idx}  # Mark as skipped for counting
     
     try:
+        # Set goal_radius based on trajectory_type
+        trajectory_type = getattr(episode, 'trajectory_type', None)
+        goal_radius = get_success_distance(trajectory_type)
+        path_follower.goal_radius = goal_radius
+        
         # Reset environment to this specific episode
         env._current_episode = episode
         obs = env.reset_to_episode(episode)
@@ -200,6 +227,16 @@ def process_single_episode(episode_idx: int) -> Optional[Dict]:
             
             if reached_waypoint and current_waypoint_idx < len(waypoints) - 1:
                 current_waypoint_idx += 1
+        
+        # Check if reached max steps (discard this episode)
+        if step_count >= env.max_episode_steps:
+            # Clean up created directory
+            import shutil
+            episode_dirname = format_episode_dirname(scene_id, dataset_name, episode_idx)
+            episode_dir = os.path.join(output_path, "images", episode_dirname)
+            if os.path.exists(episode_dir):
+                shutil.rmtree(episode_dir)
+            return {"_max_steps": True, "id": episode_idx}
         
         # Validate data
         if len(actions) != len(rgb_list):
@@ -330,6 +367,7 @@ def main():
     # Count and categorize results
     all_annotations = []
     skipped_count = 0
+    max_steps_count = 0
     failed_reasons = {}
     none_count = 0
     
@@ -338,6 +376,8 @@ def main():
             none_count += 1
         elif r.get("_skipped"):
             skipped_count += 1
+        elif r.get("_max_steps"):
+            max_steps_count += 1
         elif r.get("_failed"):
             reason = r.get("_reason", "unknown")
             # Simplify reason for grouping
@@ -352,6 +392,7 @@ def main():
     print(f"\nProcessing statistics:")
     print(f"  Success: {len(all_annotations)}")
     print(f"  Skipped (already exists): {skipped_count}")
+    print(f"  Discarded (max steps): {max_steps_count}")
     print(f"  Failed: {sum(failed_reasons.values())}")
     if failed_reasons:
         print(f"  Failure reasons:")

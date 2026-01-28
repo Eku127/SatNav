@@ -120,6 +120,23 @@ class SatNavTrajectoryRunner:
                 return True
         return False
     
+    def _get_success_distance(self, trajectory_type: str) -> float:
+        """Get SUCCESS_DISTANCE based on trajectory type.
+        
+        Args:
+            trajectory_type: Type of trajectory ('Boundary' or 'LandmarkSet').
+            
+        Returns:
+            SUCCESS_DISTANCE value.
+        """
+        if trajectory_type == "Boundary":
+            return 10.0
+        elif trajectory_type == "LandmarkSet":
+            return 2.0
+        else:
+            # Default to config value
+            return self.config.TASK.SUCCESS_DISTANCE
+    
     def _run_episode(
         self,
         episode_idx: int,
@@ -133,6 +150,7 @@ class SatNavTrajectoryRunner:
             
         Returns:
             Episode annotation dictionary, or None if failed.
+            Returns dict with "_max_steps" key if discarded due to reaching max steps.
         """
         # Extract scene name from scene_id (might be a full path)
         scene_id = episode.scene_id
@@ -144,6 +162,11 @@ class SatNavTrajectoryRunner:
             return None  # Skip already completed episodes
         
         try:
+            # Set goal_radius based on trajectory_type
+            trajectory_type = getattr(episode, 'trajectory_type', None)
+            goal_radius = self._get_success_distance(trajectory_type)
+            self.path_follower.goal_radius = goal_radius
+            
             # Reset environment to this specific episode
             # Use reset_to_episode to ensure correct episode is loaded
             # (avoids sync issues with dataset iterator)
@@ -216,6 +239,17 @@ class SatNavTrajectoryRunner:
                 if reached_waypoint and current_waypoint_idx < len(waypoints) - 1:
                     current_waypoint_idx += 1
             
+            # Check if reached max steps (discard this episode)
+            if step_count >= self.env.max_episode_steps:
+                print(f"  Warning: Episode {episode_idx} reached max steps ({step_count}), discarding")
+                # Clean up created directory
+                import shutil
+                episode_dirname = format_episode_dirname(scene_id, self.dataset_name, episode_idx)
+                episode_dir = os.path.join(self.output_path, "images", episode_dirname)
+                if os.path.exists(episode_dir):
+                    shutil.rmtree(episode_dir)
+                return {"_max_steps": True, "id": episode_idx}
+            
             # Validate data
             if len(actions) != len(rgb_list):
                 print(f"  Warning: Episode {episode_idx} actions/images mismatch "
@@ -279,6 +313,7 @@ class SatNavTrajectoryRunner:
         completed_count = 0
         skipped_count = 0
         failed_count = 0
+        max_steps_count = 0
         
         # Process all episodes with progress bar
         for episode_idx, episode in enumerate(tqdm(
@@ -297,7 +332,12 @@ class SatNavTrajectoryRunner:
             # Run episode
             annotation = self._run_episode(episode_idx, episode)
             
-            if annotation is not None:
+            if annotation is None:
+                failed_count += 1
+            elif annotation.get("_max_steps"):
+                # Episode reached max steps, discarded
+                max_steps_count += 1
+            else:
                 annotations.append(annotation)
                 completed_count += 1
                 
@@ -311,8 +351,6 @@ class SatNavTrajectoryRunner:
                         "episode_id": episode.episode_id,
                     }
                     f.write(json.dumps(summary_entry) + "\n")
-            else:
-                failed_count += 1
         
         # Save final annotations.json (compact format to save space)
         annotations_path = os.path.join(self.output_path, "annotations.json")
@@ -335,6 +373,7 @@ class SatNavTrajectoryRunner:
         print(f"Total episodes: {len(self.dataset.episodes)}")
         print(f"Newly generated: {completed_count}")
         print(f"Skipped (already exists): {skipped_count}")
+        print(f"Discarded (max steps): {max_steps_count}")
         print(f"Failed: {failed_count}")
         print(f"\nOutput directory: {self.output_path}")
         print(f"  - annotations.json: {len(annotations)} episodes")
