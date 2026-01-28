@@ -29,7 +29,7 @@ TASK:
   # Success distance threshold in meters
   # Agent is considered successful if it stops within this distance from the goal
   # This distance is used for all waypoints including intermediate waypoints and final goal
-  SUCCESS_DISTANCE: 8.0
+  SUCCESS_DISTANCE: 10.0
   
   # Available actions for the agent
   POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
@@ -67,8 +67,9 @@ DATASET:
   # Supports both .json and .json.gz formats
   # Use {split} placeholder to be replaced with the SPLIT value
   # For example testing, use: tests/test_data/satnav_dataset_complex.json
-  DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260119/episodes/train/VLN_Episodes.json
-  # DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/tests/test_data/satnav_debug_merged.json
+  DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260128/episodes/train/episodes.json
+  # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260126/episodes/B_VLN_Episodes.json
+  # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260123/episodes/episodes_landmarkSet.json
   # DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/tests/test_data/satnav_dataset_merged_2.json
   
   # Directory containing scene datasets (satellite maps)
