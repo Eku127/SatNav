@@ -1,0 +1,32 @@
+{
+  "instruction_vocab": {
+    "word_list": ["go", "forward", "stop", "building"]
+  },
+  "episodes": [
+    {
+      "episode_id": "sf_test_001",
+      "trajectory_id": "sf_traj_simple",
+      "trajectory_type": "Simple",
+      "scene_id": "SF",
+      "start_position": [-121.99935840639316, 37.510891320638834, 50.0],
+      "start_rotation": 160.0,
+      "goals": [
+        {
+          "position": [-121.99814363439793, 37.510624011047966, 50.0]
+        }
+      ],
+      "waypoints": [
+        [-121.99935840639316, 37.510891320638834, 50.0],
+        [-121.99814363439793, 37.510624011047966, 50.0]
+      ],
+      "reference_path": [
+        [-121.99935840639316, 37.510891320638834, 50.0],
+        [-121.99814363439793, 37.510624011047966, 50.0]
+      ],
+      "instruction": {
+        "instruction_text": "Go forward toward the building and stop.",
+        "instruction_type": "short_instruction"
+      }
+    }
+  ]
+}

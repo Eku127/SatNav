@@ -1,7 +1,6 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
-
 ## General Rules
 1. Do not create markdown documentation files unless explicitly requested by the user.
 2. When running terminal commands, always use the conda environment named "satnav" (e.g., `conda activate satnav`).

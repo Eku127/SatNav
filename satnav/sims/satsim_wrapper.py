@@ -2,6 +2,7 @@
 """SatSim wrapper implementation for SatNav."""
 
 import os
+import sys
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
@@ -10,6 +11,27 @@ from omegaconf import DictConfig
 from satnav.core.simulator import AgentState, Observations, Simulator
 from satnav.core.utils import geodesic_distance_with_altitude
 from satnav.sims.satsim import SatSim
+
+# Debug logging for specific rank
+# Set SATNAV_DEBUG_RANK environment variable to enable debug logging for a specific rank
+# Default is -999 (disabled), set to -1 to debug single-process runs
+_DEBUG_RANK = int(os.environ.get('SATNAV_DEBUG_RANK', '-999'))
+_DEBUG_LOG_FILE = os.environ.get('SATNAV_DEBUG_LOG', None)
+_debug_file_handle = None
+
+def _debug_log(msg: str, force: bool = False):
+    """Log debug message if debugging is enabled for this rank."""
+    global _debug_file_handle
+    rank = int(os.environ.get('LOCAL_RANK', os.environ.get('RANK', '-1')))
+    if rank == _DEBUG_RANK or force:
+        log_msg = f"[Rank {rank}] {msg}"
+        if _DEBUG_LOG_FILE:
+            if _debug_file_handle is None:
+                _debug_file_handle = open(_DEBUG_LOG_FILE, 'a')
+            _debug_file_handle.write(log_msg + '\n')
+            _debug_file_handle.flush()
+        else:
+            print(log_msg, file=sys.stderr, flush=True)
 
 
 class SatSimWrapper(Simulator):
@@ -78,26 +100,38 @@ class SatSimWrapper(Simulator):
             Initial observations from the simulator. Returns empty dict if
             agent state has not been set yet (should be set via set_agent_state).
         """
+        _debug_log(f"SatSimWrapper.reset() called with scene_id={scene_id}")
+        
         # Check if we need to load a new scene
         # If scene_id is the same, skip loading (scene is already loaded)
         # This optimization avoids path processing and load_scene() overhead
         # Note: SatSim.load_scene() already has caching, but checking scene_id
         # first avoids unnecessary path processing and function calls
-        if self._scene_id != scene_id:
+        scene_changed = (self._scene_id != scene_id)
+        _debug_log(f"  scene_changed={scene_changed}, current_scene_id={self._scene_id}")
+        
+        if scene_changed:
             # Combine scene path
             scene_path = self._combine_scene_path(scene_id)
+            _debug_log(f"  Loading new scene: {scene_path}")
             # Load scene in SatSim (will use cache if already loaded)
             self._satsim.load_scene(scene_path)
             self._scene_id = scene_id
         # else: scene_id is the same, scene is already loaded, skip loading
         
-        # Return initial observations if agent state is set, otherwise return empty dict
-        # Agent state should be set via set_agent_state() after reset()
+        # Get current agent state for debugging
         try:
-            return self._satsim.get_observations()
-        except RuntimeError:
-            # Agent state not set yet, return empty observations
-            return {}
+            pos, rot = self._satsim.get_agent_state()
+            _debug_log(f"  Current agent state before reset return: pos={pos.tolist()}, rot={rot}")
+        except RuntimeError as e:
+            _debug_log(f"  Agent state not initialized yet: {e}")
+        
+        # Always return empty observations from reset()
+        # The agent state must be set via set_agent_state() before getting observations
+        # This avoids issues where old agent position from previous episode might be
+        # near map boundaries and cause errors when trying to render
+        _debug_log(f"  Returning empty observations from reset()")
+        return {}
     
     def step(self, action: Union[int, str, Dict[str, Any]]) -> Observations:
         """Execute an action in the simulator.
@@ -136,7 +170,13 @@ class SatSimWrapper(Simulator):
             position: New position as [longitude, latitude, altitude].
             rotation: New rotation as roll angle in degrees (0-360, 0 = North).
         """
-        self._satsim.set_agent_state(position, rotation)
+        _debug_log(f"SatSimWrapper.set_agent_state() called: position={list(position)}, rotation={rotation}")
+        try:
+            self._satsim.set_agent_state(position, rotation)
+            _debug_log(f"  set_agent_state() succeeded")
+        except Exception as e:
+            _debug_log(f"  set_agent_state() FAILED: {e}")
+            raise
     
     def get_observations(self) -> Dict[str, Any]:
         """Get current observations from all sensors.
@@ -154,7 +194,20 @@ class SatSimWrapper(Simulator):
             Dictionary containing observations from all sensors:
                 - "rgb": RGB image as numpy array (H, W, 3) uint8
         """
-        return self._satsim.get_observations()
+        _debug_log(f"SatSimWrapper.get_observations() called")
+        try:
+            pos, rot = self._satsim.get_agent_state()
+            _debug_log(f"  Current agent state: pos={pos.tolist()}, rot={rot}")
+        except RuntimeError as e:
+            _debug_log(f"  Agent state not initialized: {e}")
+        
+        try:
+            obs = self._satsim.get_observations()
+            _debug_log(f"  get_observations() succeeded, rgb shape={obs.get('rgb', np.array([])).shape}")
+            return obs
+        except Exception as e:
+            _debug_log(f"  get_observations() FAILED: {e}")
+            raise
     
     def geodesic_distance(
         self,

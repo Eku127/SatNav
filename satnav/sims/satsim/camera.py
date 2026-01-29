@@ -58,6 +58,11 @@ class SatelliteCamera:
         This method calculates the bounding box of the ground area visible
         to the camera, accounting for altitude, field of view, and rotation.
         
+        The ground coverage is calculated in TRUE ground meters, then converted
+        to Mercator coordinates by applying the Mercator scale factor at the
+        current latitude. This ensures consistent coverage with other systems
+        that use geodetic coordinates (like CesiumJS/Google 3D Tiles).
+        
         Args:
             position_mercator: Agent position as (x, y) in meters (Web Mercator).
             altitude: Agent altitude in meters.
@@ -69,13 +74,25 @@ class SatelliteCamera:
         cx, cy = position_mercator
         h = altitude
         
-        # Ground half-height/width in meters
-        # Horizontal half-width (east-west direction)
+        # Calculate latitude from Mercator Y coordinate to get scale factor
+        # Web Mercator uses R = 6378137 (WGS84 semi-major axis)
+        R = 6378137.0
+        lat_rad = math.atan(math.sinh(cy / R))
+        
+        # Mercator scale factor: k = 1 / cos(latitude)
+        # To convert from true ground meters to Mercator meters, multiply by k
+        scale_factor = 1.0 / math.cos(lat_rad)
+        
+        # Ground half-height/width in TRUE ground meters
         # HFOV is horizontal field of view, so it controls horizontal direction
-        half_x_m = h * math.tan(math.radians(self.hfov / 2.0))
+        half_x_true = h * math.tan(math.radians(self.hfov / 2.0))
         # Vertical half-width (north-south direction)
         # Calculate from horizontal using aspect ratio
-        half_y_m = half_x_m / self.aspect_ratio
+        half_y_true = half_x_true / self.aspect_ratio
+        
+        # Convert to Mercator meters (apply scale factor)
+        half_x_m = half_x_true * scale_factor
+        half_y_m = half_y_true * scale_factor
         
         # Distance to four corners (diagonal half-distance)
         r = math.hypot(half_x_m, half_y_m)
@@ -174,7 +191,23 @@ class SatelliteCamera:
         # Check bounds (use rotated bounds to ensure we don't exceed map)
         bounds = sat_tif.bounds
         if left < bounds.left or right > bounds.right or bottom < bounds.bottom or top > bounds.top:
-            raise ValueError("Camera view bounds exceed image bounds")
+            # Provide detailed error message for debugging
+            violations = []
+            if left < bounds.left:
+                violations.append(f"left ({left:.2f}) < scene_left ({bounds.left:.2f}), diff={bounds.left - left:.2f}m")
+            if right > bounds.right:
+                violations.append(f"right ({right:.2f}) > scene_right ({bounds.right:.2f}), diff={right - bounds.right:.2f}m")
+            if bottom < bounds.bottom:
+                violations.append(f"bottom ({bottom:.2f}) < scene_bottom ({bounds.bottom:.2f}), diff={bounds.bottom - bottom:.2f}m")
+            if top > bounds.top:
+                violations.append(f"top ({top:.2f}) > scene_top ({bounds.top:.2f}), diff={top - bounds.top:.2f}m")
+            
+            raise ValueError(
+                f"Camera view bounds exceed image bounds. "
+                f"Position (Mercator): ({position_mercator[0]:.2f}, {position_mercator[1]:.2f}), "
+                f"altitude: {altitude:.1f}m, rotation: {rotation:.1f}°. "
+                f"Violations: {'; '.join(violations)}"
+            )
         
         # Expand unrotated bounds to include rotated view (for proper cropping)
         # We need a larger region to crop from, then rotate

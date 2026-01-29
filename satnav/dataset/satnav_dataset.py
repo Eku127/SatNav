@@ -173,6 +173,7 @@ class SatNavDataset:
                 reference_path=reference_path,
                 instruction=instruction,
                 trajectory_id=episode_data["trajectory_id"],
+                trajectory_type=episode_data.get("trajectory_type"),
             )
             
             self.episodes.append(episode)

@@ -136,13 +136,21 @@ class SatSim:
     def set_agent_state(
         self,
         position_wgs84: Union[List[float], np.ndarray],
-        rotation: float
+        rotation: float,
+        validate_navigable: bool = True
     ) -> None:
         """Set the agent state.
         
         Args:
             position_wgs84: Position as [longitude, latitude, altitude].
             rotation: Rotation as roll angle in degrees (0-360, 0=North).
+            validate_navigable: If True, validate that the position is within
+                safe navigable bounds. Default: True.
+        
+        Raises:
+            ValueError: If position does not have 3 elements.
+            ValueError: If validate_navigable=True and position is not within
+                safe navigable bounds (camera view would exceed map bounds).
         """
         position_wgs84 = np.array(position_wgs84, dtype=np.float32)
         
@@ -151,6 +159,20 @@ class SatSim:
                 f"Position must have 3 elements [longitude, latitude, altitude], "
                 f"got {len(position_wgs84)} elements"
             )
+        
+        # Validate position is navigable (within safe bounds)
+        if validate_navigable and self._current_scene is not None:
+            if not self.is_navigable(position_wgs84):
+                # Get bounds for error message
+                bounds = self._current_scene.bounds
+                margin = self._camera.get_margin(position_wgs84[2])
+                raise ValueError(
+                    f"Initial position {position_wgs84.tolist()} is not within safe navigable bounds. "
+                    f"Camera view would exceed map boundaries. "
+                    f"Scene bounds: left={bounds.left:.1f}, right={bounds.right:.1f}, "
+                    f"bottom={bounds.bottom:.1f}, top={bounds.top:.1f}. "
+                    f"Required margin for altitude {position_wgs84[2]}m: {margin:.1f}m"
+                )
         
         # Convert to Mercator for internal storage
         self._agent_position = GeoUtils.position_wgs84_to_mercator(position_wgs84)
@@ -309,6 +331,12 @@ class SatSim:
         # this distance away from map edges, we guarantee the camera view will never
         # exceed map bounds regardless of rotation angle.
         margin = self._camera.get_margin(altitude)
+        
+        # Add a small epsilon to account for floating-point precision errors
+        # in coordinate transformations and margin calculations.
+        # Without this, edge cases can slip through (e.g., 0.09m difference)
+        epsilon = 1.0  # 1 meter safety buffer
+        margin = margin + epsilon
         
         # Compute safe navigable bounds by shrinking map bounds by the margin
         # This creates a "safe zone" where the agent can move freely without

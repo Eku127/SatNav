@@ -76,9 +76,19 @@ def run_single_episode(
         while not done and step_count < env.max_episode_steps and current_waypoint_idx < len(waypoints):
             # Get current waypoint target
             current_waypoint = waypoints[current_waypoint_idx]
+            is_final_waypoint = (current_waypoint_idx == len(waypoints) - 1)
             
             # Get next action from SatNavPathFollower for current waypoint
             action = path_follower.get_next_action(current_waypoint, env._task._sim)
+            
+            # Key fix: Only execute STOP at the final waypoint (goal)
+            # For intermediate waypoints, if path_follower returns STOP (meaning we've
+            # reached that waypoint), we should move to the next waypoint instead of stopping
+            if action == "STOP" and not is_final_waypoint:
+                # Reached intermediate waypoint, move to next
+                current_waypoint_idx += 1
+                continue  # Skip executing STOP, continue with next waypoint
+            
             action_history.append(action)
             
             # Execute action
@@ -120,22 +130,9 @@ def run_single_episode(
             if reached_waypoint:
                 if current_waypoint_idx < len(waypoints) - 1:
                     current_waypoint_idx += 1
-                else:
-                    # Reached final goal - need to execute STOP action for Success measure
-                    if action != "STOP":
-                        obs, done, info = env.step("STOP")
-                        action_history.append("STOP")
-                        step_count += 1
-                    break
+                # else: at final waypoint and STOP was executed, loop will exit via done=True
             
-            # Stop if STOP action was taken
-            if action == "STOP":
-                if current_waypoint_idx >= len(waypoints) - 1:
-                    break
-                elif not reached_waypoint:
-                    current_waypoint_idx += 1
-                    if current_waypoint_idx >= len(waypoints):
-                        break
+            # At final waypoint, STOP has been executed, done=True, loop will exit
         
         # Generate video if requested
         if save_video and rgb_frames and topdown_frames:
@@ -216,7 +213,7 @@ def main():
     
     # Paths
     project_root = Path(__file__).parent.parent
-    config_path = project_root / "configs" / "vln_task.yaml"
+    config_path = project_root / "configs" / "satnav_task.yaml"
     output_dir = project_root / "output"
     
     # Setup: load config, create dataset and environment
