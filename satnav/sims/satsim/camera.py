@@ -174,7 +174,23 @@ class SatelliteCamera:
         # Check bounds (use rotated bounds to ensure we don't exceed map)
         bounds = sat_tif.bounds
         if left < bounds.left or right > bounds.right or bottom < bounds.bottom or top > bounds.top:
-            raise ValueError("Camera view bounds exceed image bounds")
+            # Provide detailed error message for debugging
+            violations = []
+            if left < bounds.left:
+                violations.append(f"left ({left:.2f}) < scene_left ({bounds.left:.2f}), diff={bounds.left - left:.2f}m")
+            if right > bounds.right:
+                violations.append(f"right ({right:.2f}) > scene_right ({bounds.right:.2f}), diff={right - bounds.right:.2f}m")
+            if bottom < bounds.bottom:
+                violations.append(f"bottom ({bottom:.2f}) < scene_bottom ({bounds.bottom:.2f}), diff={bounds.bottom - bottom:.2f}m")
+            if top > bounds.top:
+                violations.append(f"top ({top:.2f}) > scene_top ({bounds.top:.2f}), diff={top - bounds.top:.2f}m")
+            
+            raise ValueError(
+                f"Camera view bounds exceed image bounds. "
+                f"Position (Mercator): ({position_mercator[0]:.2f}, {position_mercator[1]:.2f}), "
+                f"altitude: {altitude:.1f}m, rotation: {rotation:.1f}°. "
+                f"Violations: {'; '.join(violations)}"
+            )
         
         # Expand unrotated bounds to include rotated view (for proper cropping)
         # We need a larger region to crop from, then rotate

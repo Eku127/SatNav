@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 from satnav.core.episode import VLNEpisode
 from satnav.core.simulator import Simulator
 from satnav.dataset.satnav_dataset import SatNavDataset
-from satnav.sims.satsim_wrapper import SatSimWrapper
+from satnav.sims import create_simulator
 from satnav.task.vln_task import VLNTask
 
 
@@ -67,8 +67,9 @@ class Env:
         else:
             self._dataset = dataset
         
-        # Initialize simulator
-        # Extract scenes_dir from dataset config if available
+        # Initialize simulator using factory function
+        # Supports both SatSim (2D satellite) and AerialSim (3D Google Tiles)
+        # based on SIMULATOR.TYPE in config
         scenes_dir = None
         if dataset_config is not None:
             if isinstance(dataset_config, DictConfig):
@@ -76,7 +77,7 @@ class Env:
             else:
                 scenes_dir = dataset_config.get("SCENES_DIR")
         
-        self._sim = SatSimWrapper(sim_config, scenes_dir=scenes_dir)
+        self._sim = create_simulator(config, scenes_dir=scenes_dir)
         
         # Initialize task
         # here we use VLNTask as default task
@@ -153,14 +154,15 @@ class Env:
         if episode is None:
             raise RuntimeError("Cannot reset_to_episode: episode is None")
 
+        # Reset episode state FIRST (before task reset, to ensure clean state
+        # even if task.reset() fails)
+        self._elapsed_steps = 0
+        self._episode_over = False
         self._current_episode = episode
 
         # Reset task (which resets simulator and measures)
+        # If this fails, the environment is still in a clean state for the next episode
         observations = self._task.reset(self._current_episode)
-
-        # Reset episode state
-        self._elapsed_steps = 0
-        self._episode_over = False
 
         return observations
     

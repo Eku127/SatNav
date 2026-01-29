@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """VLN task implementation for SatNav continuous space navigation."""
 
+import os
+import sys
 from typing import Any, Dict, List, Optional, Union
 
 from omegaconf import DictConfig
@@ -18,6 +20,25 @@ from satnav.task.measures import (
     TopDownMapSatNav,
 )
 from satnav.task.sensors import InstructionSensor, RGBSensor, Sensor
+
+# Debug logging for specific rank
+_DEBUG_RANK = int(os.environ.get('SATNAV_DEBUG_RANK', '-1'))
+_DEBUG_LOG_FILE = os.environ.get('SATNAV_DEBUG_LOG', None)
+_debug_file_handle = None
+
+def _debug_log(msg: str, force: bool = False):
+    """Log debug message if debugging is enabled for this rank."""
+    global _debug_file_handle
+    rank = int(os.environ.get('LOCAL_RANK', os.environ.get('RANK', '-1')))
+    if rank == _DEBUG_RANK or force:
+        log_msg = f"[Rank {rank}][VLNTask] {msg}"
+        if _DEBUG_LOG_FILE:
+            if _debug_file_handle is None:
+                _debug_file_handle = open(_DEBUG_LOG_FILE, 'a')
+            _debug_file_handle.write(log_msg + '\n')
+            _debug_file_handle.flush()
+        else:
+            print(log_msg, file=sys.stderr, flush=True)
 
 
 class VLNTask:
@@ -167,19 +188,43 @@ class VLNTask:
         Returns:
             Initial observations dictionary.
         """
+        _debug_log(f"=" * 60)
+        _debug_log(f"VLNTask.reset() called for episode {episode.episode_id}")
+        _debug_log(f"  trajectory_type: {getattr(episode, 'trajectory_type', 'N/A')}")
+        _debug_log(f"  start_position: {episode.start_position}")
+        _debug_log(f"  start_rotation: {episode.start_rotation}")
+        _debug_log(f"  scene_id: {episode.scene_id}")
+        
         self._current_episode = episode
         self.is_stop_called = False  # Reset stop flag for new episode
         
         # Reset simulator (load scene and set initial state)
+        _debug_log(f"  Step 1: Calling _sim.reset()")
         sim_obs = self._sim.reset(episode.scene_id)
+        _debug_log(f"  Step 1 complete: sim_obs keys = {list(sim_obs.keys())}")
+        
+        _debug_log(f"  Step 2: Calling _sim.set_agent_state()")
         self._sim.set_agent_state(episode.start_position, episode.start_rotation)
+        _debug_log(f"  Step 2 complete")
         
         # Reset all measures
-        for measure in self.measures:
-            measure.reset(episode, self._sim)
+        _debug_log(f"  Step 3: Resetting {len(self.measures)} measures")
+        for i, measure in enumerate(self.measures):
+            measure_name = measure.__class__.__name__
+            _debug_log(f"    Resetting measure {i}: {measure_name}")
+            try:
+                measure.reset(episode, self._sim)
+                _debug_log(f"    {measure_name} reset complete")
+            except Exception as e:
+                _debug_log(f"    {measure_name} reset FAILED: {e}")
+                raise
+        _debug_log(f"  Step 3 complete")
         
         # Get initial observations
+        _debug_log(f"  Step 4: Calling get_observations()")
         observations = self.get_observations()
+        _debug_log(f"  Step 4 complete: obs keys = {list(observations.keys())}")
+        _debug_log(f"VLNTask.reset() completed successfully")
         
         return observations
     
