@@ -43,6 +43,7 @@ class VLNEpisode:
             Format: [[lon1, lat1, alt1], [lon2, lat2, alt2], ...]
         instruction: Instruction data containing the natural language instruction.
         trajectory_id: Identifier for the ground truth trajectory.
+        trajectory_type: Type of trajectory ('Boundary' or 'LandmarkSet'), optional.
     """
     episode_id: str
     scene_id: str
@@ -52,4 +53,5 @@ class VLNEpisode:
     reference_path: List[List[float]]  # [[lon, lat, alt], ...]
     instruction: InstructionData
     trajectory_id: str
+    trajectory_type: Optional[str] = None  # 'Boundary' or 'LandmarkSet'
 
