@@ -22,7 +22,9 @@ from satnav.task.measures import (
 from satnav.task.sensors import InstructionSensor, RGBSensor, Sensor
 
 # Debug logging for specific rank
-_DEBUG_RANK = int(os.environ.get('SATNAV_DEBUG_RANK', '-1'))
+# Set SATNAV_DEBUG_RANK environment variable to enable debug logging for a specific rank
+# Default is -999 (disabled), set to -1 to debug single-process runs
+_DEBUG_RANK = int(os.environ.get('SATNAV_DEBUG_RANK', '-999'))
 _DEBUG_LOG_FILE = os.environ.get('SATNAV_DEBUG_LOG', None)
 _debug_file_handle = None
 

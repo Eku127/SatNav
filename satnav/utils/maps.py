@@ -271,11 +271,15 @@ def crop_satellite_map(
     x_min, y_min = GeoUtils.wgs84_to_mercator(lon_min, lat_min)
     x_max, y_max = GeoUtils.wgs84_to_mercator(lon_max, lat_max)
     
-    # Add padding in Mercator space (meters)
-    x_min -= padding_meters
-    x_max += padding_meters
-    y_min -= padding_meters
-    y_max += padding_meters
+    # Add padding in Mercator space
+    # padding_meters is in TRUE ground meters, convert to Mercator meters
+    # Use center Y coordinate for scale factor calculation
+    center_y = (y_min + y_max) / 2
+    padding_mercator = GeoUtils.true_meters_to_mercator(padding_meters, center_y)
+    x_min -= padding_mercator
+    x_max += padding_mercator
+    y_min -= padding_mercator
+    y_max += padding_mercator
     
     # Clamp to scene bounds
     scene_bounds = sat_tif.bounds
@@ -523,9 +527,16 @@ def draw_camera_view_bounds(
     cx, cy = position_mercator
     h = altitude
     
-    # Ground half-height/width in meters
-    half_x_m = h * math.tan(math.radians(hfov / 2.0))
-    half_y_m = half_x_m / (image_width / image_height)  # aspect ratio
+    # Get Mercator scale factor at current latitude
+    scale_factor = GeoUtils.get_mercator_scale_factor(cy)
+    
+    # Ground half-height/width in TRUE ground meters
+    half_x_true = h * math.tan(math.radians(hfov / 2.0))
+    half_y_true = half_x_true / (image_width / image_height)  # aspect ratio
+    
+    # Convert to Mercator meters (for correct visualization)
+    half_x_m = half_x_true * scale_factor
+    half_y_m = half_y_true * scale_factor
     
     # Distance to four corners (diagonal half-distance)
     r = math.hypot(half_x_m, half_y_m)

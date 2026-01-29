@@ -48,6 +48,59 @@ class GeoUtils:
         return (float(lon), float(lat))
     
     @staticmethod
+    def get_mercator_scale_factor(y: float) -> float:
+        """Get Mercator scale factor at given Mercator Y coordinate.
+        
+        The Mercator projection distorts distances by a factor of 1/cos(latitude).
+        At the equator (lat=0), scale_factor=1, so 1 Mercator meter = 1 true meter.
+        At higher latitudes, scale_factor > 1, so Mercator meters are "stretched".
+        
+        To convert from true ground meters to Mercator meters, multiply by this factor.
+        To convert from Mercator meters to true ground meters, divide by this factor.
+        
+        Args:
+            y: Y coordinate in meters (Web Mercator).
+            
+        Returns:
+            Scale factor = 1/cos(latitude). 
+            Multiply true ground meters by this to get Mercator meters.
+            
+        Example:
+            At latitude 37.5° (San Francisco):
+                scale_factor ≈ 1.26
+                10 true ground meters = 12.6 Mercator meters
+        """
+        R = 6378137.0  # WGS84 semi-major axis in meters
+        lat_rad = math.atan(math.sinh(y / R))
+        return 1.0 / math.cos(lat_rad)
+    
+    @staticmethod
+    def true_meters_to_mercator(distance_m: float, y: float) -> float:
+        """Convert true ground meters to Mercator meters.
+        
+        Args:
+            distance_m: Distance in true ground meters.
+            y: Y coordinate in meters (Web Mercator) at the location.
+            
+        Returns:
+            Distance in Mercator meters.
+        """
+        return distance_m * GeoUtils.get_mercator_scale_factor(y)
+    
+    @staticmethod
+    def mercator_meters_to_true(distance_mercator: float, y: float) -> float:
+        """Convert Mercator meters to true ground meters.
+        
+        Args:
+            distance_mercator: Distance in Mercator meters.
+            y: Y coordinate in meters (Web Mercator) at the location.
+            
+        Returns:
+            Distance in true ground meters.
+        """
+        return distance_mercator / GeoUtils.get_mercator_scale_factor(y)
+    
+    @staticmethod
     def move_in_mercator(
         x: float,
         y: float,
@@ -57,23 +110,37 @@ class GeoUtils:
         """Move a point in Mercator space by a given distance and heading.
         
         This function moves a point in Web Mercator coordinates by a specified
-        distance (in meters) in a given heading direction (in degrees, 0=North).
+        distance (in TRUE GROUND meters) in a given heading direction.
+        
+        The distance is converted from true ground meters to Mercator meters
+        using the Mercator scale factor at the current latitude, ensuring that
+        the agent moves the expected real-world distance.
         
         Args:
             x: Current X coordinate in meters (Web Mercator).
             y: Current Y coordinate in meters (Web Mercator).
-            distance_m: Distance to move in meters.
+            distance_m: Distance to move in TRUE GROUND meters (not Mercator meters).
             heading_deg: Heading direction in degrees (0=North, 90=East).
             
         Returns:
             Tuple of (x_new, y_new) in meters (Web Mercator).
+            
+        Note:
+            Before Mercator scale factor correction, a distance_m of 10m would
+            result in moving 10 Mercator meters, which at latitude 37.5° equals
+            only ~7.9 true ground meters. After correction, 10m means 10 true
+            ground meters regardless of latitude.
         """
+        # Convert true ground meters to Mercator meters
+        # This ensures the agent moves the expected real-world distance
+        distance_mercator = GeoUtils.true_meters_to_mercator(distance_m, y)
+        
         # Convert heading to radians
         heading_rad = math.radians(heading_deg)
         
-        # Calculate displacement
-        dx = distance_m * math.sin(heading_rad)
-        dy = distance_m * math.cos(heading_rad)
+        # Calculate displacement in Mercator meters
+        dx = distance_mercator * math.sin(heading_rad)
+        dy = distance_mercator * math.cos(heading_rad)
         
         # Apply displacement
         x_new = x + dx

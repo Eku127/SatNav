@@ -68,8 +68,7 @@ class Env:
             self._dataset = dataset
         
         # Initialize simulator using factory function
-        # Supports both SatSim (2D satellite) and AerialSim (3D Google Tiles)
-        # based on SIMULATOR.TYPE in config
+        # Currently supports SatSim (2D satellite imagery based simulator)
         scenes_dir = None
         if dataset_config is not None:
             if isinstance(dataset_config, DictConfig):
