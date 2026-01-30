@@ -6,9 +6,11 @@ Google's Photorealistic 3D Tiles via CesiumJS. It provides an interface
 similar to SatSim for seamless switching between 2D and 3D renderers.
 """
 
+import atexit
 import math
 import os
 import shutil
+import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -425,6 +427,8 @@ class AerialSim:
     def _prepare_html(self) -> Path:
         """Prepare HTML template with API key.
         
+        Uses tempfile to ensure automatic cleanup on program exit.
+        
         Returns:
             Path to prepared HTML file.
         """
@@ -439,9 +443,22 @@ class AerialSim:
         
         html_content = html_content.replace("{{API_KEY}}", self._api_key)
         
-        temp_html_path = template_dir / f"temp_aerial_{os.getpid()}.html"
-        with open(temp_html_path, 'w', encoding='utf-8') as f:
+        # Use tempfile for automatic cleanup
+        # delete=False because we need the file to persist for Selenium to load
+        fd, temp_path = tempfile.mkstemp(suffix='.html', prefix='aerialsim_')
+        temp_html_path = Path(temp_path)
+        
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
             f.write(html_content)
+        
+        # Register cleanup on program exit (as backup to close())
+        def cleanup():
+            try:
+                if temp_html_path.exists():
+                    temp_html_path.unlink()
+            except Exception:
+                pass
+        atexit.register(cleanup)
         
         return temp_html_path
     
