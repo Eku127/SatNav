@@ -69,6 +69,97 @@
       window.__renderReady = false;
     };
 
+    // Function to query ground height at a location using ray picking
+    // Returns the ground height relative to WGS84 ellipsoid
+    window.queryGroundHeight = function(lat, lng) {
+      // Position for ray start (high above the ground)
+      var startCartographic = Cesium.Cartographic.fromDegrees(lng, lat, 2000);
+      var startCartesian = Cesium.Cartographic.toCartesian(startCartographic);
+      
+      // Direction: straight down toward Earth center
+      var direction = Cesium.Cartesian3.normalize(
+        Cesium.Cartesian3.negate(startCartesian, new Cesium.Cartesian3()),
+        new Cesium.Cartesian3()
+      );
+      
+      var ray = new Cesium.Ray(startCartesian, direction);
+      
+      // Pick the scene (including 3D Tiles)
+      var scene = viewer.scene;
+      var intersection = scene.pickFromRay(ray);
+      
+      if (intersection && intersection.position) {
+        var cartographic = Cesium.Cartographic.fromCartesian(intersection.position);
+        return {
+          found: true,
+          height: cartographic.height,
+          longitude: Cesium.Math.toDegrees(cartographic.longitude),
+          latitude: Cesium.Math.toDegrees(cartographic.latitude)
+        };
+      } else {
+        // If no intersection, return 0 (ellipsoid surface)
+        return {
+          found: false,
+          height: 0,
+          error: "No ground intersection found, using ellipsoid surface"
+        };
+      }
+    };
+    
+    // Function to query ground height at multiple points within a grid
+    // Returns the maximum height found (to avoid camera clipping into buildings)
+    window.queryGroundHeightGrid = function(lat, lng, gridSizeMeters, numSamples) {
+      var heights = [];
+      var scene = viewer.scene;
+      
+      // Convert grid size to approximate degrees (rough approximation)
+      var latDelta = gridSizeMeters / 111000;  // ~111km per degree latitude
+      var lngDelta = gridSizeMeters / (111000 * Math.cos(lat * Math.PI / 180));
+      
+      // Sample points in a grid pattern
+      var halfSamples = Math.floor(numSamples / 2);
+      for (var i = -halfSamples; i <= halfSamples; i++) {
+        for (var j = -halfSamples; j <= halfSamples; j++) {
+          var sampleLat = lat + (i / halfSamples) * latDelta;
+          var sampleLng = lng + (j / halfSamples) * lngDelta;
+          
+          var startCartographic = Cesium.Cartographic.fromDegrees(sampleLng, sampleLat, 2000);
+          var startCartesian = Cesium.Cartographic.toCartesian(startCartographic);
+          var direction = Cesium.Cartesian3.normalize(
+            Cesium.Cartesian3.negate(startCartesian, new Cesium.Cartesian3()),
+            new Cesium.Cartesian3()
+          );
+          var ray = new Cesium.Ray(startCartesian, direction);
+          var intersection = scene.pickFromRay(ray);
+          
+          if (intersection && intersection.position) {
+            var cartographic = Cesium.Cartographic.fromCartesian(intersection.position);
+            heights.push(cartographic.height);
+          }
+        }
+      }
+      
+      if (heights.length > 0) {
+        var maxHeight = Math.max.apply(null, heights);
+        var minHeight = Math.min.apply(null, heights);
+        var avgHeight = heights.reduce(function(a, b) { return a + b; }, 0) / heights.length;
+        return {
+          found: true,
+          maxHeight: maxHeight,
+          minHeight: minHeight,
+          avgHeight: avgHeight,
+          samplesFound: heights.length,
+          totalSamples: (numSamples * 2 + 1) * (numSamples * 2 + 1)
+        };
+      } else {
+        return {
+          found: false,
+          maxHeight: 0,
+          error: "No ground intersections found"
+        };
+      }
+    };
+
     // Function to update camera view with FOV (SatSim-compatible mode)
     // This allows setting the horizontal field of view to match SatSim's HFOV
     window.updateViewWithFOV = function(lat, lng, height, heading, pitch, roll, hfov) {
