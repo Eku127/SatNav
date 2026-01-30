@@ -788,13 +788,18 @@ class TopDownMapSatNav(Measure):
         )
         
         # Get the satellite TIF from simulator
-        # Access the internal SatSim to get the scene
-        if hasattr(self._sim, '_satsim'):
+        # Access the internal SatSim/AerialSim to get the scene
+        # SatSimWrapper stores scene in _satsim._current_scene
+        # AerialSimWrapper stores scene in _current_scene directly
+        if hasattr(self._sim, '_satsim') and self._sim._satsim._current_scene is not None:
             sat_tif = self._sim._satsim._current_scene
-        elif hasattr(self._sim, '_current_scene'):
+        elif hasattr(self._sim, '_current_scene') and self._sim._current_scene is not None:
             sat_tif = self._sim._current_scene
         else:
-            raise RuntimeError("Cannot access satellite map from simulator")
+            raise RuntimeError(
+                "Cannot access satellite map from simulator. "
+                "For AerialSim, ensure SCENES_DIR is set in config and TIF files exist."
+            )
         
         if sat_tif is None:
             raise RuntimeError("No satellite scene loaded in simulator")

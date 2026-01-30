@@ -2,13 +2,17 @@
 
 ## 项目简介
 
-SatNav 是一个用于评测连续状态下视觉语言导航（VLN）的测试平台。该平台使用卫星地图作为场景，支持基于地理坐标（经度、纬度、高度）的连续空间导航，并通过自定义的 **SatSim 卫星地图仿真器**实现场景渲染和动作执行。
+SatNav 是一个用于评测连续状态下视觉语言导航（VLN）的测试平台。该平台使用卫星地图作为场景，支持基于地理坐标（经度、纬度、高度）的连续空间导航，并提供**双仿真器架构**：
+
+- **SatSim**：2D 卫星地图仿真器（高速渲染，依赖本地 GeoTIFF 文件）
+- **AerialSim**：3D 航拍仿真器（使用 Google 3D Tiles，真实感渲染）
 
 **核心特点**：
 - 🌍 使用卫星地图作为场景（而非3D室内场景）
 - 📍 位置使用地理坐标（经度、纬度、高度）
-- 🧭 旋转使用roll角度（航向角，0度表示正北）
-- 🖼️ 图像通过从卫星地图裁剪和旋转生成
+- 🧭 旋转使用航向角（heading，0度表示正北）
+- 🖼️ 支持 2D 卫星图像和 3D 航拍渲染两种模式
+- 🔄 仿真器可通过配置无缝切换，代码无需修改
 - 🚀 最小化实现，不依赖 Habitat 组件
 
 ---
@@ -126,12 +130,43 @@ SatSim 使用 `SatelliteCamera` 类生成 RGB 观测：
 
 ## 3. SatNav 架构
 
-SatNav 采用分层架构：**Env** → **VLNTask** → **SatSimWrapper** → **SatSim**。
+SatNav 采用分层架构，通过工厂模式支持多种仿真器后端：
+
+```
+Env → VLNTask → Simulator (抽象接口)
+                    ↓
+            create_simulator() 工厂函数
+                    ↓
+        ┌───────────┴───────────┐
+        ↓                       ↓
+   SatSimWrapper          AerialSimWrapper
+        ↓                       ↓
+     SatSim                 AerialSim
+   (2D 卫星图)            (3D Google Tiles)
+```
 
 - **Env（环境层）**：管理 Episode 迭代，提供 `reset()` 和 `step(action)` 接口
 - **VLNTask（任务层）**：管理传感器（RGB、Instruction）和评价指标（Success、SPL、DistanceToGoal等）
-- **SatSimWrapper（适配器层）**：适配 Simulator 接口，处理场景路径和坐标转换（WGS84 ↔ EPSG:3857）
-- **SatSim（仿真器层）**：场景加载、动作执行、图像渲染
+- **Simulator（抽象接口）**：定义仿真器统一接口（`reset`、`step`、`get_agent_state` 等）
+- **SatSimWrapper / AerialSimWrapper（适配器层）**：实现 Simulator 接口
+- **SatSim / AerialSim（仿真器层）**：场景加载、动作执行、图像渲染
+
+### 3.1 仿真器切换
+
+通过配置文件中的 `SIMULATOR.TYPE` 字段即可切换仿真器，**无需修改任何代码**：
+
+```yaml
+SIMULATOR:
+  TYPE: satsim    # 使用 2D 卫星图仿真器
+  # TYPE: aerialsim  # 使用 3D 航拍仿真器
+```
+
+| 特性 | SatSim | AerialSim |
+|------|--------|-----------|
+| 渲染速度 | ~1ms/帧 | ~5-6s/帧 |
+| 图像类型 | 2D 卫星俯视图 | 3D 航拍渲染 |
+| 数据依赖 | 本地 GeoTIFF 文件 | 网络 + Google API Key |
+| 覆盖范围 | 已下载的区域 | 全球（有 3D 数据的区域） |
 
 ---
 
@@ -147,15 +182,22 @@ ENVIRONMENT:
   MAX_EPISODE_STEPS: 500
 
 SIMULATOR:
+  # 仿真器类型: "satsim" (2D卫星图) 或 "aerialsim" (3D航拍)
+  TYPE: satsim
   # 向前移动的步长（米）
-  FORWARD_STEP_SIZE: 0.25
+  FORWARD_STEP_SIZE: 10
   # 转向角度（度）
   TURN_ANGLE: 15
   # RGB 传感器配置
   RGB_SENSOR:
-    WIDTH: 224      # 图像宽度（像素）
-    HEIGHT: 224     # 图像高度（像素）
+    WIDTH: 448      # 图像宽度（像素）
+    HEIGHT: 448     # 图像高度（像素）
     HFOV: 90        # 水平视野角度（度）
+  # AerialSim 专用配置（仅当 TYPE: aerialsim 时使用）
+  AERIAL:
+    API_KEY: "YOUR_GOOGLE_API_KEY"  # Google 3D Tiles API key
+    BROWSER: chrome                  # 浏览器: chrome/edge/firefox
+    HEADLESS: true                   # 无头模式（服务器环境推荐）
 
 TASK:
   TYPE: VLN
@@ -602,9 +644,9 @@ python -m applications.map_downloader
 
 详细文档：`applications/map_downloader/README.md`
 
-### 7.3 Aerial Viewer（3D 航拍查看器）
+### 8.3 Aerial Viewer（3D 航拍查看器）
 
-使用 CesiumJS 和 Google 3D Tiles 渲染非交互式 3D 航拍视图的工具，与 SatSim 相机模型兼容。
+使用 AerialSim 核心渲染非交互式 3D 航拍视图的工具，与 SatSim 相机模型兼容。
 
 **快速开始**：
 ```bash
@@ -614,21 +656,15 @@ python -m applications.aerial_viewer
 **主要功能**：
 - 渲染 3D 航拍视图（使用 Google 3D Tiles）
 - 与 SatSim 相机参数兼容（垂直俯视、HFOV 匹配）
+- 支持序列渲染（优化后约 2x 加速）
 - 支持多种浏览器（Chrome、Edge、Firefox）
 - 命令行接口和配置文件支持
 
 **示例输出对比**：
 
-<div style="display: flex; gap: 20px; align-items: center;">
-  <div style="flex: 1;">
-    <p><strong>SatSim 卫星视图（2D 正交投影）</strong></p>
-    <img src="applications/aerial_viewer/images/sat_crop_view.png" alt="SatSim Satellite View" style="width: 100%;">
-  </div>
-  <div style="flex: 1;">
-    <p><strong>Aerial Viewer 3D 视图（3D 透视投影）</strong></p>
-    <img src="applications/aerial_viewer/images/aerial_view.png" alt="Aerial Viewer 3D View" style="width: 100%;">
-  </div>
-</div>
+| SatSim 卫星视图（2D 正交投影） | AerialSim 3D 视图（3D 透视投影） |
+|:---:|:---:|
+| ![SatSim](applications/aerial_viewer/images/sat_crop_view.png) | ![AerialSim](applications/aerial_viewer/images/aerial_view.png) |
 
 **配置**：编辑 `applications/aerial_viewer/config.yaml` 设置：
 - `API.API_KEY`: Google 3D Tiles API key
@@ -636,9 +672,9 @@ python -m applications.aerial_viewer
 - `CAMERA`: 相机参数（HFOV、宽度、高度）
 
 **与 SatSim 的区别**：
-- **投影模型**：SatSim 使用正交投影（无透视变形），Aerial Viewer 使用透视投影（3D 渲染）
-- **地形**：SatSim 使用 2D 卫星图像（平面），Aerial Viewer 使用 3D Tiles（包含建筑物高度和地形）
-- **图像来源**：SatSim 使用高分辨率 GeoTIFF 文件，Aerial Viewer 使用 Google 3D Tiles（流式传输）
+- **投影模型**：SatSim 使用正交投影（无透视变形），AerialSim 使用透视投影（3D 渲染）
+- **地形**：SatSim 使用 2D 卫星图像（平面），AerialSim 使用 3D Tiles（包含建筑物高度和地形）
+- **图像来源**：SatSim 使用高分辨率 GeoTIFF 文件，AerialSim 使用 Google 3D Tiles（流式传输）
 
 **依赖要求**：
 - `selenium` - WebDriver 控制
@@ -688,12 +724,18 @@ SatNav/
 │   │   ├── path_follower.py  # 路径跟随器
 │   │   └── discrete_planner.py  # 离散规划器
 │   └── sims/                 # 仿真器
-│       ├── satsim_wrapper.py # SatSim适配器
-│       └── satsim/           # SatSim核心模块
+│       ├── __init__.py       # 仿真器工厂 (create_simulator)
+│       ├── satsim_wrapper.py # SatSim 适配器
+│       ├── aerialsim_wrapper.py # AerialSim 适配器 ⭐
+│       ├── satsim/           # SatSim 核心模块 (2D)
+│       │   ├── __init__.py
+│       │   ├── satsim.py     # 核心引擎
+│       │   ├── camera.py     # 相机渲染
+│       │   └── geoutils.py   # 坐标工具
+│       └── aerialsim/        # AerialSim 核心模块 (3D) ⭐
 │           ├── __init__.py
-│           ├── satsim.py     # 核心引擎
-│           ├── camera.py     # 相机渲染
-│           └── geoutils.py   # 坐标工具
+│           ├── aerialsim.py  # 核心引擎
+│           └── cesium_template.html  # CesiumJS 模板
 ├── configs/                   # 配置文件 ⭐
 │   ├── default.yaml          # 默认配置模板
 │   ├── debug_vln_task.yaml   # 调试任务配置

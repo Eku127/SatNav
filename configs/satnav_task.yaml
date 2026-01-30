@@ -7,6 +7,9 @@ ENVIRONMENT:
   MAX_EPISODE_STEPS: 500
 
 SIMULATOR:
+  # Simulator type: "satsim" (2D satellite imagery) or "aerialsim" (3D aerial view)
+  TYPE: aerialsim
+  
   # Forward movement step size in meters
   FORWARD_STEP_SIZE: 10
   
@@ -21,6 +24,16 @@ SIMULATOR:
     HEIGHT: 448
     # Horizontal field of view in degrees
     HFOV: 90
+  
+  # AerialSim-specific configuration (used when TYPE: aerialsim)
+  # Requires Google 3D Tiles API key
+  AERIAL:
+    # Google 3D Tiles API key (required for aerialsim)
+    API_KEY: "AIzaSyAvdA9uijk4A2IX0sYeMOc2Kv3dH7GpDRc"
+    # Browser to use for rendering: chrome, edge, firefox
+    BROWSER: chrome
+    # Run in headless mode (default: true for server environments)
+    HEADLESS: true
 
 TASK:
   # Task type identifier
@@ -41,6 +54,7 @@ TASK:
   #   - PATH_LENGTH: Total path length traveled (using geodesic distance)
   #   - SPL: Success weighted by Path Length
   #   - TOP_DOWN_MAP: Top-down map visualization (for video/debugging)
+  #                   NOTE: TOP_DOWN_MAP requires SCENES_DIR with satellite TIF files
   MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
   
   # Top-Down Map visualization configuration
