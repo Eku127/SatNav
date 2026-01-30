@@ -8,16 +8,16 @@ API:
 
 # Agent State Configuration (SatSim-compatible)
 AGENT:
-  LONGITUDE: -74.0060   # Longitude (degrees)
-  LATITUDE: 40.7128     # Latitude (degrees)
-  ALTITUDE: 100.0       # Altitude (meters)
-  ROTATION: 0.0         # Rotation/roll angle (degrees, 0=North)
+  LONGITUDE: -121.99935840639316   # Longitude (degrees)
+  LATITUDE: 37.510891320638834     # Latitude (degrees)
+  ALTITUDE: 50.0       # Altitude (meters)
+  ROTATION: 160.0         # Rotation/roll angle (degrees, 0=North)
 
 # Camera Settings
 CAMERA:
   HFOV: 90             # Horizontal field of view (degrees)
-  WIDTH: 640           # Output width (pixels)
-  HEIGHT: 480          # Output height (pixels)
+  WIDTH: 448           # Output width (pixels)
+  HEIGHT: 448          # Output height (pixels)
 
 # Browser Configuration
 BROWSER:

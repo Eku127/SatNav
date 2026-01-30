@@ -5,6 +5,8 @@ Non-interactive aerial 3D view renderer using CesiumJS and Google 3D Tiles.
 ## Features
 
 - Render 3D aerial views from Google 3D Tiles
+- **Sequence rendering** - Efficiently render multiple waypoints with browser reuse (~2x faster)
+- **Automatic ground height query** - Automatically adjusts camera height based on terrain/building elevation
 - Configurable camera position and orientation
 - Support for multiple browsers (Edge, Chrome, Firefox)
 - Headless mode support
@@ -202,6 +204,51 @@ try:
 finally:
     renderer.close()
 ```
+
+### Sequence Rendering (Optimized for Multiple Waypoints)
+
+For rendering multiple waypoints efficiently, use the `render_sequence` method. It reuses the browser instance and can optionally reuse ground height queries for nearby points, achieving **~2x speedup** compared to individual rendering:
+
+```python
+from applications.aerial_viewer import AerialRenderer
+
+renderer = AerialRenderer("config.yaml")
+try:
+    # Define waypoints as [longitude, latitude] or [longitude, latitude, altitude]
+    waypoints = [
+        [-121.999358, 37.510891],      # Uses default altitude
+        [-121.998144, 37.510624],
+        [-121.997000, 37.510400, 100], # Custom altitude: 100m
+    ]
+    
+    # Optional: rotation angles for each waypoint (degrees, 0=North)
+    rotations = [160.0, 160.0, 180.0]
+    
+    # Render sequence
+    output_files = renderer.render_sequence(
+        waypoints=waypoints,
+        rotations=rotations,           # Optional, defaults to 0 for all
+        altitude=50.0,                 # Default altitude if not in waypoint
+        hfov=90.0,                     # Horizontal field of view
+        output_dir="output/sequence",  # Output directory
+        output_prefix="frame",         # Output filename prefix
+        reuse_ground_height=True,      # Reuse ground height for nearby points
+        ground_height_threshold=200.0, # Distance threshold (meters) for reusing
+    )
+    
+    print(f"Rendered {len(output_files)} frames:")
+    for f in output_files:
+        print(f"  - {f}")
+finally:
+    renderer.close()
+```
+
+**Performance comparison:**
+
+| Method | Time per frame | Notes |
+|--------|---------------|-------|
+| Individual rendering | ~29s/frame | New browser for each frame |
+| Sequence rendering | ~15s/frame | Browser reuse, ~2x faster |
 
 ## Configuration
 
@@ -517,6 +564,33 @@ aerial_config = {
 }
 ```
 
+## Ground Height Auto-Query
+
+The renderer automatically queries the ground/building height at the camera position to ensure proper altitude above terrain. This prevents the camera from being inside buildings or underground.
+
+### How it works
+
+1. **Grid sampling**: Queries a grid of points around the camera position (default: 7x7 grid over 2× altitude area)
+2. **Maximum height**: Uses the maximum height found in the grid (handles buildings, terrain variations)
+3. **Safety margin**: Adds a configurable safety margin (default: 2m) to avoid clipping
+4. **Ellipsoid height**: Converts the requested altitude above ground to absolute ellipsoid height
+
+### Example
+
+```
+User requests: altitude = 50m above ground
+Ground height query: max height = -20.93m (below ellipsoid)
+Safety margin: 2m
+Final camera height: -20.93 + 2 + 50 = 31.07m (ellipsoid height)
+```
+
+### Configuration
+
+Ground height query behavior can be tuned in `render_sequence`:
+
+- `reuse_ground_height`: Reuse previous ground height for nearby points (default: `True`)
+- `ground_height_threshold`: Distance threshold for reusing (default: `200m`)
+
 ## Notes
 
 - The renderer uses CesiumJS to load Google 3D Tiles
@@ -528,4 +602,5 @@ aerial_config = {
 - For best results, use **non-headless mode** with a display (or Xvfb on Linux servers)
 - The camera automatically sets `PITCH=-90°` and `ROLL=0°` for vertical down view (SatSim-compatible)
 - **FOV conversion**: Horizontal FOV (HFOV) is automatically converted to vertical FOV for CesiumJS based on aspect ratio
+- **Ground height**: Camera altitude is automatically adjusted based on terrain/building height to ensure correct height above ground
 

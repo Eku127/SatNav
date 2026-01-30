@@ -407,18 +407,92 @@ class AerialRenderer:
             """)
             time.sleep(0.3)  # Wait for container resize
         
-        # Update camera view with FOV
-        print(f"Setting camera view...")
+        # Load tiles at a fixed height for ground height query
+        print(f"Loading tiles for ground height query...")
+        load_height = 200  # Fixed height for tile loading
+        self.driver.execute_script(
+            f"window.updateViewWithFOV({lat}, {lng}, {load_height}, {heading}, {pitch}, {roll}, {hfov});"
+        )
+        
+        # Wait for tileset to stabilize
+        max_wait = 10
+        start = time.time()
+        stable_count = 0
+        last_tiles = 0
+        
+        while time.time() - start < max_wait:
+            status = self.driver.execute_script("""
+                return {
+                    tilesLoaded: window.__lastTilesLoaded || 0,
+                    tilesetReady: window.__tilesetReady || false
+                };
+            """)
+            tiles = status.get('tilesLoaded', 0)
+            if tiles == last_tiles and tiles > 0:
+                stable_count += 1
+                if stable_count >= 3:
+                    break
+            else:
+                stable_count = 0
+            last_tiles = tiles
+            time.sleep(0.5)
+        
+        time.sleep(1)  # Extra stabilization
+        
+        # Query ground height using grid sampling to find highest point in view area
+        # Grid size based on expected ground coverage at target height
+        # For HFOV=90° and height h: coverage = 2 * h * tan(45°) = 2h
+        grid_size = height * 2  # Cover area approximately equal to view at target height
+        print(f"Querying ground height grid ({grid_size:.0f}m x {grid_size:.0f}m) at ({lat:.6f}, {lng:.6f})...")
+        
+        grid_info = self.driver.execute_script(
+            f"return window.queryGroundHeightGrid({lat}, {lng}, {grid_size}, 3);"  # 7x7 grid (3 samples each side of center)
+        )
+        
+        if grid_info and grid_info.get('found'):
+            max_height = grid_info.get('maxHeight', 0.0)
+            min_height = grid_info.get('minHeight', 0.0)
+            avg_height = grid_info.get('avgHeight', 0.0)
+            samples_found = grid_info.get('samplesFound', 0)
+            total_samples = grid_info.get('totalSamples', 0)
+            
+            print(f"✓ Grid query: {samples_found}/{total_samples} samples found")
+            print(f"  Heights - max: {max_height:.2f}m, min: {min_height:.2f}m, avg: {avg_height:.2f}m")
+            
+            # Use maximum height + safety margin to ensure camera is above all buildings
+            # Safety margin accounts for query randomness and unloaded tiles
+            safety_margin = 2.0  # 2 meters safety margin
+            ground_height = max_height + safety_margin
+            print(f"✓ Using maximum ground height: {max_height:.2f}m + {safety_margin}m safety = {ground_height:.2f}m")
+        else:
+            # Fallback to single point query
+            print(f"  Grid query failed, falling back to single point query...")
+            ground_info = self.driver.execute_script(f"return window.queryGroundHeight({lat}, {lng});")
+            if ground_info and ground_info.get('found'):
+                ground_height = ground_info.get('height', 0.0)
+                print(f"✓ Single point ground height: {ground_height:.2f}m")
+            else:
+                ground_height = 0.0
+                print(f"⚠ Could not determine ground height, using ellipsoid surface (0m)")
+        
+        # Calculate adjusted camera height (relative to ellipsoid)
+        # User specifies height above ground, we need to convert to height above ellipsoid
+        adjusted_height = ground_height + height
+        print(f"  User requested height above ground: {height:.1f}m")
+        print(f"  Adjusted ellipsoid height: {adjusted_height:.2f}m")
+        
+        # Update camera view with FOV and adjusted height
+        print(f"Setting final camera view...")
         if hfov is not None and updateview_fov_available:
             # Use FOV-aware update function
             self.driver.execute_script(
-                f"window.updateViewWithFOV({lat}, {lng}, {height}, {heading}, {pitch}, {roll}, {hfov});"
+                f"window.updateViewWithFOV({lat}, {lng}, {adjusted_height}, {heading}, {pitch}, {roll}, {hfov});"
             )
             print(f"✓ Camera view updated with HFOV={hfov}°")
         else:
             # Fallback to standard update function if FOV function not available
             self.driver.execute_script(
-                f"window.updateView({lat}, {lng}, {height}, {heading}, {pitch}, {roll});"
+                f"window.updateView({lat}, {lng}, {adjusted_height}, {heading}, {pitch}, {roll});"
             )
             print("✓ Camera view updated (without FOV)")
         
@@ -554,12 +628,21 @@ class AerialRenderer:
             print(f"  Target size: {target_width}x{target_height}")
             print(f"  Render size: {render_width}x{render_height} (1.2x for cropping)")
             
-            # Set container to render size
+            # IMPORTANT: Set browser window size FIRST, before setting container size
+            # The container cannot be larger than the browser window
+            self.driver.set_window_size(render_width + 100, render_height + 150)
+            time.sleep(0.5)
+            
+            # Set container to render size with explicit dimensions
             self.driver.execute_script(f"""
                 var container = document.getElementById('cesiumContainer');
                 if (container) {{
                     container.style.width = '{render_width}px';
                     container.style.height = '{render_height}px';
+                    container.style.minWidth = '{render_width}px';
+                    container.style.minHeight = '{render_height}px';
+                    container.style.maxWidth = '{render_width}px';
+                    container.style.maxHeight = '{render_height}px';
                 }}
                 if (typeof viewer !== 'undefined') {{
                     viewer.resize();
@@ -569,9 +652,21 @@ class AerialRenderer:
             # Wait for resize and rendering
             time.sleep(1.0)
             
-            # Update browser window size to match render size (with some padding for browser chrome)
-            self.driver.set_window_size(render_width + 50, render_height + 100)
-            time.sleep(0.5)
+            # Verify container size before screenshot
+            container_size = self.driver.execute_script("""
+                var container = document.getElementById('cesiumContainer');
+                if (container) {
+                    return {
+                        width: container.offsetWidth,
+                        height: container.offsetHeight,
+                        clientWidth: container.clientWidth,
+                        clientHeight: container.clientHeight
+                    };
+                }
+                return null;
+            """)
+            if container_size:
+                print(f"  Container size: {container_size['width']}x{container_size['height']} (offset), {container_size['clientWidth']}x{container_size['clientHeight']} (client)")
             
             # Take screenshot of the container element
             canvas = self.driver.find_element("id", "cesiumContainer")
@@ -584,21 +679,28 @@ class AerialRenderer:
             actual_width, actual_height = img.size
             print(f"  Screenshot size: {actual_width}x{actual_height}")
             
-            # Calculate crop box (center crop)
-            crop_left = (actual_width - target_width) // 2
-            crop_top = (actual_height - target_height) // 2
-            crop_right = crop_left + target_width
-            crop_bottom = crop_top + target_height
-            
-            print(f"  Cropping: ({crop_left}, {crop_top}) to ({crop_right}, {crop_bottom})")
-            
-            # Crop to center region
-            cropped = img.crop((crop_left, crop_top, crop_right, crop_bottom))
-            
-            # Verify dimensions match target
-            if cropped.size != (target_width, target_height):
-                print(f"  Warning: Cropped size {cropped.size} doesn't match target, resizing...")
-                cropped = cropped.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            # Check if screenshot is large enough for cropping
+            if actual_width < target_width or actual_height < target_height:
+                print(f"  ⚠ Screenshot ({actual_width}x{actual_height}) is smaller than target ({target_width}x{target_height})")
+                print(f"    Resizing screenshot directly to target size instead of cropping...")
+                # Resize directly to target size (may stretch the image)
+                cropped = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            else:
+                # Calculate crop box (center crop)
+                crop_left = (actual_width - target_width) // 2
+                crop_top = (actual_height - target_height) // 2
+                crop_right = crop_left + target_width
+                crop_bottom = crop_top + target_height
+                
+                print(f"  Cropping: ({crop_left}, {crop_top}) to ({crop_right}, {crop_bottom})")
+                
+                # Crop to center region
+                cropped = img.crop((crop_left, crop_top, crop_right, crop_bottom))
+                
+                # Verify dimensions match target
+                if cropped.size != (target_width, target_height):
+                    print(f"  Warning: Cropped size {cropped.size} doesn't match target, resizing...")
+                    cropped = cropped.resize((target_width, target_height), Image.Resampling.LANCZOS)
             
             # Save final image
             cropped.save(str(output_file))
@@ -664,34 +766,38 @@ class AerialRenderer:
         if longitude is None or latitude is None or altitude is None:
             raise ValueError("longitude, latitude, and altitude must be provided or in config")
         
+        # Store image dimensions separately (to avoid conflict with camera height parameter)
+        image_width = width
+        image_height = height
+        
         # Convert SatSim parameters to CesiumJS parameters
         lat = latitude
         lng = longitude
-        height = altitude
+        camera_height = altitude  # Use different name to avoid conflict with image height
         heading = rotation  # SatSim rotation → CesiumJS heading
         pitch = -90.0       # Always vertical down view (SatSim style)
         roll = 0.0          # No roll
         
-        # Handle custom dimensions
-        if width is not None or height is not None:
+        # Handle custom dimensions (only if explicitly provided by user)
+        if image_width is not None or image_height is not None:
             # Temporarily override camera dimensions
             original_camera_width = self.config.CAMERA.WIDTH
             original_camera_height = self.config.CAMERA.HEIGHT
-            if width is not None and height is not None:
-                self.config.CAMERA.WIDTH = width
-                self.config.CAMERA.HEIGHT = height
-            elif width is not None:
+            if image_width is not None and image_height is not None:
+                self.config.CAMERA.WIDTH = image_width
+                self.config.CAMERA.HEIGHT = image_height
+            elif image_width is not None:
                 # Keep aspect ratio if only width provided
-                aspect = width / (self.config.CAMERA.HEIGHT if height is None else height)
-                new_height = int(width / aspect)
-                self.config.CAMERA.WIDTH = width
+                aspect = image_width / self.config.CAMERA.HEIGHT
+                new_height = int(image_width / aspect)
+                self.config.CAMERA.WIDTH = image_width
                 self.config.CAMERA.HEIGHT = new_height
-            elif height is not None:
+            elif image_height is not None:
                 # Keep aspect ratio if only height provided
-                aspect = (self.config.CAMERA.WIDTH if width is None else width) / height
-                new_width = int(height * aspect)
+                aspect = self.config.CAMERA.WIDTH / image_height
+                new_width = int(image_height * aspect)
                 self.config.CAMERA.WIDTH = new_width
-                self.config.CAMERA.HEIGHT = height
+                self.config.CAMERA.HEIGHT = image_height
             
             # Recreate driver with new window size if it exists
             if self.driver is not None:
@@ -702,13 +808,261 @@ class AerialRenderer:
         return self.render(
             lat=lat,
             lng=lng,
-            height=height,
+            height=camera_height,
             heading=heading,
             pitch=pitch,
             roll=roll,
             hfov=hfov,
             output_path=output_path
         )
+    
+    def render_sequence(
+        self,
+        waypoints: list,
+        rotations: list = None,
+        altitude: float = 50.0,
+        hfov: float = 90.0,
+        output_dir: str = "output",
+        output_prefix: str = "frame",
+        reuse_ground_height: bool = True,
+        ground_height_threshold: float = 200.0,
+    ) -> list:
+        """Render a sequence of waypoints efficiently.
+        
+        This method optimizes rendering by:
+        1. Reusing the browser instance across all frames
+        2. Optionally reusing ground height query for nearby points
+        3. Skipping redundant initialization steps
+        
+        Args:
+            waypoints: List of [longitude, latitude] or [longitude, latitude, altitude] points.
+            rotations: List of rotation angles (degrees). If None, uses 0 for all.
+            altitude: Default altitude if not specified in waypoints.
+            hfov: Horizontal field of view (degrees).
+            output_dir: Output directory for rendered images.
+            output_prefix: Prefix for output filenames.
+            reuse_ground_height: If True, reuse ground height for nearby points.
+            ground_height_threshold: Distance threshold (meters) for reusing ground height.
+            
+        Returns:
+            List of output file paths.
+        """
+        import math
+        from PIL import Image
+        
+        if not waypoints:
+            return []
+        
+        # Default rotations
+        if rotations is None:
+            rotations = [0.0] * len(waypoints)
+        elif len(rotations) < len(waypoints):
+            rotations = rotations + [rotations[-1]] * (len(waypoints) - len(rotations))
+        
+        # Create output directory
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Get camera config
+        camera = self.config.CAMERA
+        target_width = camera.WIDTH
+        target_height = camera.HEIGHT
+        
+        print(f"=" * 60)
+        print(f"Rendering sequence: {len(waypoints)} waypoints")
+        print(f"Settings: altitude={altitude}m, HFOV={hfov}°, size={target_width}x{target_height}")
+        print(f"=" * 60)
+        
+        output_files = []
+        last_ground_height = None
+        last_query_pos = None
+        
+        for i, wp in enumerate(waypoints):
+            print(f"\n[Frame {i+1}/{len(waypoints)}]")
+            
+            # Parse waypoint
+            lng = wp[0]
+            lat = wp[1]
+            wp_altitude = wp[2] if len(wp) > 2 else altitude
+            rotation = rotations[i]
+            
+            print(f"  Position: ({lng:.6f}, {lat:.6f}), alt={wp_altitude}m, rot={rotation}°")
+            
+            # Initialize browser if needed (only first frame)
+            if self.driver is None:
+                print("  Initializing browser...")
+                self._create_driver()
+                self.html_path = self._prepare_html()
+                file_url = f"file://{self.html_path.absolute()}"
+                self.driver.set_page_load_timeout(30)
+                self.driver.get(file_url)
+                print("  Waiting for initial load...")
+                time.sleep(5)  # Initial load
+                
+                # Check if CesiumJS and functions are available
+                print("  Checking CesiumJS availability...")
+                max_check_time = 15
+                check_start = time.time()
+                while time.time() - check_start < max_check_time:
+                    cesium_ready = self.driver.execute_script("""
+                        return typeof Cesium !== 'undefined' && 
+                               typeof window.updateViewWithFOV === 'function' &&
+                               typeof window.queryGroundHeightGrid === 'function';
+                    """)
+                    if cesium_ready:
+                        print("  ✓ CesiumJS ready")
+                        break
+                    time.sleep(0.5)
+                else:
+                    print("  ⚠ CesiumJS functions not ready after 15s, continuing anyway...")
+                
+                # Set initial container size
+                render_width = int(target_width * 1.2)
+                render_height = int(target_height * 1.2)
+                self.driver.set_window_size(render_width + 100, render_height + 150)
+                self.driver.execute_script(f"""
+                    var container = document.getElementById('cesiumContainer');
+                    if (container) {{
+                        container.style.width = '{render_width}px';
+                        container.style.height = '{render_height}px';
+                    }}
+                    if (typeof viewer !== 'undefined') {{ viewer.resize(); }}
+                """)
+                time.sleep(1)
+            
+            # Check if we can reuse ground height
+            need_query = True
+            if reuse_ground_height and last_ground_height is not None and last_query_pos is not None:
+                # Calculate distance from last query position
+                lat_avg = (lat + last_query_pos[1]) / 2
+                lon_diff = abs(lng - last_query_pos[0]) * 111000 * math.cos(math.radians(lat_avg))
+                lat_diff = abs(lat - last_query_pos[1]) * 111000
+                dist = math.sqrt(lon_diff**2 + lat_diff**2)
+                
+                if dist < ground_height_threshold:
+                    print(f"  Reusing ground height (dist={dist:.1f}m < {ground_height_threshold}m)")
+                    need_query = False
+            
+            # Query ground height if needed
+            if need_query:
+                print("  Querying ground height...")
+                # Load tiles at 200m
+                self.driver.execute_script(
+                    f"window.updateViewWithFOV({lat}, {lng}, 200, {rotation}, -90, 0, {hfov});"
+                )
+                
+                # Wait for tiles to stabilize
+                max_wait = 10
+                start = time.time()
+                stable_count = 0
+                last_tiles = 0
+                
+                while time.time() - start < max_wait:
+                    status = self.driver.execute_script("""
+                        return {
+                            tilesLoaded: window.__lastTilesLoaded || 0,
+                            tilesetReady: window.__tilesetReady || false
+                        };
+                    """)
+                    tiles = status.get('tilesLoaded', 0)
+                    if tiles == last_tiles and tiles > 0:
+                        stable_count += 1
+                        if stable_count >= 3:
+                            break
+                    else:
+                        stable_count = 0
+                    last_tiles = tiles
+                    time.sleep(0.5)
+                
+                time.sleep(1)
+                
+                # Grid query
+                grid_size = wp_altitude * 2
+                grid_info = self.driver.execute_script(
+                    f"return window.queryGroundHeightGrid({lat}, {lng}, {grid_size}, 3);"
+                )
+                
+                if grid_info and grid_info.get('found'):
+                    max_height = grid_info.get('maxHeight', 0.0)
+                    safety_margin = 2.0
+                    last_ground_height = max_height + safety_margin
+                    last_query_pos = (lng, lat)
+                    print(f"  Ground height: {max_height:.2f}m + {safety_margin}m = {last_ground_height:.2f}m")
+                else:
+                    last_ground_height = 0.0
+                    last_query_pos = (lng, lat)
+                    print(f"  Ground height query failed, using 0m")
+            
+            # Calculate final camera height
+            adjusted_height = last_ground_height + wp_altitude
+            print(f"  Camera height: {adjusted_height:.2f}m (ellipsoid)")
+            
+            # Set camera view
+            self.driver.execute_script(
+                f"window.updateViewWithFOV({lat}, {lng}, {adjusted_height}, {rotation}, -90, 0, {hfov});"
+            )
+            
+            # Wait for rendering to stabilize (shorter wait for subsequent frames)
+            wait_time = 3.0 if i > 0 else 5.0
+            max_wait = wait_time
+            start = time.time()
+            stable_count = 0
+            
+            while time.time() - start < max_wait:
+                status = self.driver.execute_script("""
+                    return window.checkTilesetStatus ? window.checkTilesetStatus() : {stable: true};
+                """)
+                if status.get('stable', False):
+                    stable_count += 1
+                    if stable_count >= 3:
+                        break
+                else:
+                    stable_count = 0
+                time.sleep(0.3)
+            
+            # Take screenshot
+            render_width = int(target_width * 1.2)
+            render_height = int(target_height * 1.2)
+            
+            self.driver.set_window_size(render_width + 100, render_height + 150)
+            self.driver.execute_script(f"""
+                var container = document.getElementById('cesiumContainer');
+                if (container) {{
+                    container.style.width = '{render_width}px';
+                    container.style.height = '{render_height}px';
+                }}
+                if (typeof viewer !== 'undefined') {{ viewer.resize(); }}
+            """)
+            time.sleep(0.5)
+            
+            canvas = self.driver.find_element("id", "cesiumContainer")
+            temp_path = str(output_path / f"{output_prefix}_{i:04d}.temp.png")
+            final_path = str(output_path / f"{output_prefix}_{i:04d}.png")
+            canvas.screenshot(temp_path)
+            
+            # Crop to target size
+            img = Image.open(temp_path)
+            actual_w, actual_h = img.size
+            
+            if actual_w >= target_width and actual_h >= target_height:
+                crop_left = (actual_w - target_width) // 2
+                crop_top = (actual_h - target_height) // 2
+                cropped = img.crop((crop_left, crop_top, crop_left + target_width, crop_top + target_height))
+            else:
+                cropped = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            
+            cropped.save(final_path)
+            
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            
+            output_files.append(final_path)
+            print(f"  ✓ Saved: {final_path}")
+        
+        print(f"\n{'=' * 60}")
+        print(f"✓ Rendered {len(output_files)} frames to {output_dir}/")
+        
+        return output_files
     
     def close(self):
         """Close browser and cleanup."""
