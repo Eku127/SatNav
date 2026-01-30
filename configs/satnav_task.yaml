@@ -8,7 +8,7 @@ ENVIRONMENT:
 
 SIMULATOR:
   # Simulator type: "satsim" (2D satellite imagery) or "aerialsim" (3D aerial view)
-  TYPE: satsim
+  TYPE: aerialsim
   
   # Forward movement step size in meters
   FORWARD_STEP_SIZE: 10
@@ -54,6 +54,7 @@ TASK:
   #   - PATH_LENGTH: Total path length traveled (using geodesic distance)
   #   - SPL: Success weighted by Path Length
   #   - TOP_DOWN_MAP: Top-down map visualization (for video/debugging)
+  #                   NOTE: TOP_DOWN_MAP requires SCENES_DIR with satellite TIF files
   MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
   
   # Top-Down Map visualization configuration

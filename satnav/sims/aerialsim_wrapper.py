@@ -7,6 +7,7 @@ switching between SatSim (2D satellite imagery) and AerialSim (3D aerial view).
 
 import os
 import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
@@ -26,6 +27,9 @@ class AerialSimWrapper(Simulator):
     The simulator uses geographic coordinates (longitude, latitude, altitude)
     and rotation angle (heading) for agent state. RGB observations are generated
     by rendering 3D tiles from the agent's viewpoint.
+    
+    For TOP_DOWN_MAP compatibility, this wrapper also loads the satellite TIF
+    file (same as SatSim) to provide map visualization.
     """
     
     def __init__(self, config: Union[DictConfig, dict], scenes_dir: Optional[str] = None) -> None:
@@ -43,10 +47,20 @@ class AerialSimWrapper(Simulator):
                     - API_KEY: Google 3D Tiles API key
                     - BROWSER: Browser to use (chrome/edge/firefox)
                     - HEADLESS: Whether to run in headless mode (default: True)
-            scenes_dir: Optional directory containing scene datasets (not used for
-                AerialSim but kept for API compatibility with SatSimWrapper).
+            scenes_dir: Optional directory containing scene datasets. Used for
+                loading satellite TIF files for TOP_DOWN_MAP visualization.
         """
         self.config = config
+        
+        # Extract scenes_dir from config if not provided
+        if scenes_dir is None:
+            if isinstance(config, DictConfig):
+                if hasattr(config, "DATASET"):
+                    scenes_dir = getattr(config.DATASET, "SCENES_DIR", None)
+            else:
+                if "DATASET" in config and isinstance(config["DATASET"], dict):
+                    scenes_dir = config["DATASET"].get("SCENES_DIR")
+        
         self._scenes_dir = scenes_dir
         
         # Initialize AerialSim engine with SIMULATOR config
@@ -59,28 +73,79 @@ class AerialSimWrapper(Simulator):
         
         # Current scene ID (for reference)
         self._scene_id: Optional[str] = None
+        
+        # Satellite map TIF for TOP_DOWN_MAP visualization (loaded on reset)
+        self._current_scene = None
+        self._scene_cache: Dict[str, Any] = {}
     
     def reset(self, scene_id: str) -> Observations:
         """Reset the simulator and load a new scene.
         
-        For AerialSim, this stores the scene_id for reference but does not
-        load actual scene data since we use global 3D tiles.
+        For AerialSim, this stores the scene_id for reference and loads the
+        corresponding satellite TIF file for TOP_DOWN_MAP visualization.
         
         Args:
-            scene_id: Identifier for the scene (stored for reference).
+            scene_id: Identifier for the scene. If scenes_dir is set,
+                this will be combined with scenes_dir to form the full path
+                for loading the satellite TIF file.
             
         Returns:
             Empty observations. Agent state must be set via set_agent_state()
             before getting observations.
         """
-        # For AerialSim, scene loading is optional since we use global 3D tiles
-        # We store the scene_id for reference and compatibility
         if self._scene_id != scene_id:
             self._aerialsim.load_scene(scene_id)
             self._scene_id = scene_id
+            
+            # Load satellite TIF for TOP_DOWN_MAP visualization
+            self._load_satellite_map(scene_id)
         
         # Return empty observations (agent state must be set first)
         return {}
+    
+    def _load_satellite_map(self, scene_id: str) -> None:
+        """Load satellite TIF file for TOP_DOWN_MAP visualization.
+        
+        This allows AerialSim to use the same TOP_DOWN_MAP visualization
+        as SatSim, showing the satellite map with agent trajectory overlay.
+        
+        Args:
+            scene_id: Scene identifier or path.
+        """
+        # Determine full path to TIF file
+        if self._scenes_dir:
+            scene_path = Path(self._scenes_dir) / scene_id
+        else:
+            scene_path = Path(scene_id)
+        
+        # Add .tif extension if not present
+        if not str(scene_path).lower().endswith('.tif'):
+            scene_path = Path(str(scene_path) + '.tif')
+        
+        scene_path_str = str(scene_path)
+        
+        # Check cache first
+        if scene_path_str in self._scene_cache:
+            self._current_scene = self._scene_cache[scene_path_str]
+            return
+        
+        # Check if file exists
+        if not scene_path.exists():
+            # TIF file not found - TOP_DOWN_MAP will not work, but RGB rendering is fine
+            print(f"Warning: Satellite TIF not found: {scene_path}")
+            print("  TOP_DOWN_MAP visualization will not be available.")
+            self._current_scene = None
+            return
+        
+        try:
+            # Import and load the TIF (function defined in satsim.py)
+            from satnav.sims.satsim.satsim import open_reprojected_to_epsg3857
+            self._current_scene = open_reprojected_to_epsg3857(scene_path_str)
+            self._scene_cache[scene_path_str] = self._current_scene
+        except Exception as e:
+            print(f"Warning: Failed to load satellite TIF: {e}")
+            print("  TOP_DOWN_MAP visualization will not be available.")
+            self._current_scene = None
     
     def step(self, action: Union[int, str, Dict[str, Any]]) -> Observations:
         """Execute an action in the simulator.
