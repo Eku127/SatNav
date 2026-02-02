@@ -82,3 +82,41 @@ def save_config(config: DictConfig, output_path: Union[str, Path]) -> None:
     output_path = Path(output_path)
     OmegaConf.save(config, output_path)
 
+
+def get_success_distance_default(config: Union[DictConfig, dict], default: float = 10.0) -> float:
+    """Get SUCCESS_DISTANCE default value from config.
+    
+    Supports both old format (single value) and new dict format.
+    
+    Old format: SUCCESS_DISTANCE: 10.0
+    New format: SUCCESS_DISTANCE: {DEFAULT: 10.0, Boundary: 10.0, LandmarkSet: 30.0}
+    
+    Args:
+        config: Configuration object containing TASK.SUCCESS_DISTANCE.
+        default: Fallback value if SUCCESS_DISTANCE not found.
+        
+    Returns:
+        Default SUCCESS_DISTANCE value.
+    """
+    # Get SUCCESS_DISTANCE from config
+    if isinstance(config, dict):
+        task_config = config.get("TASK", {})
+        sd_config = task_config.get("SUCCESS_DISTANCE", default) if isinstance(task_config, dict) else getattr(task_config, "SUCCESS_DISTANCE", default)
+    else:
+        task_config = getattr(config, "TASK", None)
+        if task_config is None:
+            return default
+        sd_config = getattr(task_config, "SUCCESS_DISTANCE", default)
+    
+    # Old format: single value
+    if isinstance(sd_config, (int, float)):
+        return float(sd_config)
+    
+    # New format: dict with DEFAULT
+    if isinstance(sd_config, dict):
+        return float(sd_config.get("DEFAULT", default))
+    elif hasattr(sd_config, "DEFAULT"):
+        return float(sd_config.DEFAULT)
+    
+    return default
+

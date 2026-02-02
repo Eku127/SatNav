@@ -71,13 +71,26 @@ class VLNTask:
         
         # Extract configuration values
         if isinstance(config, DictConfig):
-            self.success_distance = getattr(config, "SUCCESS_DISTANCE", 3.0)
+            success_distance_config = getattr(config, "SUCCESS_DISTANCE", 3.0)
             possible_actions = getattr(config, "POSSIBLE_ACTIONS", Action.ALL_ACTIONS)
             measurements = getattr(config, "MEASUREMENTS", [])
         else:
-            self.success_distance = config.get("SUCCESS_DISTANCE", 3.0)
+            success_distance_config = config.get("SUCCESS_DISTANCE", 3.0)
             possible_actions = config.get("POSSIBLE_ACTIONS", Action.ALL_ACTIONS)
             measurements = config.get("MEASUREMENTS", [])
+        
+        # Handle SUCCESS_DISTANCE config (supports both old format and new dict format)
+        # Old format: SUCCESS_DISTANCE: 10.0
+        # New format: SUCCESS_DISTANCE: {DEFAULT: 10.0, Boundary: 10.0, LandmarkSet: 30.0}
+        self._success_distance_config = success_distance_config
+        if isinstance(success_distance_config, (int, float)):
+            self.success_distance = float(success_distance_config)
+        elif hasattr(success_distance_config, "DEFAULT"):
+            self.success_distance = float(success_distance_config.DEFAULT)
+        elif isinstance(success_distance_config, dict) and "DEFAULT" in success_distance_config:
+            self.success_distance = float(success_distance_config["DEFAULT"])
+        else:
+            self.success_distance = 10.0  # Fallback default
         
         # Initialize sensors
         self.sensors: List[Sensor] = []
@@ -199,6 +212,22 @@ class VLNTask:
         
         self._current_episode = episode
         self.is_stop_called = False  # Reset stop flag for new episode
+        
+        # Update success_distance based on trajectory_type (for evaluation)
+        trajectory_type = getattr(episode, 'trajectory_type', None)
+        if trajectory_type and not isinstance(self._success_distance_config, (int, float)):
+            # New dict format: get type-specific value
+            if hasattr(self._success_distance_config, trajectory_type):
+                eval_success_distance = float(getattr(self._success_distance_config, trajectory_type))
+            elif isinstance(self._success_distance_config, dict) and trajectory_type in self._success_distance_config:
+                eval_success_distance = float(self._success_distance_config[trajectory_type])
+            else:
+                eval_success_distance = self.success_distance  # Use DEFAULT
+            
+            # Update Success measure's threshold
+            if "SUCCESS" in self._measures_dict:
+                self._measures_dict["SUCCESS"].set_success_distance(eval_success_distance)
+                _debug_log(f"  Updated SUCCESS measure: success_distance={eval_success_distance}m for {trajectory_type}")
         
         # Reset simulator (load scene and set initial state)
         _debug_log(f"  Step 1: Calling _sim.reset()")
