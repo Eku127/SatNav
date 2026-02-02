@@ -35,7 +35,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from satnav.core import Env
-from satnav.core.config import load_config
+from satnav.core.config import load_config, get_success_distance_default
 from satnav.core.utils import geodesic_distance
 from satnav.dataset.satnav_dataset import SatNavDataset
 from satnav.navigation import SatNavPathFollower
@@ -74,7 +74,7 @@ def init_worker(config_path: str, output_path: str):
     _worker_output_path = output_path
     
     _worker_path_follower = SatNavPathFollower(
-        goal_radius=config.TASK.SUCCESS_DISTANCE,
+        goal_radius=get_success_distance_default(config),
         turn_angle=config.SIMULATOR.TURN_ANGLE,
         return_action_string=True
     )
@@ -90,13 +90,19 @@ def get_success_distance(trajectory_type: str) -> float:
         SUCCESS_DISTANCE value.
     """
     global _worker_config
-    if trajectory_type == "Boundary":
-        return 10.0
-    elif trajectory_type == "LandmarkSet":
-        return 2.0
+    sd_config = _worker_config.TASK.SUCCESS_DISTANCE
+    
+    # Old format: single value
+    if isinstance(sd_config, (int, float)):
+        return float(sd_config)
+    
+    # New format: dict with type-specific values
+    if trajectory_type and hasattr(sd_config, trajectory_type):
+        return float(getattr(sd_config, trajectory_type))
+    elif hasattr(sd_config, "DEFAULT"):
+        return float(sd_config.DEFAULT)
     else:
-        # Default to config value
-        return _worker_config.TASK.SUCCESS_DISTANCE
+        return 10.0  # Fallback
 
 
 def prepare_waypoints(episode) -> List[List[float]]:
