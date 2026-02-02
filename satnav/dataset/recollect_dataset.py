@@ -16,6 +16,7 @@ import torch
 import torch.nn.functional as F
 from omegaconf import DictConfig, OmegaConf
 
+from satnav.core.config import get_success_distance_default
 from satnav.navigation import ReferencePathFollower
 from satnav.task.actions import Action
 from satnav.utils.build_vocab import build_vocab_from_dataset, VocabDict
@@ -78,16 +79,13 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         
         # Initialize ReferencePathFollower
         # Get parameters from config or use defaults
-        # goal_radius comes from TASK.SUCCESS_DISTANCE
+        # goal_radius comes from TASK.SUCCESS_DISTANCE (supports both old and new format)
+        goal_radius = get_success_distance_default(config, default=10.0)
         if isinstance(config, dict):
-            task_config = config.get("TASK", {})
             sim_config = config.get("SIMULATOR", {})
-            goal_radius = task_config.get("SUCCESS_DISTANCE", 10.0)
-            turn_angle = sim_config.get("TURN_ANGLE", 15.0)
+            turn_angle = sim_config.get("TURN_ANGLE", 15.0) if isinstance(sim_config, dict) else getattr(sim_config, "TURN_ANGLE", 15.0)
         else:
-            task_config = getattr(config, "TASK", {})
             sim_config = getattr(config, "SIMULATOR", {})
-            goal_radius = getattr(task_config, "SUCCESS_DISTANCE", 10.0)
             turn_angle = getattr(sim_config, "TURN_ANGLE", 15.0)
         
         print(f"ReferencePathFollower parameters: goal_radius={goal_radius}m, turn_angle={turn_angle}°")

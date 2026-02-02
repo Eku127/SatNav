@@ -18,6 +18,7 @@ import torch
 import tqdm
 from omegaconf import DictConfig, OmegaConf
 
+from satnav.core.config import get_success_distance_default
 from satnav.core.env import Env
 from satnav.dataset.recollect_dataset import RecollectionDataset
 from satnav.dataset.satnav_dataset import SatNavDataset
@@ -411,7 +412,7 @@ class Evaluator:
                         step_count=step_count,
                         action=action_name,
                         current_distance=current_distance,
-                        goal_radius=self.config.TASK.SUCCESS_DISTANCE,
+                        goal_radius=get_success_distance_default(self.config),
                         config=self.config,
                         topdown_frames=topdown_frames  # Function will append to this list
                     )
