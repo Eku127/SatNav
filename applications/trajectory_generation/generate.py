@@ -58,6 +58,13 @@ Examples:
         help="Output directory for trajectory data"
     )
     
+    parser.add_argument(
+        "--landmark_success",
+        type=float,
+        default=2.0,
+        help="SUCCESS_DISTANCE for LandmarkSet episodes in meters (default: 2.0)"
+    )
+    
     args = parser.parse_args()
     
     # Validate config file exists
@@ -71,13 +78,15 @@ Examples:
     print("=" * 60)
     print(f"Config: {args.config}")
     print(f"Output: {args.output_dir}")
+    print(f"Landmark success distance: {args.landmark_success}m")
     print()
     
     # Create runner and generate trajectories
     try:
         runner = SatNavTrajectoryRunner(
             config_path=args.config,
-            output_path=args.output_dir
+            output_path=args.output_dir,
+            landmark_success=args.landmark_success
         )
         runner.generate()
         print("\n✓ Trajectory generation completed successfully!")
