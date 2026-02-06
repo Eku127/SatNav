@@ -228,6 +228,11 @@ class VLNTask:
             if "SUCCESS" in self._measures_dict:
                 self._measures_dict["SUCCESS"].set_success_distance(eval_success_distance)
                 _debug_log(f"  Updated SUCCESS measure: success_distance={eval_success_distance}m for {trajectory_type}")
+            
+            # Update OracleSuccess measure's threshold
+            if "ORACLE_SUCCESS" in self._measures_dict:
+                self._measures_dict["ORACLE_SUCCESS"].set_success_distance(eval_success_distance)
+                _debug_log(f"  Updated ORACLE_SUCCESS measure: success_distance={eval_success_distance}m for {trajectory_type}")
         
         # Reset simulator (load scene and set initial state)
         _debug_log(f"  Step 1: Calling _sim.reset()")

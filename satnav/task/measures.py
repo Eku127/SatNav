@@ -564,6 +564,7 @@ class OracleSuccess(Measure):
         """
         super().__init__()
         self._success_distance = success_distance
+        self._departure_threshold_multiplier = departure_threshold_multiplier
         self._departure_threshold = success_distance * departure_threshold_multiplier
         self._sim = simulator
         self._distance_to_goal: Optional[DistanceToGoal] = None
@@ -670,6 +671,16 @@ class OracleSuccess(Measure):
             distance_to_goal: DistanceToGoal measure instance.
         """
         self._distance_to_goal = distance_to_goal
+    
+    
+    def set_success_distance(self, success_distance: float) -> None:
+        """Update success distance threshold.
+        
+        Args:
+            success_distance: New distance threshold for success (in meters).
+        """
+        self._success_distance = success_distance
+        self._departure_threshold = success_distance * self._departure_threshold_multiplier
     
     def get_metric(self) -> float:
         """Get current oracle success value.
