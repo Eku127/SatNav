@@ -43,7 +43,7 @@ def get_success_distance(config, trajectory_type: str) -> float:
     
     Args:
         config: Configuration object.
-        trajectory_type: Type of trajectory ('Boundary' or 'LandmarkSet').
+        trajectory_type: Type of trajectory ('Boundary', 'LandmarkSet', or 'Road').
         
     Returns:
         SUCCESS_DISTANCE value.

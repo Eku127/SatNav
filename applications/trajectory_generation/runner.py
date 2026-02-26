@@ -124,7 +124,7 @@ class SatNavTrajectoryRunner:
         """Get SUCCESS_DISTANCE based on trajectory type.
         
         Args:
-            trajectory_type: Type of trajectory ('Boundary' or 'LandmarkSet').
+            trajectory_type: Type of trajectory ('Boundary', 'LandmarkSet', or 'Road').
             
         Returns:
             SUCCESS_DISTANCE value.

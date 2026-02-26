@@ -42,11 +42,20 @@ TASK:
   # Success distance threshold in meters
   # Agent is considered successful if it stops within this distance from the goal
   # DEFAULT is used for examples and path generation
-  # Type-specific values (Boundary, LandmarkSet) are used during evaluation
+  # Type-specific values (Boundary, LandmarkSet, Road) are used during evaluation
   SUCCESS_DISTANCE:
     DEFAULT: 10.0
     Boundary: 10.0
     LandmarkSet: 3.0
+    Road: 10.0
+  
+  # Sensors that provide observations to the agent
+  # Built-in sensors (always enabled):
+  #   - RGB: Satellite BEV image
+  #   - INSTRUCTION: Natural language instruction text
+  #   - AGENT_POSE: Ego-frame relative pose from episode start
+  #     Output: [delta_forward_m, delta_right_m, sin(delta_heading), cos(delta_heading)]
+  #     Coordinate system: forward = initial heading direction, right = 90° clockwise
   
   # Available actions for the agent
   POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
@@ -88,7 +97,9 @@ DATASET:
   # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260202/episodes/train/all_episodes.json
   # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260126/episodes/B_VLN_Episodes.json
   # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260123/episodes/episodes_landmarkSet.json
-  DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/tests/test_data/satnav_success_distance_test.json
+  # DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/tests/test_data/satnav_success_distance_test.json
+  # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260211/episodes/train/all_episodes.json
+  DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/output/VLN_episodes(1).json
   
   # Directory containing scene datasets (satellite maps)
   # For example testing, use: tests/test_data/
