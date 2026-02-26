@@ -19,7 +19,7 @@ from satnav.task.measures import (
     Success,
     TopDownMapSatNav,
 )
-from satnav.task.sensors import InstructionSensor, RGBSensor, Sensor
+from satnav.task.sensors import AgentPoseSensor, InstructionSensor, RGBSensor, Sensor
 
 # Debug logging for specific rank
 # Set SATNAV_DEBUG_RANK environment variable to enable debug logging for a specific rank
@@ -81,7 +81,7 @@ class VLNTask:
         
         # Handle SUCCESS_DISTANCE config (supports both old format and new dict format)
         # Old format: SUCCESS_DISTANCE: 10.0
-        # New format: SUCCESS_DISTANCE: {DEFAULT: 10.0, Boundary: 10.0, LandmarkSet: 30.0}
+        # New format: SUCCESS_DISTANCE: {DEFAULT: 10.0, Boundary: 10.0, LandmarkSet: 30.0, Road: 10.0}
         self._success_distance_config = success_distance_config
         if isinstance(success_distance_config, (int, float)):
             self.success_distance = float(success_distance_config)
@@ -112,6 +112,11 @@ class VLNTask:
         # Instruction sensor - always included
         instruction_sensor = InstructionSensor()
         self.sensors.append(instruction_sensor)
+        
+        # Agent pose sensor - provides ego-frame relative pose from episode start
+        # Output: [delta_forward_m, delta_right_m, sin(delta_heading), cos(delta_heading)]
+        agent_pose_sensor = AgentPoseSensor(simulator=self._sim)
+        self.sensors.append(agent_pose_sensor)
     
     def _init_measures(self, measurements: List[str]):
         """Initialize measures based on configuration.
@@ -242,6 +247,11 @@ class VLNTask:
         _debug_log(f"  Step 2: Calling _sim.set_agent_state()")
         self._sim.set_agent_state(episode.start_position, episode.start_rotation)
         _debug_log(f"  Step 2 complete")
+        
+        # Reset sensors that have state (e.g., AgentPoseSensor needs start position)
+        for sensor in self.sensors:
+            if hasattr(sensor, 'reset') and callable(sensor.reset):
+                sensor.reset(episode)
         
         # Reset all measures
         _debug_log(f"  Step 3: Resetting {len(self.measures)} measures")
