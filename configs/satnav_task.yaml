@@ -8,7 +8,7 @@ ENVIRONMENT:
 
 SIMULATOR:
   # Simulator type: "satsim" (2D satellite imagery) or "aerialsim" (3D aerial view)
-  TYPE: aerialsim
+  TYPE: satsim
   
   # Forward movement step size in meters
   FORWARD_STEP_SIZE: 10
@@ -41,8 +41,21 @@ TASK:
   
   # Success distance threshold in meters
   # Agent is considered successful if it stops within this distance from the goal
-  # This distance is used for all waypoints including intermediate waypoints and final goal
-  SUCCESS_DISTANCE: 10.0
+  # DEFAULT is used for examples and path generation
+  # Type-specific values (Boundary, LandmarkSet, Road) are used during evaluation
+  SUCCESS_DISTANCE:
+    DEFAULT: 10.0
+    Boundary: 10.0
+    LandmarkSet: 3.0
+    Road: 10.0
+  
+  # Sensors that provide observations to the agent
+  # Built-in sensors (always enabled):
+  #   - RGB: Satellite BEV image
+  #   - INSTRUCTION: Natural language instruction text
+  #   - AGENT_POSE: Ego-frame relative pose from episode start
+  #     Output: [delta_forward_m, delta_right_m, sin(delta_heading), cos(delta_heading)]
+  #     Coordinate system: forward = initial heading direction, right = 90° clockwise
   
   # Available actions for the agent
   POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
@@ -81,10 +94,12 @@ DATASET:
   # Supports both .json and .json.gz formats
   # Use {split} placeholder to be replaced with the SPLIT value
   # For example testing, use: tests/test_data/satnav_dataset_complex.json
-  DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260128/episodes/train/episodes.json
+  # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260202/episodes/train/all_episodes.json
   # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260126/episodes/B_VLN_Episodes.json
   # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260123/episodes/episodes_landmarkSet.json
-  # DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/tests/test_data/satnav_dataset_merged_2.json
+  # DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/tests/test_data/satnav_success_distance_test.json
+  # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260211/episodes/train/all_episodes.json
+  DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/output/VLN_episodes(1).json
   
   # Directory containing scene datasets (satellite maps)
   # For example testing, use: tests/test_data/

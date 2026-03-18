@@ -27,6 +27,7 @@ from pathlib import Path
 # Add parent directory to path to allow imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from satnav.core.config import get_success_distance_default
 from satnav.core.utils import geodesic_distance
 from satnav.navigation import SatNavPathFollower
 from satnav.utils.maps import annotate_topdown_map
@@ -35,6 +36,31 @@ from satnav.utils.examples import (
     prepare_waypoints,
     generate_video,
 )
+
+
+def get_success_distance(config, trajectory_type: str) -> float:
+    """Get SUCCESS_DISTANCE based on trajectory type.
+    
+    Args:
+        config: Configuration object.
+        trajectory_type: Type of trajectory ('Boundary', 'LandmarkSet', or 'Road').
+        
+    Returns:
+        SUCCESS_DISTANCE value.
+    """
+    sd_config = config.TASK.SUCCESS_DISTANCE
+    
+    # Old format: single value
+    if isinstance(sd_config, (int, float)):
+        return float(sd_config)
+    
+    # New format: dict with type-specific values
+    if trajectory_type and hasattr(sd_config, trajectory_type):
+        return float(getattr(sd_config, trajectory_type))
+    elif hasattr(sd_config, "DEFAULT"):
+        return float(sd_config.DEFAULT)
+    else:
+        return 10.0  # Fallback
 
 
 def run_single_episode(
@@ -56,8 +82,14 @@ def run_single_episode(
         obs = env.reset()
         episode = env.current_episode
         
+        # Update goal_radius based on trajectory_type
+        trajectory_type = getattr(episode, 'trajectory_type', None)
+        goal_radius = get_success_distance(config, trajectory_type)
+        path_follower.goal_radius = goal_radius
+        
         print(f"\n[{episode_idx+1}/{total_episodes}] Running episode: {episode.episode_id}")
         print(f"  Scene: {episode.scene_id}")
+        print(f"  Type: {trajectory_type} (goal_radius={goal_radius}m)")
         print(f"  Instruction: {episode.instruction.instruction_text[:80]}...")
         
         # Prepare waypoints from reference path
@@ -239,7 +271,7 @@ def main():
     # Create SatNavPathFollower
     print("\n[4] Creating SatNavPathFollower...")
     path_follower = SatNavPathFollower(
-        goal_radius=config.TASK.SUCCESS_DISTANCE,
+        goal_radius=get_success_distance_default(config),
         turn_angle=config.SIMULATOR.TURN_ANGLE,
         return_action_string=True
     )

@@ -153,7 +153,7 @@ class TestVLNTask:
         task = VLNTask(config, sim)
         
         assert task.success_distance == 3.0
-        assert len(task.sensors) == 2  # RGBSensor and InstructionSensor
+        assert len(task.sensors) == 3  # RGBSensor, InstructionSensor, AgentPoseSensor
         assert len(task.measures) == 2  # DistanceToGoal and Success
     
     def test_init_with_dictconfig(self):
@@ -163,7 +163,7 @@ class TestVLNTask:
         task = VLNTask(config, sim)
         
         assert task.success_distance == 3.0
-        assert len(task.sensors) == 2
+        assert len(task.sensors) == 3
         assert len(task.measures) >= 2
     
     def test_init_with_defaults(self):
@@ -173,7 +173,7 @@ class TestVLNTask:
         task = VLNTask(config, sim)
         
         assert task.success_distance == 3.0  # default
-        assert len(task.sensors) == 2  # Always includes RGB and Instruction
+        assert len(task.sensors) == 3  # Always includes RGB, Instruction and AgentPose
         assert len(task.measures) == 4  # All measures if none specified
     
     def test_init_sensors(self):
@@ -186,6 +186,7 @@ class TestVLNTask:
         sensor_uuids = [sensor.uuid for sensor in task.sensors]
         assert "rgb" in sensor_uuids
         assert "instruction" in sensor_uuids
+        assert "agent_pose" in sensor_uuids
     
     def test_init_measures(self):
         """Test that measures are initialized correctly."""
@@ -236,6 +237,7 @@ class TestVLNTask:
         assert isinstance(observations, dict)
         assert "rgb" in observations
         assert "instruction" in observations
+        assert "agent_pose" in observations
         
         # Check that instruction observation is correct
         assert observations["instruction"]["text"] == "Go to the kitchen"
@@ -382,6 +384,7 @@ class TestVLNTask:
         assert isinstance(observations["instruction"], dict)
         assert "text" in observations["instruction"]
         assert observations["instruction"]["text"] == "Go to the kitchen"
+        assert observations["agent_pose"].shape == (4,)
     
     def test_get_observations_without_reset(self):
         """Test that get_observations raises error if episode not set."""
@@ -547,4 +550,3 @@ class TestVLNTask:
         task.reset(episode2)
         assert task.current_episode == episode2
         assert task.current_episode.episode_id == "test_002"
-

@@ -23,6 +23,7 @@ from pathlib import Path
 # Add parent directory to path to allow imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from satnav.core.config import get_success_distance_default
 from satnav.navigation import ReferencePathFollower
 from satnav.utils.examples import (
     setup_example,
@@ -30,6 +31,18 @@ from satnav.utils.examples import (
     save_visualizations,
     print_metrics,
 )
+
+
+def get_success_distance(config, trajectory_type: str) -> float:
+    """Get SUCCESS_DISTANCE based on trajectory type."""
+    sd_config = config.TASK.SUCCESS_DISTANCE
+    if isinstance(sd_config, (int, float)):
+        return float(sd_config)
+    if trajectory_type and hasattr(sd_config, trajectory_type):
+        return float(getattr(sd_config, trajectory_type))
+    elif hasattr(sd_config, "DEFAULT"):
+        return float(sd_config.DEFAULT)
+    return 10.0
 
 
 def main():
@@ -60,7 +73,7 @@ def main():
     # 4. Create reference path follower
     print("\n[4] Creating reference path follower...")
     path_follower = ReferencePathFollower(
-        goal_radius=config.TASK.SUCCESS_DISTANCE,
+        goal_radius=get_success_distance_default(config),
         turn_angle=config.SIMULATOR.TURN_ANGLE
     )
     print(f"✓ Reference path follower created")
@@ -76,8 +89,14 @@ def main():
         obs = env.reset()
         episode = env.current_episode
         
+        # Update goal_radius based on trajectory_type
+        trajectory_type = getattr(episode, 'trajectory_type', None)
+        goal_radius = get_success_distance(config, trajectory_type)
+        path_follower.goal_radius = goal_radius
+        
         # Print episode information
         print_episode_info(episode)
+        print(f"Trajectory Type: {trajectory_type} (goal_radius={goal_radius}m)")
         print(f"Reference Path: {len(episode.reference_path)} waypoints")
         print("-" * 60)
         

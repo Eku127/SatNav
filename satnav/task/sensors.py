@@ -2,12 +2,14 @@
 """Sensor implementations for SatNav VLN tasks."""
 
 import abc
-from typing import Any, Dict, Optional
+import math
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
 from satnav.core.episode import VLNEpisode
 from satnav.core.simulator import Simulator
+from satnav.core.utils import lonlat_to_ego_displacement, wrap_heading_deg
 
 
 class Sensor(abc.ABC):
@@ -271,4 +273,112 @@ class VLNOracleProgressSensor(Sensor):
         Call this when starting a new episode.
         """
         self._initial_distance = None
+
+
+class AgentPoseSensor(Sensor):
+    """Agent pose sensor that provides ego-frame relative pose from episode start.
+    
+    The coordinate system is defined by the agent's initial heading at episode start
+    (no dependency on cardinal directions N/S/E/W):
+    
+    - Forward axis (+Y): the direction the agent was facing at t=0
+      (= "up" in the first BEV image)
+    - Right axis (+X): 90 degrees clockwise from forward
+    - Heading zero: the initial heading at episode start
+    
+    Output: np.array([delta_forward_m, delta_right_m,
+                      sin(delta_heading), cos(delta_heading)],
+                     dtype=float32)
+    
+    Where:
+    - delta_forward_m: displacement along the initial forward direction (meters)
+    - delta_right_m: displacement perpendicular to forward (meters, right=positive)
+    - sin/cos(delta_heading): heading change from initial heading, encoded as
+      sin/cos to avoid discontinuity at +/-180 degrees
+    
+    At episode start (t=0), the output is always [0, 0, 0, 1] (sin(0)=0, cos(0)=1).
+    """
+    
+    def __init__(
+        self,
+        simulator: Optional[Simulator] = None,
+        uuid: str = "agent_pose"
+    ):
+        """Initialize agent pose sensor.
+        
+        Args:
+            simulator: Simulator instance to get agent state from.
+            uuid: Unique identifier for this sensor (default: "agent_pose").
+        """
+        self._sim = simulator
+        self.uuid = uuid
+        self._start_position: Optional[List[float]] = None
+        self._start_heading: Optional[float] = None
+    
+    def reset(self, episode: VLNEpisode) -> None:
+        """Reset sensor state for a new episode.
+        
+        Records the episode's starting position and heading as the reference
+        for all subsequent relative pose calculations.
+        
+        Args:
+            episode: The VLN episode to reset for.
+        """
+        self._start_position = list(episode.start_position)
+        self._start_heading = float(episode.start_rotation)
+    
+    def get_observation(
+        self,
+        simulator: Optional[Simulator] = None,
+        **kwargs
+    ) -> np.ndarray:
+        """Get relative pose observation in the ego-frame.
+        
+        Args:
+            simulator: Simulator instance (if not provided in __init__).
+            **kwargs: Additional arguments (unused).
+                
+        Returns:
+            Pose as numpy array with shape (4,) and dtype float32:
+                [delta_forward_m, delta_right_m, sin(delta_heading), cos(delta_heading)]
+            
+        Raises:
+            RuntimeError: If reset() has not been called.
+            ValueError: If simulator is not available.
+        """
+        if self._start_position is None or self._start_heading is None:
+            raise RuntimeError(
+                "AgentPoseSensor.reset() must be called before get_observation(). "
+                "This is typically called in VLNTask.reset()."
+            )
+        
+        sim = simulator if simulator is not None else self._sim
+        if sim is None:
+            raise ValueError(
+                "simulator must be provided either in __init__ or get_observation"
+            )
+        
+        # Get current agent state
+        agent_state = sim.get_agent_state()
+        current_position = agent_state.position.tolist()
+        current_heading = float(agent_state.rotation)
+        
+        # Calculate ego-frame displacement (forward, right) in meters
+        delta_forward, delta_right = lonlat_to_ego_displacement(
+            self._start_position,
+            self._start_heading,
+            current_position
+        )
+        
+        # Calculate relative heading change
+        delta_heading_deg = wrap_heading_deg(current_heading - self._start_heading)
+        delta_heading_rad = math.radians(delta_heading_deg)
+        
+        sin_dh = math.sin(delta_heading_rad)
+        cos_dh = math.cos(delta_heading_rad)
+        
+        return np.array(
+            [delta_forward, delta_right, sin_dh, cos_dh],
+            dtype=np.float32
+        )
 
