@@ -1,0 +1,123 @@
+# Seq2Seq Offline Trainer — ver_260317 预渲染轨迹数据
+#
+# 唯一训练路径：offline_trainer，不启动仿真器，直接读磁盘预渲染图片。
+#
+# Usage:
+#   单卡:  python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type train
+#   多卡:  bash scripts/seq2seq/train_offline_ddp.sh          （推荐，自动管理 EXP_NAME 和 latest 软链）
+#   评测:  python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eval \
+#              EVAL.CKPT_PATH output/seq2seq_offline/checkpoints/latest/best.pth
+
+_base_: configs/default.yaml
+
+BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml
+
+TRAINER_NAME: offline_trainer
+
+# ============================================================================
+# DIRECTORIES
+# checkpoints/latest 由 train_offline_ddp.sh 在训练完成后自动更新软链。
+# 若直接用 python run.py 训练（不通过脚本），请在 CLI 传 CHECKPOINT_FOLDER。
+# ============================================================================
+CHECKPOINT_FOLDER: output/seq2seq_offline/checkpoints/latest
+RESULTS_DIR: output/seq2seq_offline/results/latest
+VIDEO_DIR: output/seq2seq_offline/videos/latest
+GENERATE_VIDEOS: false
+
+# ============================================================================
+# DATASET
+# 离线训练不需要 SCENES_DIR（无仿真器），DATA_PATH 仅作 vocab 回退路径
+# ============================================================================
+DATASET:
+  SPLIT: train
+  DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/episodes/train/all_episodes.json
+  vocab_file: output/seq2seq_offline/artifacts/vocab/train_vocab_260317.json
+
+# ============================================================================
+# TRAINING CONFIGURATION
+# ============================================================================
+IL:
+  lr: 3e-4
+  batch_size: 8           # per-GPU batch size；8xH100 实测最稳
+  epochs: 10
+  load_from_ckpt: false
+  ckpt_to_load: output/seq2seq_offline/checkpoints/latest/best.pth
+
+  # -------------------------------------------------------------------------
+  # OFFLINE 块：OfflineTrajectoryDataset 必须字段
+  # -------------------------------------------------------------------------
+  OFFLINE:
+    annotations_path: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/annotations.json
+    images_root: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/images
+    num_workers: 4          # 建议 4-8；0 = 主进程加载
+    pin_memory: true        # 有 GPU 时建议 true
+    max_traj_len: 500       # 超过则过滤
+    max_instruction_len: 200
+    rgb_size: 224           # 与 ResNet50 最优输入一致
+
+  use_inflection_weighting: true
+  inflection_weight_coef: 3.2
+
+  use_class_weighting: true
+  class_weights:
+    STOP: 1.0
+    MOVE_FORWARD: 0.1
+    TURN_LEFT: 10.0
+    TURN_RIGHT: 10.0
+
+# ============================================================================
+# DDP（单卡时忽略）
+# train_offline_ddp.sh 会自动注入 DISTRIBUTED.enabled true
+# ============================================================================
+DISTRIBUTED:
+  enabled: false
+  backend: nccl
+
+# ============================================================================
+# EVALUATION
+# 评测需要仿真器；CKPT_PATH 默认指向 latest 软链。
+# 通过 CLI 覆盖：EVAL.CKPT_PATH output/seq2seq_offline/checkpoints/<EXP_NAME>/best.pth
+# ============================================================================
+EVAL:
+  SPLIT: val_seen
+  EPISODE_COUNT: -1
+  SAVE_RESULTS: true
+  CKPT_PATH: output/seq2seq_offline/checkpoints/latest/best.pth
+
+# ============================================================================
+# INFERENCE
+# ============================================================================
+INFERENCE:
+  SPLIT: test
+  CKPT_PATH: output/seq2seq_offline/checkpoints/latest/best.pth
+  PREDICTIONS_FILE: output/seq2seq_offline/predictions/seq2seq_offline_test.json
+
+# ============================================================================
+# MODEL
+# ============================================================================
+MODEL:
+  policy_name: seq2seq
+
+  INSTRUCTION_ENCODER:
+    use_pretrained_embeddings: true
+    embedding_file: output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.gz
+    fine_tune_embeddings: false
+    embedding_size: 50
+    vocab_size: 5395
+
+  SEQ2SEQ:
+    hidden_size: 512
+    rnn_type: GRU
+    use_prev_action: true
+
+# ============================================================================
+# SWANLAB
+# ============================================================================
+SWANLAB:
+  project: SatNav
+  experiment_name: seq2seq-offline-260317
+  logdir: output/seq2seq_offline/swanlab
+  mode: disabled
+  use_wxwork_notification: false
+  webhook_url: null
+  secret: null
