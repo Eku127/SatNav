@@ -32,6 +32,10 @@ SatNav 是一个连续状态 VLN（视觉语言导航）评测平台，使用卫
   - `.codex/skills/seq2seq-train/SKILL.md`
 - If task matches seq2seq evaluation (评测seq2seq, eval seq2seq, 查看seq2seq结果, run seq2seq eval), use:
   - `.codex/skills/seq2seq-eval/SKILL.md`
+- If task matches CMA training (训练cma, 启动cma训练, run cma training), use:
+  - `.codex/skills/cma-train/SKILL.md`
+- If task matches CMA evaluation (评测cma, eval cma, 查看cma结果, run cma eval), use:
+  - `.codex/skills/cma-eval/SKILL.md`
 - If task matches SatNav baseline smoke test (冒烟测试, smoke test, quick validation), use:
   - `.codex/skills/baseline-smoke-test/SKILL.md`
 

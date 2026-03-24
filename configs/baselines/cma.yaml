@@ -1,4 +1,4 @@
-# CMA (Cross-Modal Attention) Baseline - Unified Configuration
+# CMA Offline Trainer — ver_260317 预渲染轨迹数据
 #
 # This configuration implements the CMA model from "Improving Vision-and-Language
 # Navigation with Image-Text Pairs from the Web" (Zhu et al., 2020).
@@ -9,77 +9,100 @@
 #   - NO progress monitor (simplified implementation)
 #   - Core CMA mechanism (RGB-instruction cross-modal attention) preserved
 #
+# 唯一默认训练路径：offline_trainer，不启动仿真器，直接读磁盘预渲染图片。
+#
 # Usage:
-#   Training:   python run.py --exp-config configs/baselines/cma.yaml --run-type train
-#   Evaluation: python run.py --exp-config configs/baselines/cma.yaml --run-type eval
-#   Override:   python run.py --exp-config CONFIG --run-type eval EVAL.SPLIT val_unseen
+#   单卡:  python run.py --exp-config configs/baselines/cma.yaml --run-type train
+#   多卡:  bash scripts/cma/train_ddp.sh
+#   评测:  python run.py --exp-config configs/baselines/cma.yaml --run-type eval \
+#              EVAL.CKPT_PATH output/cma/checkpoints/latest/best.pth
 
 _base_: configs/default.yaml
+
+BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml
+
+TRAINER_NAME: offline_trainer
 
 # ============================================================================
 # DIRECTORIES
 # ============================================================================
-CHECKPOINT_FOLDER: output/cma/checkpoints/default
-RESULTS_DIR: output/cma/results/default
-VIDEO_DIR: output/cma/videos/default
+CHECKPOINT_FOLDER: output/cma/checkpoints/latest
+RESULTS_DIR: output/cma/results/latest
+VIDEO_DIR: output/cma/videos/latest
 
 # ============================================================================
 # VIDEO GENERATION
 # ============================================================================
-GENERATE_VIDEOS: true
+GENERATE_VIDEOS: false
+
+# ============================================================================
+# DATASET
+# 离线训练不需要 SCENES_DIR（无仿真器），DATA_PATH 仅作 vocab 回退路径
+# ============================================================================
+DATASET:
+  SPLIT: train
+  DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/episodes/train/all_episodes.json
+  vocab_file: output/seq2seq_offline/artifacts/vocab/train_vocab_260317.json
 
 # ============================================================================
 # TRAINING CONFIGURATION
 # ============================================================================
 IL:
-  # Override optimizer settings for better convergence on small dataset
-  # Note: VLN-CE uses 2.5e-4 for large R2R dataset, but smaller lr works better for debug data
   lr: 1e-4
   batch_size: 1
-  epochs: 2
+  epochs: 10
   load_from_ckpt: false
-  ckpt_to_load: output/cma/checkpoints/default/best.pth
+  ckpt_to_load: output/cma/checkpoints/latest/best.pth
+
+  OFFLINE:
+    annotations_path: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/annotations.json
+    images_root: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/images
+    num_workers: 4
+    pin_memory: true
+    max_traj_len: 500
+    max_instruction_len: 200
+    rgb_size: 224
   
   RECOLLECT_TRAINER:
-    preload_size: 5        # Number of episodes to preload
-    max_traj_len: 500      # Maximum trajectory length (-1 for no limit)
-    
-    # Scheduled Sampling configuration (to reduce exposure bias)
-    use_scheduled_sampling: false  # Enable/disable scheduled sampling
-    scheduled_sampling_ratio: 0.0  # or "decay" for exponential decay
-    scheduled_sampling_p: 0.5       
+    # offline_trainer 仍复用这部分 scheduled sampling / max_traj_len 语义
+    max_traj_len: 500
+    use_scheduled_sampling: false
+    scheduled_sampling_ratio: 0.0
+    scheduled_sampling_p: 0.5
   
-  # Loss weighting configuration (inherited from default.yaml, can override here)
-  # Inflection weighting: Give higher weight to timesteps where action changes
   use_inflection_weighting: true
   inflection_weight_coef: 3.2
   
-  # Class weighting: Balance loss across different action classes
-  # Critical for handling imbalanced data (MOVE_FORWARD dominates ~90%)
-  # WARNING: Extreme weights (e.g., MOVE_FORWARD=0.1, TURN=10.0) cause "spinning" behavior
-  # Use moderate weights based on sqrt of inverse frequency
   use_class_weighting: true
   class_weights:
-    STOP: 1.5           # Slightly increase (rare action)
-    MOVE_FORWARD: 1.0   # Baseline (most common)
-    TURN_LEFT: 3.0      # Moderate increase (very rare, ~1.5%)
-    TURN_RIGHT: 1.5     # Slight increase (less common, ~9%)
+    STOP: 2.0
+    MOVE_FORWARD: 1.0
+    TURN_LEFT: 1.5
+    TURN_RIGHT: 1.5
+
+# ============================================================================
+# DDP（单卡时忽略）
+# train_ddp.sh 会自动注入 DISTRIBUTED.enabled true
+# ============================================================================
+DISTRIBUTED:
+  enabled: false
+  backend: nccl
 
 # ============================================================================
 # EVALUATION CONFIGURATION
 # ============================================================================
 EVAL:
-  SPLIT: val_seen          # Dataset split: train, val_seen, val_unseen, test
-  EPISODE_COUNT: -1        # Number of episodes to evaluate (-1 for all)
-  SAVE_RESULTS: true       # Save evaluation results to JSON
-  CKPT_PATH: output/cma/checkpoints/default/best.pth  # Checkpoint to evaluate
+  SPLIT: val_seen
+  EPISODE_COUNT: -1
+  SAVE_RESULTS: true
+  CKPT_PATH: output/cma/checkpoints/latest/best.pth
 
 # ============================================================================
 # INFERENCE CONFIGURATION
 # ============================================================================
 INFERENCE:
   SPLIT: test
-  CKPT_PATH: output/cma/checkpoints/default/best.pth
+  CKPT_PATH: output/cma/checkpoints/latest/best.pth
   PREDICTIONS_FILE: output/cma/predictions/cma_test.json
 
 # ============================================================================
@@ -90,8 +113,13 @@ MODEL:
   
   # CMA-specific instruction encoder settings (override defaults)
   INSTRUCTION_ENCODER:
-    bidirectional: true  # Important: CMA uses bidirectional LSTM
-    final_state_only: false  # Important: CMA needs all timesteps for attention
+    use_pretrained_embeddings: true
+    embedding_file: output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.gz
+    fine_tune_embeddings: false
+    embedding_size: 50
+    vocab_size: 5395
+    bidirectional: true
+    final_state_only: false
   
   # CMA specific settings
   CMA:
@@ -104,3 +132,6 @@ SWANLAB:
   experiment_name: cma-baseline
   logdir: output/cma/swanlab
   mode: disabled
+  use_wxwork_notification: false
+  webhook_url: null
+  secret: null

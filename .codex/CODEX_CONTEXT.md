@@ -178,9 +178,12 @@ conda activate satnav
 ## CMA Baseline (Updated: 2026-03-24)
 
 - 默认配置：`configs/baselines/cma.yaml`
+- 评测配置：`configs/baselines/cma_eval.yaml`
 - 默认脚本：
   - `scripts/cma/train.sh`
   - `scripts/cma/train_ddp.sh`
+  - `scripts/cma/eval.sh`
+- 默认训练入口：`TRAINER_NAME=offline_trainer`
 - 默认输出根目录：`output/cma`
 - 运行产物默认写入：
   - checkpoints: `output/cma/checkpoints/<EXP_NAME>`（脚本模式）
@@ -189,11 +192,42 @@ conda activate satnav
   - logs: `output/cma/logs/<EXP_NAME>.log`
   - swanlab: `output/cma/swanlab`
 - 直接用 `run.py` 时，`configs/baselines/cma.yaml` 的默认路径为：
-  - checkpoint: `output/cma/checkpoints/default`
-  - results: `output/cma/results/default`
-  - videos: `output/cma/videos/default`
-  - 已支持 `SWANLAB.*` 与 `OUTPUT_ROOT` 配置；脚本默认通过 SwanLab `cloud` 模式写入上述目录树
+  - checkpoint: `output/cma/checkpoints/latest`
+  - results: `output/cma/results/latest`
+  - videos: `output/cma/videos/latest`
+  - 默认离线数据源：
+    - annotations: `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/annotations.json`
+    - images: `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/images`
+    - vocab: `output/seq2seq_offline/artifacts/vocab/train_vocab_260317.json`（与 seq2seq 共用）
+    - embeddings: `output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.gz`（与 seq2seq 共用）
+  - 已支持 `SWANLAB.*` 与 `OUTPUT_ROOT` 配置；`scripts/cma/train_ddp.sh` 默认启用 SwanLab `cloud`
+  - `offline_trainer` 记录的 SwanLab 口径：
+    - step 级：`train/loss`, `train/epoch`, `train/learning_rate`
+    - epoch 级：`train/epoch_loss`, `train/epoch_time`
+  - 训练完成后脚本会更新 `output/cma/checkpoints/latest -> <EXP_NAME>`
   - Python 3.8 + `swanlab==0.7.13` 下，`WxWebhookCallback` 在当前环境有兼容性问题，基础监控可用，企业微信通知暂不默认开启
+- class_weights（与 seq2seq 对齐，2026-03-24）：STOP=2.0, MOVE_FORWARD=1.0, TURN_LEFT=1.5, TURN_RIGHT=1.5
+- `INSTRUCTION_ENCODER.final_state_only: false`（CMA 架构需要所有时间步隐藏状态做 cross-attention）
+
+## CMA Eval Infrastructure (Updated: 2026-03-24)
+
+- 评测入口脚本：`scripts/cma/eval.sh`
+- 评测专用配置：`configs/baselines/cma_eval.yaml`
+- 调用方式：
+  ```bash
+  # 按实验名评测（推荐）
+  bash scripts/cma/eval.sh <exp_name> [split] [max_episodes]
+  # 例：
+  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260320-164653 val_seen
+  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260320-164653 val_seen 20
+
+  # 直接指定 checkpoint 路径
+  bash scripts/cma/eval.sh /path/to/best.pth val_seen
+  ```
+- 默认 split：`val_seen`（`val_unseen` 当前暂无 episodes）
+- 输出约定：`output/cma/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
+- 依赖 `satnav` conda 环境（脚本内自动 activate）
+- eval 流程与 seq2seq 完全一致（同一 `offline_trainer.eval()` 入口）
 
 ## Webhook
 
