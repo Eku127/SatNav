@@ -1,7 +1,0 @@
----
-alwaysApply: false
----
-## General Rules
-1. Do not create markdown documentation files unless explicitly requested by the user.
-2. When running terminal commands, always use the conda environment named "satnav" (e.g., `conda activate satnav`).
-3. When answering questions, only include code if the user specifically requests it or if code is necessary to answer the question. Avoid creating large code snippets unless requested.
