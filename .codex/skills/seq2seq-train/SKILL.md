@@ -233,7 +233,7 @@ NUM_EPOCHS=10 \
 NUM_WORKERS=8 \
 USE_SWANLAB=true \
 SWANLAB_MODE=cloud \
-SWANLAB_PROJECT=SatNav \
+SWANLAB_PROJECT=baseline \
 bash scripts/seq2seq/train_offline_ddp.sh
 ```
 

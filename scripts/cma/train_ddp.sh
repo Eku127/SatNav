@@ -16,17 +16,18 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-output/cma}"
 
 PER_GPU_BATCH_SIZE="${PER_GPU_BATCH_SIZE:-1}"
 LEARNING_RATE="${LEARNING_RATE:-1e-4}"
-NUM_EPOCHS="${NUM_EPOCHS:-2}"
-PRELOAD_SIZE="${PRELOAD_SIZE:-5}"
+NUM_EPOCHS="${NUM_EPOCHS:-10}"
+NUM_WORKERS="${NUM_WORKERS:-4}"
 
-USE_SWANLAB="${USE_SWANLAB:-false}"
-SWANLAB_PROJECT="${SWANLAB_PROJECT:-SatNav}"
+USE_SWANLAB="${USE_SWANLAB:-true}"
+SWANLAB_PROJECT="${SWANLAB_PROJECT:-baseline}"
 SWANLAB_EXP_NAME="${SWANLAB_EXP_NAME:-}"
 SWANLAB_MODE="${SWANLAB_MODE:-cloud}"
 SWANLAB_WORKSPACE="${SWANLAB_WORKSPACE:-}"
 SWANLAB_LOGDIR="${SWANLAB_LOGDIR:-${OUTPUT_ROOT}/swanlab}"
-
-WANDB_MODE="${WANDB_MODE:-disabled}"
+USE_WXWORK_NOTIFICATION="${USE_WXWORK_NOTIFICATION:-false}"
+SWANLAB_WEBHOOK_URL="${SWANLAB_WEBHOOK_URL:-}"
+SWANLAB_SECRET="${SWANLAB_SECRET:-}"
 RUN_PREFIX="${RUN_PREFIX:-cma-ddp}"
 RUN_SUFFIX="${RUN_SUFFIX:-}"
 
@@ -50,13 +51,18 @@ resolve_path() {
 }
 
 OUTPUT_ROOT_ABS="$(resolve_path "${OUTPUT_ROOT}")"
-SWANLAB_LOGDIR_ABS="$(resolve_path "${SWANLAB_LOGDIR}")"
 CHECKPOINT_DIR="${OUTPUT_ROOT_ABS}/checkpoints/${EXP_NAME}"
 RESULTS_DIR="${OUTPUT_ROOT_ABS}/results/${EXP_NAME}"
 VIDEO_DIR="${OUTPUT_ROOT_ABS}/videos/${EXP_NAME}"
 LOG_DIR="${OUTPUT_ROOT_ABS}/logs"
-mkdir -p "${CHECKPOINT_DIR}" "${RESULTS_DIR}" "${VIDEO_DIR}" "${LOG_DIR}"
+LATEST_LINK="${OUTPUT_ROOT_ABS}/checkpoints/latest"
+mkdir -p "${CHECKPOINT_DIR}" "${LOG_DIR}"
 TRAIN_LOG_FILE="${LOG_DIR}/${EXP_NAME}.log"
+
+SWANLAB_LOGDIR_ABS="$(resolve_path "${SWANLAB_LOGDIR}")"
+if [ "${SWANLAB_MODE}" != "cloud" ]; then
+    mkdir -p "${SWANLAB_LOGDIR_ABS}"
+fi
 
 if command -v torchrun >/dev/null 2>&1; then
     DIST_LAUNCH=(torchrun)
@@ -66,7 +72,6 @@ fi
 
 SWANLAB_MODE_OVERRIDE="disabled"
 if [ "${USE_SWANLAB}" = "true" ]; then
-    mkdir -p "${SWANLAB_LOGDIR_ABS}"
     SWANLAB_MODE_OVERRIDE="${SWANLAB_MODE}"
 fi
 
@@ -75,19 +80,27 @@ OVERRIDES=(
     IL.batch_size "${PER_GPU_BATCH_SIZE}"
     IL.lr "${LEARNING_RATE}"
     IL.epochs "${NUM_EPOCHS}"
-    IL.RECOLLECT_TRAINER.preload_size "${PRELOAD_SIZE}"
+    IL.OFFLINE.num_workers "${NUM_WORKERS}"
     CHECKPOINT_FOLDER "${CHECKPOINT_DIR}"
     RESULTS_DIR "${RESULTS_DIR}"
     VIDEO_DIR "${VIDEO_DIR}"
-    WANDB.mode "${WANDB_MODE}"
     SWANLAB.project "${SWANLAB_PROJECT}"
     SWANLAB.experiment_name "${EXP_NAME}"
     SWANLAB.mode "${SWANLAB_MODE_OVERRIDE}"
     SWANLAB.logdir "${SWANLAB_LOGDIR_ABS}"
+    SWANLAB.use_wxwork_notification "${USE_WXWORK_NOTIFICATION}"
 )
 
 if [ -n "${SWANLAB_WORKSPACE}" ]; then
     OVERRIDES+=(SWANLAB.workspace "${SWANLAB_WORKSPACE}")
+fi
+
+if [ -n "${SWANLAB_WEBHOOK_URL}" ]; then
+    OVERRIDES+=(SWANLAB.webhook_url "${SWANLAB_WEBHOOK_URL}")
+fi
+
+if [ -n "${SWANLAB_SECRET}" ]; then
+    OVERRIDES+=(SWANLAB.secret "${SWANLAB_SECRET}")
 fi
 
 export CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}"
@@ -100,15 +113,19 @@ echo "GPUs          : ${GPUS_PER_NODE} (${CUDA_DEVICES})"
 echo "Batch         : ${PER_GPU_BATCH_SIZE} x ${GPUS_PER_NODE} = ${EFFECTIVE_BATCH_SIZE}"
 echo "LR            : ${LEARNING_RATE}"
 echo "Epochs        : ${NUM_EPOCHS}"
-echo "Preload Size  : ${PRELOAD_SIZE}"
+echo "Num Workers   : ${NUM_WORKERS}"
 echo "Output Root   : ${OUTPUT_ROOT_ABS}"
 echo "SwanLab       : ${USE_SWANLAB} (${SWANLAB_MODE_OVERRIDE})"
+echo "WXWork Notice : ${USE_WXWORK_NOTIFICATION}"
 echo "Experiment    : ${EXP_NAME}"
 echo "Checkpoint    : ${CHECKPOINT_DIR}"
-echo "Results       : ${RESULTS_DIR}"
-echo "Videos        : ${VIDEO_DIR}"
 echo "Log File      : ${TRAIN_LOG_FILE}"
 echo "=========================================="
+
+if [ "${USE_WXWORK_NOTIFICATION}" = "true" ]; then
+    echo "[WARN] WXWork notification depends on SwanLab callback compatibility."
+    echo "[WARN] Current satnav env is Python 3.8; if callback init fails, training will continue without notifications."
+fi
 
 cd "${REPO_ROOT}"
 
@@ -123,3 +140,6 @@ cd "${REPO_ROOT}"
     --run-type train \
     "${OVERRIDES[@]}" \
     2>&1 | tee "${TRAIN_LOG_FILE}"
+
+ln -sfn "$(basename "${CHECKPOINT_DIR}")" "${LATEST_LINK}"
+echo "Updated latest -> $(basename "${CHECKPOINT_DIR}")"
