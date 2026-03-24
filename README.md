@@ -421,11 +421,17 @@ python examples/reference_follower_example.py
 SatNav 使用统一的入口点 `run.py` 进行训练和评估：
 
 ```bash
-# Training
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+# Single-GPU training
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type train
+
+# Multi-GPU training (4 cards on one node)
+torchrun --nproc_per_node=4 run.py \
+    --exp-config configs/baselines/seq2seq_offline.yaml \
+    --run-type train \
+    DISTRIBUTED.enabled true
 
 # Evaluation
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eval
 ```
 
 ### 7.2 Configuration System
@@ -434,10 +440,11 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
 - **单一配置文件**：包含训练（IL）、评估（EVAL）、推理（INFERENCE）配置
 - **灵活覆盖**：支持命令行参数覆盖任何配置项
 - **自动同步**：评估时自动将 `EVAL.SPLIT` 同步到 `DATASET.SPLIT`
+- **可选多卡训练**：默认单卡；设置 `DISTRIBUTED.enabled=true` 并用 `torchrun` 启动时启用 DDP 多卡训练
 
 配置文件结构：
 - `configs/default.yaml` - 默认配置模板（参考文档）
-- `configs/baselines/seq2seq.yaml` - Seq2Seq实验配置
+- `configs/baselines/seq2seq_offline.yaml` - Seq2Seq 离线训练配置
 - `configs/debug_vln_task.yaml` - 调试任务配置
 
 详细文档: [配置系统文档](doc/CONFIG_SYSTEM.md)
@@ -487,33 +494,51 @@ python -m satnav.utils.build_glove_embeddings \
 
 **Training**:
 ```bash
-# Train with default config
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+# Train with default config (single GPU)
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type train
+
+# Train on GPU 3 only
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type train \
+    TORCH_GPU_ID 3
+
+# Train with 4 GPUs via DDP (recommended: use the launch script)
+bash scripts/seq2seq/train_offline_ddp.sh
+
+# Or launch manually with torchrun
+torchrun --nproc_per_node=4 run.py \
+    --exp-config configs/baselines/seq2seq_offline.yaml \
+    --run-type train \
+    DISTRIBUTED.enabled true
 
 # Train with custom parameters
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type train \
     IL.epochs 20 IL.batch_size 8 IL.lr 1e-4
 
 # Continue from checkpoint
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
-    IL.load_from_ckpt true IL.ckpt_to_load data/checkpoints/seq2seq/best.pth
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type train \
+    IL.load_from_ckpt true IL.ckpt_to_load output/seq2seq_offline/checkpoints/latest/best.pth
 ```
+
+多卡训练说明：
+- 使用 `torchrun --nproc_per_node=<GPU数>` 启动，不再手动设置每个 rank 的 `TORCH_GPU_ID`
+- `RecollectionDataset` 会按 rank 自动切分 episode，避免多卡重复训练同一批轨迹
+- checkpoint 与单卡格式保持兼容，单卡和多卡可以相互续训
 
 **Evaluation**:
 ```bash
-# Evaluate on val_seen
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+# Evaluate on val_seen (uses checkpoints/latest symlink)
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eval
 
 # Evaluate on val_unseen
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eval \
     EVAL.SPLIT val_unseen
 
-# Evaluate with video generation (requires TOP_DOWN_MAP in TASK.MEASUREMENTS)
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
-    'VIDEO_OPTION' '["disk"]'
+# Evaluate a specific checkpoint
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eval \
+    EVAL.CKPT_PATH output/seq2seq_offline/checkpoints/latest/best.pth
 
 # Quick evaluation (first 5 episodes)
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eval \
     EVAL.EPISODE_COUNT 5
 ```
 
@@ -528,7 +553,7 @@ from satnav.models import ModelRegistry
 from omegaconf import OmegaConf
 
 # Load model
-config = OmegaConf.load("configs/baselines/seq2seq.yaml")
+config = OmegaConf.load("configs/baselines/seq2seq_offline.yaml")
 model_class = ModelRegistry.get_model("seq2seq")
 model = model_class.from_config(config, obs_space, act_space)
 
@@ -741,7 +766,8 @@ SatNav/
 │   ├── debug_vln_task.yaml   # 调试任务配置
 │   ├── vln_task.yaml         # 完整任务配置
 │   └── baselines/            # 基线模型配置
-│       └── seq2seq.yaml      # Seq2Seq 统一配置
+│       ├── seq2seq_offline.yaml  # Seq2Seq 离线训练配置
+│       └── cma.yaml              # CMA 模型配置
 ├── examples/                  # 示例代码
 │   ├── satnav_path_follower_example.py  # SatNavPathFollower 示例（批量运行）
 │   └── reference_follower_example.py    # ReferencePathFollower 示例（单 episode）

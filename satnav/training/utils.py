@@ -8,7 +8,7 @@ Reference: VLN-CE vlnce_baselines/dagger_trainer.py
 """
 
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
@@ -45,7 +45,7 @@ def pad_helper(t: torch.Tensor, max_len: int, fill_val: float = 0) -> torch.Tens
 
 
 def collate_fn(
-    batch: List[Tuple[Dict[str, torch.Tensor], torch.Tensor, torch.Tensor]]
+    batch: List[Tuple[Dict[str, torch.Tensor], ...]]
 ) -> Tuple[ObservationsDict, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Collate function for training data.
     
@@ -74,6 +74,9 @@ def collate_fn(
     observations_batch = list(transposed[0])
     prev_actions_batch = list(transposed[1])
     teacher_actions_batch = list(transposed[2])
+    weights_batch: Optional[List[torch.Tensor]] = None
+    if len(transposed) > 3:
+        weights_batch = list(transposed[3])
     
     B = len(prev_actions_batch)  # Batch size
     
@@ -106,6 +109,11 @@ def collate_fn(
         teacher_actions_batch[bid] = pad_helper(
             teacher_actions_batch[bid], max_traj_len, fill_val=0
         )
+        if weights_batch is not None:
+            # Padded timesteps must not contribute to the training loss.
+            weights_batch[bid] = pad_helper(
+                weights_batch[bid], max_traj_len, fill_val=0.0
+            )
     
     # Stack observations into (T, N, ...) format
     for sensor in new_observations_batch:
@@ -129,12 +137,18 @@ def collate_fn(
     # Convert to ObservationsDict for pin_memory support
     observations_batch_dict = ObservationsDict(new_observations_batch)
     
-    return (
+    output = (
         observations_batch_dict,
         prev_actions_batch.view(-1, 1),  # (T*N, 1)
         not_done_masks.view(-1, 1),      # (T*N, 1)
-        teacher_actions_batch             # (T, N)
+        teacher_actions_batch,            # (T, N)
     )
+
+    if weights_batch is None:
+        return output
+
+    weights_batch_tensor = torch.stack(weights_batch, dim=1)  # (T, N)
+    return output + (weights_batch_tensor,)
 
 
 def tokenize_instruction(
@@ -170,4 +184,3 @@ def tokenize_instruction(
         indices_tensor = torch.cat([indices_tensor, padding])
     
     return indices_tensor
-

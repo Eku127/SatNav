@@ -33,3 +33,5 @@ webdriver-manager>=4.0.0  # Automatic browser driver management
 imageio>=2.9.0  # Video I/O
 imageio-ffmpeg>=0.4.0  # FFMPEG plugin for imageio
 
+# Experiment monitoring (optional, includes local dashboard support)
+swanlab[dashboard]>=0.7.13

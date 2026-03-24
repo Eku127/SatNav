@@ -1,0 +1,48 @@
+_base_: configs/default.yaml
+
+BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml
+
+CHECKPOINT_FOLDER: output/checkpoints/seq2seq_smoke_260317
+RESULTS_DIR: output/results/seq2seq_smoke_260317
+VIDEO_DIR: output/videos/seq2seq_smoke_260317
+
+GENERATE_VIDEOS: false
+TORCH_GPU_ID: 0
+
+DATASET:
+  SPLIT: train
+  DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/output/smoke_260317/seq2seq_train_128.json
+  SCENES_DIR: /mnt/data3/jiangjiajun/dataset/satnav_datasets/scenes
+  vocab_file: /mnt/data1/home/jiangjiajun/workspace/SatNav/output/vocab_260317/train_vocab.json
+
+IL:
+  lr: 1e-4
+  batch_size: 1
+  epochs: 1
+  RECOLLECT_TRAINER:
+    preload_size: 2
+    max_traj_len: 500
+  use_inflection_weighting: true
+  inflection_weight_coef: 3.2
+  use_class_weighting: true
+  class_weights:
+    STOP: 1.0
+    MOVE_FORWARD: 0.1
+    TURN_LEFT: 10.0
+    TURN_RIGHT: 10.0
+
+MODEL:
+  policy_name: seq2seq
+  INSTRUCTION_ENCODER:
+    use_pretrained_embeddings: false
+    vocab_size: 5395
+  SEQ2SEQ:
+    hidden_size: 512
+    rnn_type: GRU
+    use_prev_action: true
+
+SWANLAB:
+  project: SatNav
+  experiment_name: seq2seq-smoke-260317
+  logdir: output/seq2seq_offline/swanlab
+  mode: disabled

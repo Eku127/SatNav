@@ -19,6 +19,7 @@ from omegaconf import DictConfig, OmegaConf
 from satnav.core.config import get_success_distance_default
 from satnav.navigation import ReferencePathFollower
 from satnav.task.actions import Action
+from satnav.training.distributed import get_rank, get_world_size
 from satnav.utils.build_vocab import build_vocab_from_dataset, VocabDict
 
 
@@ -66,6 +67,8 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         self.config = config
         self.target_rgb_size = target_rgb_size
         self._preload = deque()
+        self.rank = get_rank(config)
+        self.world_size = get_world_size(config)
         
         # Filter out TOP_DOWN_MAP from measurements during training for performance
         # This avoids the overhead of updating the map on every step during data collection
@@ -74,7 +77,11 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         # Create environment with cycle=True for training
         # Import here to avoid circular import (Env imports SatNavDataset)
         from satnav.core.env import Env
-        print("Creating environment...")
+        print(
+            "Creating environment..."
+            f" rank={self.rank}"
+            f" world_size={self.world_size}"
+        )
         self.env = Env(training_config, cycle=True)
         
         # Initialize ReferencePathFollower
@@ -100,11 +107,19 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         print("Loading vocabulary...")
         self.vocab = self._load_vocabulary()
         self.max_instruction_len = 200  # Maximum instruction length
+
+        all_episode_indices = list(range(len(self.env._dataset.episodes)))
+        self._episode_indices = all_episode_indices[self.rank::self.world_size]
+        self._current_episode_idx = 0
+        print(
+            f"Episode shard for rank {self.rank}: "
+            f"{len(self._episode_indices)}/{len(all_episode_indices)} episodes"
+        )
         
         # Extract GT trajectories from all episodes
         print("Extracting GT trajectories from reference paths...")
         self.trajectories = self._extract_trajectories()
-        print(f"Extracted {len(self.trajectories)} trajectories")
+        print(f"Extracted {len(self.trajectories)} trajectories on rank {self.rank}")
         
         # Get observation and action spaces from environment
         self.observation_space = self.env.observation_space
@@ -129,10 +144,6 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         else:
             self.inflec_weights = torch.tensor([1.0, 1.0])
         
-        # Episode tracking for iteration
-        self._episode_indices = list(range(len(self.env._dataset.episodes)))
-        self._current_episode_idx = 0
-    
     def _filter_topdown_map_for_training(self, config: DictConfig) -> DictConfig:
         """Filter out TOP_DOWN_MAP from measurements during training for performance.
         
@@ -254,7 +265,8 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         """
         trajectories = {}
         
-        for episode in self.env._dataset.episodes:
+        for episode_idx in self._episode_indices:
+            episode = self.env._dataset.episodes[episode_idx]
             # Reset environment to this episode's start
             # Note: Since env cycles through episodes, we need to reset until we get this one
             # For now, we'll directly use the simulator
@@ -498,4 +510,3 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
             weights = torch.ones(len(teacher_actions), dtype=torch.float32)
         
         return dict(stacked_obs), prev_actions, teacher_actions, weights
-

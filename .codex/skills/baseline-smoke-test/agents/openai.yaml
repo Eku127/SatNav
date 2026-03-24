@@ -1,0 +1,4 @@
+interface:
+  display_name: "Baseline Smoke Test"
+  short_description: "Run SatNav baseline smoke tests on ver_260317 data"
+  default_prompt: "Use $baseline-smoke-test to prepare or run a SatNav Seq2Seq/CMA smoke test on ver_260317 data."
