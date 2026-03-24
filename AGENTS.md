@@ -26,6 +26,15 @@ SatNav 是一个连续状态 VLN（视觉语言导航）评测平台，使用卫
 - **应用示例**：`applications/`
 - **实验分析**：`experiments/`
 
+## Repo Skills
+
+- If task matches seq2seq training (训练seq2seq, 启动seq2seq训练, run seq2seq training), use:
+  - `.codex/skills/seq2seq-train/SKILL.md`
+- If task matches seq2seq evaluation (评测seq2seq, eval seq2seq, 查看seq2seq结果, run seq2seq eval), use:
+  - `.codex/skills/seq2seq-eval/SKILL.md`
+- If task matches SatNav baseline smoke test (冒烟测试, smoke test, quick validation), use:
+  - `.codex/skills/baseline-smoke-test/SKILL.md`
+
 ## Execution Rules
 
 - 优先使用 `configs/` 下现有配置文件，通过 `run.py` 启动任务。

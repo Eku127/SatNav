@@ -103,6 +103,31 @@ conda activate satnav
 - 新增 baseline 配置请放入 `configs/baselines/` 目录。
 - 测试用例放入 `tests/`，并通过 `pytest` 运行。
 
+## Seq2Seq Eval Infrastructure (Updated: 2026-03-24)
+
+- 评测入口脚本：`scripts/seq2seq/eval.sh`
+- 评测专用配置：`configs/baselines/seq2seq_eval.yaml`
+- 调用方式：
+  ```bash
+  # 按实验名评测（推荐）
+  bash scripts/seq2seq/eval.sh <exp_name> [split] [max_episodes]
+  # 例：
+  bash scripts/seq2seq/eval.sh seq2seq-offline-ddp-g8-bs64-lr3e-4-20260320-164653 val_seen
+  bash scripts/seq2seq/eval.sh seq2seq-offline-ddp-g8-bs64-lr3e-4-20260320-164653 val_seen 20
+
+  # 直接指定 checkpoint 路径
+  bash scripts/seq2seq/eval.sh /path/to/best.pth val_seen
+  ```
+- 默认 split：`val_seen`（`val_unseen` 当前暂无 episodes）
+- 输出约定：`output/seq2seq_offline/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
+- 依赖 `satnav` conda 环境（脚本内自动 activate）
+- 使用 `offline_trainer.eval()` 入口：
+  1. `OfflineTrajectoryDataset` 提供 obs/action space 供 policy 初始化
+  2. `SatNavDataset` + `Env`（仿真器 online rollout）运行完整 episode
+  3. `Evaluator` 记录 spl / success / distance_to_goal / path_length
+- `DATA_PATH` 使用 `{split}` 占位符，自动展开 eval split 路径
+- 评测需要 SCENES_DIR（卫星 TIF 图）；不支持无仿真器的离线评测
+
 ## Offline Training (Updated: 2026-03-24)
 
 - 已新增离线训练入口：`TRAINER_NAME=offline_trainer`
