@@ -147,17 +147,16 @@ class InstructionEncoder(nn.Module):
         # Extract instruction indices from observations
         if self.config.sensor_uuid == "instruction":
             instruction = observations["instruction"].long()
-            # Calculate actual lengths (non-padding tokens)
-            lengths = (instruction != 0.0).long().sum(dim=1)
-            # Embed tokens
+            # Embed tokens: [batch, seq_len] → [batch, seq_len, embedding_size]
             instruction = self.embedding_layer(instruction)
         else:
             # For RxR multilingual instructions (future support)
             instruction = observations["rxr_instruction"]
         
-        # Recalculate lengths for RxR format (3D tensor)
+        # Compute lengths by detecting non-PAD positions via all-zero embedding rows
+        # PAD token (index 0) maps to all-zeros vector, so sum(dim=2)==0 flags padding
         lengths = (instruction != 0.0).long().sum(dim=2)
-        lengths = (lengths != 0.0).long().sum(dim=1).cpu()
+        lengths = (lengths != 0.0).long().sum(dim=1).clamp_min(1).cpu()
         
         # Pack sequence for efficient RNN processing
         packed_seq = nn.utils.rnn.pack_padded_sequence(
@@ -173,10 +172,15 @@ class InstructionEncoder(nn.Module):
         
         # Return final state or full sequence
         if self.config.final_state_only:
-            # Return: [batch_size, hidden_size * num_directions]
+            # final_state: [num_directions, batch, hidden_size]
+            # For unidirectional: squeeze to [batch, hidden_size]
+            # For bidirectional: reshape to [batch, hidden_size * 2]
+            if self.config.bidirectional:
+                return final_state.permute(1, 0, 2).contiguous().view(
+                    final_state.size(1), -1
+                )
             return final_state.squeeze(0)
         else:
             # Unpack sequence and permute to [batch, hidden, seq_len]
             output, _ = nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
             return output.permute(0, 2, 1)
-
