@@ -11,7 +11,7 @@
 #   - EVAL: Evaluation settings
 #   - INFERENCE: Inference/prediction settings
 #   - MODEL: Model architecture settings
-#   - WANDB: Weights & Biases logging settings
+#   - SWANLAB: SwanLab logging settings
 #   - Device settings
 
 # ============================================================================
@@ -34,8 +34,17 @@ RESULTS_DIR: data/results/default
 # GPU device ID to use for PyTorch operations
 TORCH_GPU_ID: 0
 
-# Number of parallel processes (currently only supports 1 for SatNav)
+# Legacy process count flag. Multi-GPU training is controlled by DISTRIBUTED
+# and launched via torchrun.
 NUM_PROCESSES: 1
+
+# Optional distributed training configuration.
+# Single GPU remains the default path. To enable multi-GPU training, set
+# DISTRIBUTED.enabled=true and launch with torchrun.
+DISTRIBUTED:
+  enabled: false
+  backend: nccl
+  find_unused_parameters: false
 
 # Video configuration (optional)
 GENERATE_VIDEOS: false  # Set to true to generate evaluation videos
@@ -169,21 +178,29 @@ MODEL:
     normalize_visual_inputs: false
 
 # ============================================================================
-# WEIGHTS & BIASES (W&B) LOGGING CONFIGURATION
+# SWANLAB LOGGING CONFIGURATION
 # ============================================================================
-WANDB:
-  # W&B project name
-  project: satnav-vln
-  
-  # W&B run name (identifies this experiment)
-  run_name: default-experiment
-  
-  # W&B team/entity name (set to null for personal account)
-  entity: null
-  
-  # W&B mode
-  # Options: online, offline, disabled
-  mode: online
+SWANLAB:
+  # SwanLab project name
+  project: SatNav
+
+  # Optional SwanLab workspace/account
+  workspace: null
+
+  # Experiment name shown in SwanLab
+  experiment_name: default-experiment
+
+  # SwanLab local log directory
+  logdir: output/swanlab
+
+  # SwanLab mode
+  # Options: cloud, local, offline, disabled
+  mode: disabled
+
+  # Optional WXWork webhook notification
+  use_wxwork_notification: false
+  webhook_url: null
+  secret: null
 
 # ============================================================================
 # NOTES
@@ -200,4 +217,3 @@ WANDB:
 #   1. Task config (BASE_TASK_CONFIG_PATH)
 #   2. Experiment config (--exp-config)
 #   3. Command line opts
-

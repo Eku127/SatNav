@@ -31,6 +31,7 @@ from omegaconf import OmegaConf
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from satnav.training.registry import get_trainer
+from satnav.training.distributed import cleanup_distributed, setup_distributed
 
 
 def main():
@@ -146,27 +147,44 @@ Examples:
             traceback.print_exc()
             sys.exit(1)
     
-    # Get trainer name from config
-    if "TRAINER_NAME" not in config:
-        print("Error: TRAINER_NAME not specified in config")
-        sys.exit(1)
-    
-    trainer_name = config.TRAINER_NAME
-    print(f"Trainer: {trainer_name}")
-    print("=" * 80)
-    
-    # Get trainer class from registry
     try:
-        trainer_class = get_trainer(trainer_name)
-    except ValueError as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-    
-    # Instantiate trainer
-    trainer = trainer_class(config)
-    
-    # Execute based on run_type
-    try:
+        setup_distributed(config, args.run_type)
+
+        if (
+            OmegaConf.select(config, "DISTRIBUTED.enabled", default=False)
+            and args.run_type == "train"
+            and not OmegaConf.select(config, "DISTRIBUTED.runtime_enabled", default=False)
+        ):
+            print("Distributed training requested, but WORLD_SIZE<=1. Falling back to single-process training.")
+
+        if OmegaConf.select(config, "DISTRIBUTED.runtime_enabled", default=False):
+            print(
+                "Distributed runtime: "
+                f"rank={config.DISTRIBUTED.rank}, "
+                f"local_rank={config.DISTRIBUTED.local_rank}, "
+                f"world_size={config.DISTRIBUTED.world_size}"
+            )
+
+        # Get trainer name from config
+        if "TRAINER_NAME" not in config:
+            print("Error: TRAINER_NAME not specified in config")
+            sys.exit(1)
+
+        trainer_name = config.TRAINER_NAME
+        print(f"Trainer: {trainer_name}")
+        print("=" * 80)
+
+        # Get trainer class from registry
+        try:
+            trainer_class = get_trainer(trainer_name)
+        except ValueError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+
+        # Instantiate trainer
+        trainer = trainer_class(config)
+
+        # Execute based on run_type
         if args.run_type == "train":
             trainer.train()
         elif args.run_type == "eval":
@@ -185,6 +203,8 @@ Examples:
         import traceback
         traceback.print_exc()
         sys.exit(1)
+    finally:
+        cleanup_distributed()
     
     print("\n" + "=" * 80)
     print(f"{args.run_type.upper()} completed successfully")
@@ -193,4 +213,3 @@ Examples:
 
 if __name__ == "__main__":
     main()
-

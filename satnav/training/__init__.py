@@ -14,6 +14,7 @@ from satnav.training.registry import register_trainer, get_trainer
 from satnav.training.evaluator import Evaluator
 
 # Import trainers to trigger registration via @register_trainer decorator
+from satnav.training.offline_trainer import OfflineTrainer
 from satnav.training.recollect_trainer import RecollectTrainer
 
 __all__ = [
@@ -21,6 +22,7 @@ __all__ = [
     "BaseILTrainer",
     
     # Trainers
+    "OfflineTrainer",
     "RecollectTrainer",
     
     # Evaluator

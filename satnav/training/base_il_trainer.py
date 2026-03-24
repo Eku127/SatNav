@@ -14,9 +14,17 @@ from typing import Any, Dict, Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.nn.parallel import DistributedDataParallel
 from omegaconf import DictConfig, OmegaConf
 
 from satnav.models import ModelRegistry
+from satnav.training.distributed import (
+    get_rank,
+    get_world_size,
+    is_distributed_runtime,
+    is_main_process,
+    reduce_scalar,
+)
 
 
 class BaseILTrainer:
@@ -42,6 +50,9 @@ class BaseILTrainer:
             config: Training configuration (OmegaConf DictConfig)
         """
         self.config = config
+        self.distributed = is_distributed_runtime(config)
+        self.rank = get_rank(config)
+        self.world_size = get_world_size(config)
         
         # Set device
         if torch.cuda.is_available():
@@ -49,7 +60,12 @@ class BaseILTrainer:
         else:
             self.device = torch.device("cpu")
         
-        print(f"Using device: {self.device}")
+        print(
+            f"Using device: {self.device}"
+            f" | rank={self.rank}"
+            f" | world_size={self.world_size}"
+            f" | distributed={self.distributed}"
+        )
         
         # Policy and optimizer will be initialized later
         self.policy = None
@@ -64,6 +80,12 @@ class BaseILTrainer:
         
         # Loss weighting state
         self._init_loss_weighting()
+
+    def _policy_module(self):
+        """Return the underlying policy module, unwrapping DDP if needed."""
+        if isinstance(self.policy, DistributedDataParallel):
+            return self.policy.module
+        return self.policy
     
     def _init_scheduled_sampling(self):
         """Initialize scheduled sampling configuration.
@@ -183,38 +205,49 @@ class BaseILTrainer:
         
         # Move policy to device
         self.policy.to(self.device)
-        
-        # Initialize optimizer
-        self.optimizer = torch.optim.Adam(
-            self.policy.parameters(),
-            lr=config.IL.lr
-        )
-        
-        # Load from checkpoint if specified
+
+        # Load checkpoint once; reuse dict for both state_dict and optimizer/epoch restoration
+        ckpt_dict = None
         if load_from_ckpt:
             ckpt_path = config.IL.ckpt_to_load
             if os.path.exists(ckpt_path):
                 print(f"Loading checkpoint from: {ckpt_path}")
                 ckpt_dict = self.load_checkpoint(ckpt_path)
                 self.policy.load_state_dict(ckpt_dict['state_dict'])
-                
-                # Optionally load optimizer state
-                if 'optim_state' in ckpt_dict:
-                    self.optimizer.load_state_dict(ckpt_dict['optim_state'])
-                
-                # Restore training state
-                if 'epoch' in ckpt_dict:
-                    self.start_epoch = ckpt_dict['epoch'] + 1
-                if 'step_id' in ckpt_dict:
-                    self.step_id = ckpt_dict['step_id']
-                
-                print(f"Resumed from epoch {self.start_epoch}, step {self.step_id}")
             else:
                 print(f"Warning: Checkpoint not found at {ckpt_path}, starting from scratch")
+
+        if self.distributed:
+            self.policy = DistributedDataParallel(
+                self.policy,
+                device_ids=[self.device.index],
+                output_device=self.device.index,
+                find_unused_parameters=bool(
+                    OmegaConf.select(
+                        config, "DISTRIBUTED.find_unused_parameters", default=False
+                    )
+                ),
+            )
+
+        # Initialize optimizer
+        self.optimizer = torch.optim.Adam(
+            self.policy.parameters(),
+            lr=config.IL.lr
+        )
+
+        if ckpt_dict is not None:
+            if 'optim_state' in ckpt_dict:
+                self.optimizer.load_state_dict(ckpt_dict['optim_state'])
+            if 'epoch' in ckpt_dict:
+                self.start_epoch = ckpt_dict['epoch'] + 1
+            if 'step_id' in ckpt_dict:
+                self.step_id = ckpt_dict['step_id']
+            print(f"Resumed from epoch {self.start_epoch}, step {self.step_id}")
         
         # Count parameters
-        params = sum(p.numel() for p in self.policy.parameters())
-        params_t = sum(p.numel() for p in self.policy.parameters() if p.requires_grad)
+        policy_module = self._policy_module()
+        params = sum(p.numel() for p in policy_module.parameters())
+        params_t = sum(p.numel() for p in policy_module.parameters() if p.requires_grad)
         print(f"Agent parameters: {params}. Trainable: {params_t}")
         print("Finished setting up policy.")
     
@@ -243,7 +276,8 @@ class BaseILTrainer:
         
         # Initialize model states
         # Let the model create its own initial state based on its architecture
-        states = self.policy.net.get_initial_state(N, self.device)
+        policy_module = self._policy_module()
+        states = policy_module.net.get_initial_state(N, self.device)
         
         # Scheduled Sampling: Replace prev_actions with model predictions probabilistically
         # This helps bridge the gap between training (teacher forcing) and evaluation (autoregressive)
@@ -261,7 +295,7 @@ class BaseILTrainer:
                 # Note: This is an approximation - ideally we'd do sequential processing,
                 # but this is more efficient and still effective
                 with torch.no_grad():
-                    distribution_pred = self.policy.build_distribution(
+                    distribution_pred = policy_module.build_distribution(
                         observations, states, prev_actions, not_done_masks
                     )
                     # Get predicted actions (greedy)
@@ -287,7 +321,7 @@ class BaseILTrainer:
                 prev_actions_to_use = sampled_prev_actions.view(T * N, 1)
         
         # Forward pass through policy with (possibly modified) prev_actions
-        distribution = self.policy.build_distribution(
+        distribution = policy_module.build_distribution(
             observations, states, prev_actions_to_use, not_done_masks
         )
         
@@ -314,24 +348,40 @@ class BaseILTrainer:
             )
         
         # Apply inflection weights (sample-level weighting)
-        # weights shape: (T,), action_loss shape: (T, N)
+        # weights may be shaped as (T,), (T, 1), or (T, N)
         if weights is not None:
-            # Reshape weights to match action_loss: (T, N)
-            weights_expanded = weights.view(T, 1).expand(T, N)
-            # Weighted average: sum(weights * loss) / sum(weights)
-            action_loss = (weights_expanded * action_loss).sum(0) / weights_expanded.sum(0)
-            action_loss = action_loss.mean()
+            if weights.dim() == 1:
+                weights_expanded = weights.view(T, 1).expand(T, N)
+            elif weights.dim() == 2 and weights.size(0) == T:
+                if weights.size(1) == 1:
+                    weights_expanded = weights.expand(T, N)
+                elif weights.size(1) == N:
+                    weights_expanded = weights
+                else:
+                    raise ValueError(
+                        f"Unexpected weights shape {tuple(weights.shape)} "
+                        f"for teacher actions {(T, N)}"
+                    )
+            else:
+                raise ValueError(
+                    f"Unexpected weights shape {tuple(weights.shape)} "
+                    f"for teacher actions {(T, N)}"
+                )
+
+            weights_expanded = weights_expanded.to(action_loss.device)
+            total_weight = weights_expanded.sum().clamp_min(1e-6)
+            action_loss = (weights_expanded * action_loss).sum() / total_weight
         else:
             # No sample weighting: simple mean
             action_loss = action_loss.mean()
         
         # Debug: Print weight info occasionally (first batch of first epoch only)
-        if self.step_id == 0 and epoch == 0:
+        if self.step_id == 0 and epoch == 0 and is_main_process(self.config):
             if self.use_class_weighting and self.class_weights is not None:
                 print(f"\n[Weight Debug] Class weights: {self.class_weights.tolist()}")
             if weights is not None:
                 inflection_count = (weights > 1.0).sum().item()
-                print(f"[Weight Debug] Inflection points in batch: {inflection_count}/{len(weights)}")
+                print(f"[Weight Debug] Inflection points in batch: {inflection_count}/{weights.numel()}")
                 print(f"[Weight Debug] Weight range: [{weights.min().item():.2f}, {weights.max().item():.2f}]")
         
         # Backward pass
@@ -340,12 +390,12 @@ class BaseILTrainer:
         
         # Gradient clipping (optional, but recommended for RNNs)
         # Increased max_norm to allow larger gradient updates for better overfitting
-        torch.nn.utils.clip_grad_norm_(self.policy.parameters(), max_norm=5.0)
+        torch.nn.utils.clip_grad_norm_(policy_module.parameters(), max_norm=5.0)
         
         # Optimizer step
         self.optimizer.step()
         
-        return action_loss.item()
+        return reduce_scalar(self.config, action_loss.item(), device=self.device, average=True)
     
     def save_checkpoint(
         self,
@@ -366,7 +416,7 @@ class BaseILTrainer:
         os.makedirs(checkpoint_dir, exist_ok=True)
         
         checkpoint = {
-            'state_dict': self.policy.state_dict(),
+            'state_dict': self._policy_module().state_dict(),
             'optim_state': self.optimizer.state_dict(),
             'config': OmegaConf.to_container(self.config, resolve=True),
             'epoch': epoch,
@@ -377,8 +427,9 @@ class BaseILTrainer:
             checkpoint['loss'] = loss
         
         checkpoint_path = os.path.join(checkpoint_dir, filename)
-        torch.save(checkpoint, checkpoint_path)
-        print(f"Saved checkpoint to: {checkpoint_path}")
+        if is_main_process(self.config):
+            torch.save(checkpoint, checkpoint_path)
+            print(f"Saved checkpoint to: {checkpoint_path}")
     
     def load_checkpoint(self, checkpoint_path: str) -> Dict[str, Any]:
         """Load training checkpoint.
@@ -392,6 +443,19 @@ class BaseILTrainer:
         # Use weights_only=False because checkpoint contains model state_dict and optimizer state
         # which are safe to load (they come from our own training process)
         return torch.load(checkpoint_path, map_location=self.device, weights_only=False)
+
+    def _distributed_min(self, value: int) -> int:
+        """Compute the global minimum across ranks."""
+        tensor = torch.tensor(int(value), device=self.device)
+        if self.distributed:
+            import torch.distributed as dist
+
+            dist.all_reduce(tensor, op=dist.ReduceOp.MIN)
+        return int(tensor.item())
+
+    def _distributed_sum(self, value: float) -> float:
+        """Compute the global sum across ranks."""
+        return reduce_scalar(self.config, value, device=self.device, average=False)
     
     def _make_checkpoint_dir(self) -> None:
         """Create checkpoint directory if it doesn't exist."""
@@ -489,4 +553,3 @@ class BaseILTrainer:
             policy=self.policy,
             checkpoint_index=0
         )
-
