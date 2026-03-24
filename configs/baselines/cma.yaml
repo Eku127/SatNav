@@ -19,9 +19,9 @@ _base_: configs/default.yaml
 # ============================================================================
 # DIRECTORIES
 # ============================================================================
-CHECKPOINT_FOLDER: output/checkpoints/cma
-RESULTS_DIR: output/results/cma
-VIDEO_DIR: output/videos/cma
+CHECKPOINT_FOLDER: output/cma/checkpoints/default
+RESULTS_DIR: output/cma/results/default
+VIDEO_DIR: output/cma/videos/default
 
 # ============================================================================
 # VIDEO GENERATION
@@ -38,7 +38,7 @@ IL:
   batch_size: 1
   epochs: 2
   load_from_ckpt: false
-  ckpt_to_load: output/checkpoints/cma/best.pth
+  ckpt_to_load: output/cma/checkpoints/default/best.pth
   
   RECOLLECT_TRAINER:
     preload_size: 5        # Number of episodes to preload
@@ -72,15 +72,15 @@ EVAL:
   SPLIT: val_seen          # Dataset split: train, val_seen, val_unseen, test
   EPISODE_COUNT: -1        # Number of episodes to evaluate (-1 for all)
   SAVE_RESULTS: true       # Save evaluation results to JSON
-  CKPT_PATH: output/checkpoints/cma/best.pth  # Checkpoint to evaluate
+  CKPT_PATH: output/cma/checkpoints/default/best.pth  # Checkpoint to evaluate
 
 # ============================================================================
 # INFERENCE CONFIGURATION
 # ============================================================================
 INFERENCE:
   SPLIT: test
-  CKPT_PATH: output/checkpoints/cma/best.pth
-  PREDICTIONS_FILE: output/predictions/cma_test.json
+  CKPT_PATH: output/cma/checkpoints/default/best.pth
+  PREDICTIONS_FILE: output/cma/predictions/cma_test.json
 
 # ============================================================================
 # MODEL CONFIGURATION
@@ -99,8 +99,8 @@ MODEL:
     rnn_type: GRU
     use_prev_action: true
 
-# ============================================================================
-# WEIGHTS & BIASES LOGGING
-# ============================================================================
-WANDB:
-  run_name: cma-baseline
+SWANLAB:
+  project: SatNav
+  experiment_name: cma-baseline
+  logdir: output/cma/swanlab
+  mode: disabled

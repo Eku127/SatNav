@@ -12,9 +12,10 @@ from typing import Optional
 
 import torch
 import tqdm
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from satnav.training.base_il_trainer import BaseILTrainer
+from satnav.training.distributed import is_main_process
 from satnav.dataset.recollect_dataset import RecollectionDataset
 from satnav.training.utils import collate_fn
 from satnav.training.registry import register_trainer
@@ -56,51 +57,11 @@ class RecollectTrainer(BaseILTrainer):
         # Create checkpoint directory
         self._make_checkpoint_dir()
         
-        # Initialize wandb
-        if isinstance(self.config, dict):
-            wandb_config = self.config.get('WANDB', {})
-            use_wandb = wandb_config.get('mode', 'online') != 'disabled'
-        else:
-            wandb_config = getattr(self.config, 'WANDB', {})
-            use_wandb = getattr(wandb_config, 'mode', 'online') != 'disabled'
-        
-        if use_wandb:
-            try:
-                import wandb
-                if isinstance(self.config, dict):
-                    wandb.init(
-                        project=wandb_config.get('project', 'satnav-vln'),
-                        name=wandb_config.get('run_name', 'recollect-seq2seq'),
-                        entity=wandb_config.get('entity', None),
-                        config=self.config,
-                        mode=wandb_config.get('mode', 'online')
-                    )
-                else:
-                    wandb.init(
-                        project=getattr(wandb_config, 'project', 'satnav-vln'),
-                        name=getattr(wandb_config, 'run_name', 'recollect-seq2seq'),
-                        entity=getattr(wandb_config, 'entity', None),
-                        config=OmegaConf.to_container(self.config, resolve=True),
-                        mode=getattr(wandb_config, 'mode', 'online')
-                    )
-                if isinstance(self.config, dict):
-                    project = wandb_config.get('project', 'satnav-vln')
-                    run_name = wandb_config.get('run_name', 'recollect-seq2seq')
-                else:
-                    project = getattr(wandb_config, 'project', 'satnav-vln')
-                    run_name = getattr(wandb_config, 'run_name', 'recollect-seq2seq')
-                print(f"Initialized wandb: {project}/{run_name}")
-            except ImportError:
-                print("Warning: wandb not installed, continuing without logging")
-                use_wandb = False
-        else:
-            print("W&B logging disabled")
-            use_wandb = False
-        
         # Create dataset
-        print("\n" + "="*80)
-        print("Creating dataset...")
-        print("="*80)
+        if is_main_process(self.config):
+            print("\n" + "="*80)
+            print("Creating dataset...")
+            print("="*80)
         self.dataset = RecollectionDataset(self.config)
         
         # Create DataLoader
@@ -114,9 +75,10 @@ class RecollectTrainer(BaseILTrainer):
         )
         
         # Initialize policy
-        print("\n" + "="*80)
-        print("Initializing policy...")
-        print("="*80)
+        if is_main_process(self.config):
+            print("\n" + "="*80)
+            print("Initializing policy...")
+            print("="*80)
         self._initialize_policy(
             self.config,
             self.config.IL.load_from_ckpt,
@@ -125,9 +87,10 @@ class RecollectTrainer(BaseILTrainer):
         )
         
         # Training loop
-        print("\n" + "="*80)
-        print(f"Training for {self.config.IL.epochs} epochs")
-        print("="*80)
+        if is_main_process(self.config):
+            print("\n" + "="*80)
+            print(f"Training for {self.config.IL.epochs} epochs")
+            print("="*80)
         
         best_loss = float('inf')
         
@@ -137,16 +100,28 @@ class RecollectTrainer(BaseILTrainer):
             num_batches = 0
             
             # Progress bar
-            pbar = tqdm.tqdm(
-                total=len(self.dataset.trajectories),
-                desc=f"Epoch {epoch+1}/{self.config.IL.epochs}",
-                dynamic_ncols=True
-            )
+            local_max_batches = len(self.dataset.trajectories) // self.config.IL.batch_size
+            max_batches = self._distributed_min(local_max_batches)
+
+            if is_main_process(self.config):
+                pbar = tqdm.tqdm(
+                    total=max_batches * self.config.IL.batch_size,
+                    desc=f"Epoch {epoch+1}/{self.config.IL.epochs}",
+                    dynamic_ncols=True
+                )
+            else:
+                pbar = None
             
             try:
-                max_batches = len(self.dataset.trajectories) // self.config.IL.batch_size
                 if max_batches == 0:
-                    print(f"Warning: No batches to process! trajectories={len(self.dataset.trajectories)}, batch_size={self.config.IL.batch_size}")
+                    if is_main_process(self.config):
+                        print(
+                            "Warning: No batches to process! "
+                            f"min_batches={max_batches}, "
+                            f"local_trajectories={len(self.dataset.trajectories)}, "
+                            f"batch_size={self.config.IL.batch_size}"
+                        )
+                    continue
                 
                 for batch_idx, batch in enumerate(dataloader):
                     batch_start_time = time.time()
@@ -189,19 +164,12 @@ class RecollectTrainer(BaseILTrainer):
                     num_batches += 1
                     
                     # Update progress bar
-                    pbar.update(self.config.IL.batch_size)
-                    pbar.set_postfix({
-                        'loss': f'{loss:.4f}',
-                        'batch_time': f'{time.time() - batch_start_time:.2f}s'
-                    })
-                    
-                    # Log to wandb
-                    if use_wandb:
-                        wandb.log({
-                            'train/loss': loss,
-                            'train/epoch': epoch,
-                            'train/learning_rate': self.optimizer.param_groups[0]['lr']
-                        }, step=self.step_id)
+                    if pbar is not None:
+                        pbar.update(self.config.IL.batch_size)
+                        pbar.set_postfix({
+                            'loss': f'{loss:.4f}',
+                            'batch_time': f'{time.time() - batch_start_time:.2f}s'
+                        })
                     
                     self.step_id += 1
                     
@@ -217,58 +185,44 @@ class RecollectTrainer(BaseILTrainer):
                 traceback.print_exc()
                 raise
             finally:
-                pbar.close()
+                if pbar is not None:
+                    pbar.close()
             
             # Compute average loss for epoch
-            avg_epoch_loss = epoch_loss / max(num_batches, 1)
+            global_epoch_loss = self._distributed_sum(epoch_loss)
+            global_num_batches = self._distributed_sum(num_batches)
+            avg_epoch_loss = global_epoch_loss / max(global_num_batches, 1.0)
             epoch_time = time.time() - epoch_start_time
             
-            print(f"\nEpoch {epoch+1} completed:")
-            print(f"  Average Loss: {avg_epoch_loss:.4f}")
-            print(f"  Epoch Time: {epoch_time:.2f}s")
-            print(f"  Number of batches: {num_batches}")
+            if is_main_process(self.config):
+                print(f"\nEpoch {epoch+1} completed:")
+                print(f"  Average Loss: {avg_epoch_loss:.4f}")
+                print(f"  Epoch Time: {epoch_time:.2f}s")
+                print(f"  Number of batches: {int(global_num_batches)}")
             
             # Check for invalid loss values
             if not (torch.isfinite(torch.tensor(avg_epoch_loss)) and num_batches > 0):
-                print(f"  Warning: Invalid loss value ({avg_epoch_loss}) or no batches processed!")
-                if num_batches == 0:
-                    print("  No batches were processed in this epoch. Check dataset and batch_size configuration.")
+                if is_main_process(self.config):
+                    print(f"  Warning: Invalid loss value ({avg_epoch_loss}) or no batches processed!")
+                    if global_num_batches == 0:
+                        print("  No batches were processed in this epoch. Check dataset sharding and batch_size configuration.")
                 continue
-            
-            # Log epoch metrics to wandb
-            if use_wandb:
-                wandb.log({
-                    'epoch/loss': avg_epoch_loss,
-                    'epoch/time': epoch_time,
-                    'epoch/number': epoch
-                }, step=self.step_id)
             
             # Save best model
             if avg_epoch_loss < best_loss:
                 best_loss = avg_epoch_loss
-                print(f"  New best loss: {best_loss:.4f}, saving checkpoint...")
+                if is_main_process(self.config):
+                    print(f"  New best loss: {best_loss:.4f}, saving checkpoint...")
                 self.save_checkpoint('best.pth', epoch, self.step_id, best_loss)
-                
-                if use_wandb:
-                    # Save checkpoint to wandb
-                    import os
-                    checkpoint_path = os.path.join(
-                        self.config.CHECKPOINT_FOLDER,
-                        'best.pth'
-                    )
-                    wandb.save(checkpoint_path)
-        
-        print("\n" + "="*80)
-        print("Training completed!")
-        if best_loss == float('inf'):
-            print("Warning: Best loss is inf. This usually means:")
-            print("  - No batches were processed during training")
-            print("  - Loss values were invalid (nan/inf)")
-            print("  - Check dataset configuration and batch_size")
-        else:
-            print(f"Best loss: {best_loss:.4f}")
-        print("="*80)
-        
-        # Finish wandb
-        if use_wandb:
-            wandb.finish()
+
+        if is_main_process(self.config):
+            print("\n" + "="*80)
+            print("Training completed!")
+            if best_loss == float('inf'):
+                print("Warning: Best loss is inf. This usually means:")
+                print("  - No batches were processed during training")
+                print("  - Loss values were invalid (nan/inf)")
+                print("  - Check dataset configuration and batch_size")
+            else:
+                print(f"Best loss: {best_loss:.4f}")
+            print("="*80)
