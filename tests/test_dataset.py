@@ -8,8 +8,10 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import torch
 from omegaconf import OmegaConf
 
+from satnav.dataset.offline_trajectory_dataset import OfflineTrajectoryDataset
 from satnav.dataset.satnav_dataset import (
     SatNavDataset,
     ALL_SCENES_MASK,
@@ -520,3 +522,85 @@ class TestSatNavDataset:
         assert "SUCCESS" in config.TASK.MEASUREMENTS
         assert "SPL" in config.TASK.MEASUREMENTS
 
+
+class TestOfflineTrajectoryDataset:
+    """Tests for the offline trajectory dataset."""
+
+    def test_offline_dataset_alignment(self, tmp_path):
+        images_root = tmp_path / "trajectory_data" / "images"
+        traj_dir = images_root / "sceneA_satnav_000001" / "rgb"
+        traj_dir.mkdir(parents=True)
+
+        for idx in range(1, 6):
+            image = torch.full((4, 4, 3), idx, dtype=torch.uint8).numpy()
+            from PIL import Image
+
+            Image.fromarray(image).save(traj_dir / f"{idx:03d}.jpg")
+
+        annotations = [
+            {
+                "id": 1,
+                "trajectory_id": "1",
+                "steps": 4,
+                "video": "images/sceneA_satnav_000001",
+                "instructions": ["Go forward then stop."],
+                "actions": [-1, 1, 1, 2, 0],
+                "_scene_id": "sceneA",
+                "_episode_id": "ep1",
+            }
+        ]
+        annotations_path = tmp_path / "trajectory_data" / "annotations.json"
+        annotations_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(annotations_path, "w", encoding="utf-8") as f:
+            json.dump(annotations, f)
+
+        vocab_path = tmp_path / "vocab.json"
+        with open(vocab_path, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "word2idx": {
+                        "<pad>": 0,
+                        "<unk>": 1,
+                        "go": 2,
+                        "forward": 3,
+                        "then": 4,
+                        "stop": 5,
+                    }
+                },
+                f,
+            )
+
+        config = OmegaConf.create(
+            {
+                "DATASET": {
+                    "DATA_PATH": str(tmp_path / "episodes.json"),
+                    "SPLIT": "train",
+                    "SCENES_DIR": str(tmp_path),
+                    "vocab_file": str(vocab_path),
+                },
+                "IL": {
+                    "batch_size": 1,
+                    "RECOLLECT_TRAINER": {
+                        "max_traj_len": 500,
+                    },
+                    "OFFLINE": {
+                        "annotations_path": str(annotations_path),
+                        "images_root": str(images_root),
+                        "rgb_size": 4,
+                        "max_instruction_len": 8,
+                        "max_traj_len": 500,
+                    },
+                    "use_inflection_weighting": True,
+                    "inflection_weight_coef": 3.2,
+                },
+            }
+        )
+
+        dataset = OfflineTrajectoryDataset(config, target_rgb_size=4)
+        observations, prev_actions, teacher_actions, weights = dataset[0]
+
+        assert observations["rgb"].shape == (3, 4, 4, 3)
+        assert observations["instruction"].shape == (3, 8)
+        assert prev_actions.tolist() == [0, 1, 1]
+        assert teacher_actions.tolist() == [1, 1, 2]
+        assert weights.tolist() == pytest.approx([3.2, 1.0, 3.2])

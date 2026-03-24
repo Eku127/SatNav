@@ -124,6 +124,85 @@ class TestTrainingUtils:
         assert teacher_batch[3, 0] == 0  # Padded value
         assert teacher_batch[4, 0] == 0  # Padded value
 
+    def test_collate_fn_with_weights(self):
+        """Test collate_fn preserves per-timestep weights."""
+        batch = []
+
+        for _ in range(2):
+            obs = {
+                'rgb': torch.randint(0, 255, (3, 224, 224, 3), dtype=torch.uint8),
+                'instruction': torch.randint(0, 100, (3, 200), dtype=torch.long)
+            }
+            prev_actions = torch.tensor([0, 1, 2], dtype=torch.long)
+            teacher_actions = torch.tensor([1, 2, 0], dtype=torch.long)
+            weights = torch.tensor([3.2, 1.0, 1.0], dtype=torch.float32)
+            batch.append((obs, prev_actions, teacher_actions, weights))
+
+        obs_batch, prev_batch, masks_batch, teacher_batch, weights_batch = collate_fn(batch)
+
+        assert obs_batch['rgb'].shape == (6, 224, 224, 3)
+        assert prev_batch.shape == (6, 1)
+        assert masks_batch.shape == (6, 1)
+        assert teacher_batch.shape == (3, 2)
+        assert weights_batch.shape == (3, 2)
+        assert torch.allclose(weights_batch[0], torch.tensor([3.2, 3.2]))
+
+    def test_collate_fn_zero_pads_weights_for_padded_steps(self):
+        """Test padded timesteps are masked out via zero weights."""
+        batch = []
+
+        obs1 = {
+            'rgb': torch.randint(0, 255, (2, 224, 224, 3), dtype=torch.uint8),
+            'instruction': torch.randint(1, 100, (2, 200), dtype=torch.long)
+        }
+        prev1 = torch.tensor([0, 1], dtype=torch.long)
+        teacher1 = torch.tensor([1, 0], dtype=torch.long)
+        weights1 = torch.tensor([3.2, 1.0], dtype=torch.float32)
+        batch.append((obs1, prev1, teacher1, weights1))
+
+        obs2 = {
+            'rgb': torch.randint(0, 255, (4, 224, 224, 3), dtype=torch.uint8),
+            'instruction': torch.randint(1, 100, (4, 200), dtype=torch.long)
+        }
+        prev2 = torch.tensor([0, 1, 2, 1], dtype=torch.long)
+        teacher2 = torch.tensor([1, 2, 1, 0], dtype=torch.long)
+        weights2 = torch.tensor([3.2, 1.0, 3.2, 1.0], dtype=torch.float32)
+        batch.append((obs2, prev2, teacher2, weights2))
+
+        _, _, _, teacher_batch, weights_batch = collate_fn(batch)
+
+        assert teacher_batch.shape == (4, 2)
+        assert weights_batch.shape == (4, 2)
+        assert torch.allclose(weights_batch[:, 0], torch.tensor([3.2, 1.0, 0.0, 0.0]))
+
+    def test_instruction_encoder_handles_all_pad_rows(self):
+        """Test instruction encoder tolerates all-PAD rows from padded timesteps."""
+        from satnav.models.encoders.instruction_encoder import InstructionEncoder
+
+        config = OmegaConf.create({
+            'sensor_uuid': 'instruction',
+            'use_pretrained_embeddings': False,
+            'vocab_size': 16,
+            'embedding_size': 8,
+            'fine_tune_embeddings': True,
+            'hidden_size': 4,
+            'rnn_type': 'GRU',
+            'bidirectional': False,
+            'final_state_only': True,
+        })
+
+        encoder = InstructionEncoder(config)
+        observations = {
+            'instruction': torch.tensor([
+                [1, 2, 3, 0, 0],
+                [0, 0, 0, 0, 0],
+            ], dtype=torch.long)
+        }
+
+        output = encoder(observations)
+
+        assert output.shape == (2, 4)
+
 
 class TestBaseILTrainer:
     """Tests for BaseILTrainer."""
@@ -224,18 +303,20 @@ class TestRecollectionDataset:
         dataset = RecollectionDataset(test_config)
         
         # Get one sample
-        obs, prev_actions, teacher_actions = next(iter(dataset))
+        obs, prev_actions, teacher_actions, weights = next(iter(dataset))
         
         # Check types
         assert isinstance(obs, dict)
         assert isinstance(prev_actions, torch.Tensor)
         assert isinstance(teacher_actions, torch.Tensor)
+        assert isinstance(weights, torch.Tensor)
         
         # Check that observations contain expected keys
         assert 'rgb' in obs or 'instruction' in obs
         
         # Check action lengths match
         assert prev_actions.shape[0] == teacher_actions.shape[0]
+        assert weights.shape[0] == teacher_actions.shape[0]
 
 
 @pytest.mark.integration
@@ -306,11 +387,6 @@ class TestRecollectTrainer:
                 }
             },
             'CHECKPOINT_FOLDER': tempfile.mkdtemp(),
-            'WANDB': {
-                'project': 'test',
-                'run_name': 'test',
-                'mode': 'disabled'
-            },
             'TORCH_GPU_ID': 0
         })
         
@@ -320,4 +396,3 @@ class TestRecollectTrainer:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-
