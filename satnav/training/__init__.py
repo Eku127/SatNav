@@ -9,19 +9,15 @@ by name, similar to VLN-CE's baseline_registry.
 """
 
 from satnav.training.base_il_trainer import BaseILTrainer
-from satnav.training.utils import collate_fn, pad_helper
 from satnav.training.registry import register_trainer, get_trainer
-from satnav.training.evaluator import Evaluator
-
-# Import trainers to trigger registration via @register_trainer decorator
-from satnav.training.offline_trainer import OfflineTrainer
-from satnav.training.recollect_trainer import RecollectTrainer
+from satnav.training.utils import collate_fn, pad_helper
 
 __all__ = [
     # Base classes
     "BaseILTrainer",
     
     # Trainers
+    "DaggerTrainer",
     "OfflineTrainer",
     "RecollectTrainer",
     
@@ -36,3 +32,23 @@ __all__ = [
     "collate_fn",
     "pad_helper",
 ]
+
+
+def __getattr__(name):
+    if name == "DaggerTrainer":
+        from satnav.training.dagger_trainer import DaggerTrainer
+
+        return DaggerTrainer
+    if name == "Evaluator":
+        from satnav.training.evaluator import Evaluator
+
+        return Evaluator
+    if name == "OfflineTrainer":
+        from satnav.training.offline_trainer import OfflineTrainer
+
+        return OfflineTrainer
+    if name == "RecollectTrainer":
+        from satnav.training.recollect_trainer import RecollectTrainer
+
+        return RecollectTrainer
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
