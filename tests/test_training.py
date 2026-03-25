@@ -2,7 +2,9 @@
 """Unit tests for training module."""
 
 import os
+import sys
 import tempfile
+import types
 from pathlib import Path
 
 import pytest
@@ -202,6 +204,110 @@ class TestTrainingUtils:
         output = encoder(observations)
 
         assert output.shape == (2, 4)
+
+
+def test_recollect_trainer_logs_to_swanlab(monkeypatch, tmp_path):
+    """Test that RecollectTrainer emits step and epoch metrics to SwanLab."""
+    from satnav.training.recollect_trainer import RecollectTrainer
+
+    class FakeDataset(torch.utils.data.Dataset):
+        def __init__(self, config):
+            self.config = config
+            self.trajectories = {"episode-0": [(0, 0)]}
+            self.observation_space = {
+                "rgb": {"shape": (224, 224, 3)},
+                "instruction": {"max_length": 8},
+            }
+            self.action_space = {
+                "actions": ["STOP", "MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+            }
+
+        def __len__(self):
+            return 1
+
+        def __getitem__(self, idx):
+            obs = {
+                "rgb": torch.randint(0, 255, (2, 224, 224, 3), dtype=torch.uint8),
+                "instruction": torch.randint(0, 50, (2, 8), dtype=torch.long),
+            }
+            prev_actions = torch.tensor([0, 1], dtype=torch.long)
+            teacher_actions = torch.tensor([1, 0], dtype=torch.long)
+            weights = torch.ones(2, dtype=torch.float32)
+            return obs, prev_actions, teacher_actions, weights
+
+    logs = []
+    init_calls = []
+    finish_calls = []
+
+    fake_swanlab = types.SimpleNamespace()
+
+    def fake_init(**kwargs):
+        init_calls.append(kwargs)
+
+    def fake_log(metrics, step):
+        logs.append((metrics, step))
+
+    def fake_finish():
+        finish_calls.append(True)
+
+    fake_swanlab.init = fake_init
+    fake_swanlab.log = fake_log
+    fake_swanlab.finish = fake_finish
+
+    monkeypatch.setitem(sys.modules, "swanlab", fake_swanlab)
+    monkeypatch.setattr("satnav.training.recollect_trainer.RecollectionDataset", FakeDataset)
+
+    def fake_initialize_policy(self, config, load_from_ckpt, observation_space, action_space):
+        self.policy = object()
+        self.optimizer = types.SimpleNamespace(param_groups=[{"lr": config.IL.lr}])
+
+    monkeypatch.setattr(RecollectTrainer, "_initialize_policy", fake_initialize_policy)
+    monkeypatch.setattr(RecollectTrainer, "_update_agent", lambda self, *args, **kwargs: 0.5)
+
+    saved_checkpoints = []
+    monkeypatch.setattr(
+        RecollectTrainer,
+        "save_checkpoint",
+        lambda self, *args, **kwargs: saved_checkpoints.append((args, kwargs)),
+    )
+
+    config = OmegaConf.create(
+        {
+            "TORCH_GPU_ID": 0,
+            "CHECKPOINT_FOLDER": str(tmp_path / "checkpoints"),
+            "IL": {
+                "lr": 1e-4,
+                "batch_size": 1,
+                "epochs": 1,
+                "load_from_ckpt": False,
+                "RECOLLECT_TRAINER": {
+                    "preload_size": 1,
+                    "max_traj_len": 2,
+                    "use_scheduled_sampling": False,
+                    "scheduled_sampling_ratio": 0.0,
+                    "scheduled_sampling_p": 0.5,
+                },
+                "use_class_weighting": False,
+            },
+            "SWANLAB": {
+                "project": "SatNav",
+                "experiment_name": "test-cma",
+                "logdir": str(tmp_path / "swanlab"),
+                "mode": "local",
+                "use_wxwork_notification": False,
+            },
+        }
+    )
+
+    trainer = RecollectTrainer(config)
+    trainer.train()
+
+    assert len(init_calls) == 1
+    assert init_calls[0]["experiment_name"] == "test-cma"
+    assert any("train/loss" in metrics for metrics, _ in logs)
+    assert any("train/epoch_loss" in metrics for metrics, _ in logs)
+    assert finish_calls == [True]
+    assert saved_checkpoints, "expected best checkpoint to be saved"
 
 
 class TestBaseILTrainer:

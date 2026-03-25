@@ -185,3 +185,19 @@ class TestSaveConfig:
         assert loaded_config.TASK.SUCCESS_DISTANCE == original_config.TASK.SUCCESS_DISTANCE
         assert loaded_config.DATASET.SPLIT == original_config.DATASET.SPLIT
 
+
+def test_cma_config_defaults_to_offline_trainer():
+    """Test CMA baseline defaults to offline trainer and offline dataset paths."""
+    repo_root = Path(__file__).resolve().parent.parent
+    cfg_path = repo_root / "configs" / "baselines" / "cma.yaml"
+
+    config = OmegaConf.load(cfg_path)
+    base_cfg = OmegaConf.load(repo_root / "configs" / "default.yaml")
+    task_cfg = OmegaConf.load(repo_root / "configs" / "satnav_task.yaml")
+    merged = OmegaConf.merge(base_cfg, config)
+    merged = OmegaConf.merge(task_cfg, merged)
+
+    assert merged.TRAINER_NAME == "offline_trainer"
+    assert merged.IL.OFFLINE.annotations_path.endswith("trajectory_data/annotations.json")
+    assert merged.IL.OFFLINE.images_root.endswith("trajectory_data/images")
+    assert merged.CHECKPOINT_FOLDER == "output/cma/checkpoints/latest"

@@ -175,6 +175,33 @@ conda activate satnav
     - legacy: `output/seq2seq_offline/legacy`
     - artifacts: `output/seq2seq_offline/artifacts/{vocab_260317, embeddings_260317, smoke_260317}`
   - 历史顶层 `output/checkpoints`、`output/results`、`output/videos`、`output/logs`、`output/swanlab*` 如需收敛到新结构，使用 `scripts/seq2seq/organize_output.sh`
+
+## Seq2Seq DAgger Training (Updated: 2026-03-24)
+
+- 已新增在线聚合训练入口：`TRAINER_NAME=dagger_trainer`
+- 核心文件：
+  - `satnav/training/dagger_trainer.py`
+  - `satnav/dataset/dagger_dataset.py`
+  - `configs/baselines/seq2seq_dagger.yaml`
+- 设计定位：
+  - `offline_trainer`：纯离线预训练
+  - `recollect_trainer`：teacher-forcing recollection
+  - `dagger_trainer`：policy rollout + expert label + dataset aggregation
+- expert 复用 `ReferencePathFollower`
+- 聚合数据当前使用磁盘 `traj_*.pt` 轨迹文件，不依赖 `lmdb/msgpack`
+- 默认输出根目录：`output/seq2seq_dagger`
+  - checkpoints: `output/seq2seq_dagger/checkpoints/latest`
+  - results: `output/seq2seq_dagger/results/latest`
+  - datasets: `output/seq2seq_dagger/datasets/{split}`
+  - videos: `output/seq2seq_dagger/videos/latest`
+  - swanlab: `output/seq2seq_dagger/swanlab`
+- 默认训练流程：
+  1. 从 offline checkpoint 恢复
+  2. 按 `IL.DAGGER.iterations` 循环
+  3. 每轮先按 beta 混合 rollout 聚合 expert 标注轨迹
+  4. 再对聚合数据做监督训练
+  - `IL.DAGGER.update_size` 现按全局语义解释；多卡时每个 rank 只收 `ceil(update_size / world_size)` 条成功轨迹
+  - 聚合目录下额外维护 `manifest_rank*.tsv`，训练前优先读取 manifest 构建数据集，避免每轮全量 `torch.load` 扫描所有 `traj_*.pt`
 ## CMA Baseline (Updated: 2026-03-24)
 
 - 默认配置：`configs/baselines/cma.yaml`

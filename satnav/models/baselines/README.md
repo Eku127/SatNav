@@ -101,12 +101,16 @@ action, rnn_states = model.act(observations, rnn_states, prev_actions, masks)
 
 **Training:**
 ```bash
-# Train CMA model
+# Train CMA model (offline trajectory_data by default)
 python run.py --exp-config configs/baselines/cma.yaml --run-type train
 
 # Evaluate CMA model
 python run.py --exp-config configs/baselines/cma.yaml --run-type eval
 ```
+
+`configs/baselines/cma.yaml` now defaults to `offline_trainer`, reading pre-rendered
+trajectory images from `trajectory_data` instead of collecting data online with
+`RecollectTrainer`.
 
 ---
 
@@ -280,4 +284,3 @@ GENERATE_VIDEOS: false  # Set to true for video generation
 
 #### Note
 GreedyAgent requires environment access to get current position and extract waypoints from the reference path. This is automatically handled by the evaluator via the `set_env()` method, which is called at the start of each episode.
-
