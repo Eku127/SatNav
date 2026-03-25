@@ -11,7 +11,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -184,6 +184,8 @@ class Evaluator:
         print("=" * 80)
         
         episode_metrics = {}
+        episode_diagnostics = []
+        global_action_counts = self._make_action_counter()
         start_time = time.time()
         
         # Progress bar
@@ -210,6 +212,13 @@ class Evaluator:
                         'path_length': metrics['path_length'],
                         'steps_taken': metrics['steps_taken'],
                     }
+                    diagnostics = metrics.get('diagnostics')
+                    if diagnostics is not None:
+                        episode_diagnostics.append(diagnostics)
+                        self._merge_action_counts(
+                            global_action_counts,
+                            diagnostics.get('action_counts', {}),
+                        )
                     
                     # Update progress bar
                     pbar.update(1)
@@ -245,6 +254,13 @@ class Evaluator:
         if save_results:
             results_file = self._save_results(aggregated_metrics, checkpoint_index, split)
             print(f"\nResults saved to: {results_file}")
+            diagnostics_file = self._save_diagnostics(
+                episode_diagnostics=episode_diagnostics,
+                global_action_counts=global_action_counts,
+                checkpoint_index=checkpoint_index,
+                split=split,
+            )
+            print(f"Diagnostics saved to: {diagnostics_file}")
         
         # ===================================================================
         # 7. Print summary
@@ -336,11 +352,18 @@ class Evaluator:
         # Collect frames for video
         rgb_frames = []
         topdown_frames = []
+        action_names = {0: "STOP", 1: "MOVE_FORWARD", 2: "TURN_LEFT", 3: "TURN_RIGHT"}
+        action_counts = self._make_action_counter()
+        action_preview: List[str] = []
+        action_preview_limit = 30
+        initial_metrics = env.get_metrics()
+        initial_distance = float(initial_metrics.get('distance_to_goal', 0.0))
+        min_distance = initial_distance
+        success_distance = self._get_success_distance_for_episode(episode)
         
         # Prepare waypoints once (for video annotation)
         if video_enabled:
             waypoints = prepare_waypoints(episode)
-            action_names = {0: "STOP", 1: "MOVE_FORWARD", 2: "TURN_LEFT", 3: "TURN_RIGHT"}
         
         # Initialize model state for this episode
         # Let the model create its own initial state based on its architecture
@@ -371,7 +394,13 @@ class Evaluator:
             
             # Execute action
             action_idx = actions[0].item()
+            action_name = action_names.get(action_idx, f"UNKNOWN_{action_idx}")
+            action_counts[action_name] = action_counts.get(action_name, 0) + 1
+            if len(action_preview) < action_preview_limit:
+                action_preview.append(action_name)
             obs, done, info = env.step(action_idx)
+            current_distance = float(info.get('metrics', {}).get('distance_to_goal', 0.0))
+            min_distance = min(min_distance, current_distance)
             
             # Tokenize instruction in new observation
             obs = self._tokenize_instruction(obs, vocab)
@@ -459,14 +488,135 @@ class Evaluator:
         
         # Return episode metrics
         ep_id = episode.episode_id
+        final_distance = float(metrics.get('distance_to_goal', 0.0))
+        success = float(metrics.get('success', 0.0))
+        stop_called = bool(env._task.is_stop_called)
+        distance_reduction = initial_distance - final_distance
+        best_distance_reduction = initial_distance - min_distance
+        if success >= 1.0:
+            failure_mode = "success"
+        elif not stop_called and step_count >= max_steps:
+            if min_distance <= success_distance:
+                failure_mode = "reached_goal_area_but_no_stop"
+            elif distance_reduction > 0:
+                failure_mode = "timeout_without_stop_some_progress"
+            else:
+                failure_mode = "timeout_without_stop_no_progress"
+        elif stop_called and final_distance > success_distance:
+            failure_mode = "stopped_too_far"
+        else:
+            failure_mode = "failure_other"
+
         return {
             'episode_id': ep_id,
             'spl': float(metrics.get('spl', 0.0)),
-            'success': float(metrics.get('success', 0.0)),
-            'distance_to_goal': float(metrics.get('distance_to_goal', 0.0)),
+            'success': success,
+            'distance_to_goal': final_distance,
             'path_length': float(metrics.get('path_length', 0.0)),
             'steps_taken': step_count,
+            'diagnostics': {
+                'episode_id': ep_id,
+                'scene_id': episode.scene_id,
+                'trajectory_id': episode.trajectory_id,
+                'trajectory_type': episode.trajectory_type,
+                'instruction_text': episode.instruction.instruction_text,
+                'success': success,
+                'stop_called': stop_called,
+                'terminated_by': 'stop' if stop_called else 'max_steps',
+                'steps_taken': step_count,
+                'success_distance': success_distance,
+                'initial_distance_to_goal': initial_distance,
+                'final_distance_to_goal': final_distance,
+                'min_distance_to_goal': min_distance,
+                'distance_reduction': distance_reduction,
+                'best_distance_reduction': best_distance_reduction,
+                'path_length': float(metrics.get('path_length', 0.0)),
+                'spl': float(metrics.get('spl', 0.0)),
+                'action_counts': action_counts,
+                'action_distribution': self._compute_action_distribution(action_counts),
+                'action_preview': action_preview,
+                'failure_mode': failure_mode,
+            },
         }
+
+    def _make_action_counter(self) -> Dict[str, int]:
+        """Create a zero-initialized action counter."""
+        return {
+            "STOP": 0,
+            "MOVE_FORWARD": 0,
+            "TURN_LEFT": 0,
+            "TURN_RIGHT": 0,
+        }
+
+    def _merge_action_counts(
+        self,
+        total_counts: Dict[str, int],
+        episode_counts: Dict[str, int],
+    ) -> None:
+        """Accumulate per-episode action counts into a global counter."""
+        for action_name, count in episode_counts.items():
+            total_counts[action_name] = total_counts.get(action_name, 0) + int(count)
+
+    def _compute_action_distribution(self, action_counts: Dict[str, int]) -> Dict[str, float]:
+        """Normalize action counts into probabilities."""
+        total = sum(action_counts.values())
+        if total <= 0:
+            return {action_name: 0.0 for action_name in action_counts}
+        return {
+            action_name: count / total for action_name, count in action_counts.items()
+        }
+
+    def _get_success_distance_for_episode(self, episode: Any) -> float:
+        """Resolve success distance for the current episode's trajectory type."""
+        default_distance = get_success_distance_default(self.config)
+        task_config = getattr(self.config, "TASK", None)
+        if task_config is None:
+            return default_distance
+
+        success_distance_config = getattr(task_config, "SUCCESS_DISTANCE", default_distance)
+        trajectory_type = getattr(episode, "trajectory_type", None)
+
+        if isinstance(success_distance_config, (int, float)):
+            return float(success_distance_config)
+        if isinstance(success_distance_config, dict):
+            return float(success_distance_config.get(trajectory_type, success_distance_config.get("DEFAULT", default_distance)))
+        if trajectory_type is not None and hasattr(success_distance_config, trajectory_type):
+            return float(getattr(success_distance_config, trajectory_type))
+        if hasattr(success_distance_config, "DEFAULT"):
+            return float(success_distance_config.DEFAULT)
+        return default_distance
+
+    def _save_diagnostics(
+        self,
+        episode_diagnostics: List[Dict[str, Any]],
+        global_action_counts: Dict[str, int],
+        checkpoint_index: int,
+        split: str,
+    ) -> Path:
+        """Save detailed per-episode diagnostics for failure analysis."""
+        results_dir = Path(self.config.get('RESULTS_DIR', 'data/results/default'))
+        results_dir.mkdir(parents=True, exist_ok=True)
+
+        failure_mode_counts: Dict[str, int] = {}
+        for diagnostics in episode_diagnostics:
+            failure_mode = diagnostics.get('failure_mode', 'unknown')
+            failure_mode_counts[failure_mode] = failure_mode_counts.get(failure_mode, 0) + 1
+
+        diagnostics_payload = {
+            'checkpoint_index': checkpoint_index,
+            'split': split,
+            'num_episodes': len(episode_diagnostics),
+            'global_action_counts': global_action_counts,
+            'global_action_distribution': self._compute_action_distribution(global_action_counts),
+            'failure_mode_counts': failure_mode_counts,
+            'episodes': episode_diagnostics,
+        }
+
+        diagnostics_file = results_dir / f"eval_ckpt_{checkpoint_index}_{split}_diagnostics.json"
+        with open(diagnostics_file, 'w') as f:
+            json.dump(diagnostics_payload, f, indent=4)
+
+        return diagnostics_file
     
     def _generate_video(
         self,
@@ -593,4 +743,3 @@ class Evaluator:
             if metric_name not in ['num_episodes', 'split', 'checkpoint_index']:
                 print(f"  {metric_name}: {value:.4f}")
         print("=" * 80)
-
