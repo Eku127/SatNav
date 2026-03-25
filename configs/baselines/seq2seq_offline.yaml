@@ -60,10 +60,10 @@ IL:
 
   use_class_weighting: true
   class_weights:
-    STOP: 1.0
-    MOVE_FORWARD: 0.1
-    TURN_LEFT: 10.0
-    TURN_RIGHT: 10.0
+    STOP: 2.0
+    MOVE_FORWARD: 1.0
+    TURN_LEFT: 1.5
+    TURN_RIGHT: 1.5
 
 # ============================================================================
 # DDP（单卡时忽略）
