@@ -8,13 +8,13 @@ Usage:
     python -m applications.trajectory_generation.generate_parallel \
         --config configs/satnav_task.yaml \
         --output_dir /path/to/output \
-        --num_workers 24
+        --num_workers 72
 
 Example:
     python -m applications.trajectory_generation.generate_parallel \
         --config configs/satnav_task.yaml \
         --output_dir output/trajectory_data \
-        --num_workers 24
+        --num_workers 72
 
 Scene affinity is enabled by default: episodes are sorted by scene so each
 worker processes episodes from a small number of TIF files, dramatically
@@ -371,7 +371,7 @@ def main():
         "--num_workers",
         type=int,
         default=None,
-        help="Number of worker processes (default: min(num_scenes, CPU//4, 24))"
+        help="Number of worker processes (default: min(num_scenes, CPU//4, 72))"
     )
 
     parser.add_argument(
@@ -425,9 +425,9 @@ def main():
         for sid in sorted(scene_to_episodes.keys()):
             episode_indices.extend(scene_to_episodes[sid])
 
-        # Default workers: one worker per scene up to CPU//4, capped at 24.
+        # Default workers: one worker per scene up to CPU//4, capped at 72.
         # This ensures each worker "owns" roughly 1-3 scenes in its chunk.
-        default_workers = min(num_scenes, max(1, cpu_count() // 4), 24)
+        default_workers = min(num_scenes, max(1, cpu_count() // 4), 72)
         num_workers = args.num_workers or default_workers
 
         # chunksize: divide sorted list into num_workers contiguous blocks.
@@ -438,7 +438,7 @@ def main():
               f"~{len(episode_indices) // num_scenes} episodes/scene, "
               f"chunksize={chunksize}")
     else:
-        num_workers = args.num_workers or min(cpu_count() // 4, 24)
+        num_workers = args.num_workers or min(cpu_count() // 4, 72)
         print("Scene affinity: disabled")
 
     print("=" * 60)
