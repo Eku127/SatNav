@@ -103,6 +103,31 @@ conda activate satnav
 - 新增 baseline 配置请放入 `configs/baselines/` 目录。
 - 测试用例放入 `tests/`，并通过 `pytest` 运行。
 
+## Seq2Seq Eval Infrastructure (Updated: 2026-03-24)
+
+- 评测入口脚本：`scripts/seq2seq/eval.sh`
+- 评测专用配置：`configs/baselines/seq2seq_eval.yaml`
+- 调用方式：
+  ```bash
+  # 按实验名评测（推荐）
+  bash scripts/seq2seq/eval.sh <exp_name> [split] [max_episodes]
+  # 例：
+  bash scripts/seq2seq/eval.sh seq2seq-offline-ddp-g8-bs64-lr3e-4-20260320-164653 val_seen
+  bash scripts/seq2seq/eval.sh seq2seq-offline-ddp-g8-bs64-lr3e-4-20260320-164653 val_seen 20
+
+  # 直接指定 checkpoint 路径
+  bash scripts/seq2seq/eval.sh /path/to/best.pth val_seen
+  ```
+- 默认 split：`val_seen`（`val_unseen` 当前暂无 episodes）
+- 输出约定：`output/seq2seq_offline/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
+- 依赖 `satnav` conda 环境（脚本内自动 activate）
+- 使用 `offline_trainer.eval()` 入口：
+  1. `OfflineTrajectoryDataset` 提供 obs/action space 供 policy 初始化
+  2. `SatNavDataset` + `Env`（仿真器 online rollout）运行完整 episode
+  3. `Evaluator` 记录 spl / success / distance_to_goal / path_length
+- `DATA_PATH` 使用 `{split}` 占位符，自动展开 eval split 路径
+- 评测需要 SCENES_DIR（卫星 TIF 图）；不支持无仿真器的离线评测
+
 ## Offline Training (Updated: 2026-03-24)
 
 - 已新增离线训练入口：`TRAINER_NAME=offline_trainer`
@@ -150,12 +175,42 @@ conda activate satnav
     - legacy: `output/seq2seq_offline/legacy`
     - artifacts: `output/seq2seq_offline/artifacts/{vocab_260317, embeddings_260317, smoke_260317}`
   - 历史顶层 `output/checkpoints`、`output/results`、`output/videos`、`output/logs`、`output/swanlab*` 如需收敛到新结构，使用 `scripts/seq2seq/organize_output.sh`
+
+## Seq2Seq DAgger Training (Updated: 2026-03-24)
+
+- 已新增在线聚合训练入口：`TRAINER_NAME=dagger_trainer`
+- 核心文件：
+  - `satnav/training/dagger_trainer.py`
+  - `satnav/dataset/dagger_dataset.py`
+  - `configs/baselines/seq2seq_dagger.yaml`
+- 设计定位：
+  - `offline_trainer`：纯离线预训练
+  - `recollect_trainer`：teacher-forcing recollection
+  - `dagger_trainer`：policy rollout + expert label + dataset aggregation
+- expert 复用 `ReferencePathFollower`
+- 聚合数据当前使用磁盘 `traj_*.pt` 轨迹文件，不依赖 `lmdb/msgpack`
+- 默认输出根目录：`output/seq2seq_dagger`
+  - checkpoints: `output/seq2seq_dagger/checkpoints/latest`
+  - results: `output/seq2seq_dagger/results/latest`
+  - datasets: `output/seq2seq_dagger/datasets/{split}`
+  - videos: `output/seq2seq_dagger/videos/latest`
+  - swanlab: `output/seq2seq_dagger/swanlab`
+- 默认训练流程：
+  1. 从 offline checkpoint 恢复
+  2. 按 `IL.DAGGER.iterations` 循环
+  3. 每轮先按 beta 混合 rollout 聚合 expert 标注轨迹
+  4. 再对聚合数据做监督训练
+  - `IL.DAGGER.update_size` 现按全局语义解释；多卡时每个 rank 只收 `ceil(update_size / world_size)` 条成功轨迹
+  - 聚合目录下额外维护 `manifest_rank*.tsv`，训练前优先读取 manifest 构建数据集，避免每轮全量 `torch.load` 扫描所有 `traj_*.pt`
 ## CMA Baseline (Updated: 2026-03-24)
 
 - 默认配置：`configs/baselines/cma.yaml`
+- 评测配置：`configs/baselines/cma_eval.yaml`
 - 默认脚本：
   - `scripts/cma/train.sh`
   - `scripts/cma/train_ddp.sh`
+  - `scripts/cma/eval.sh`
+- 默认训练入口：`TRAINER_NAME=offline_trainer`
 - 默认输出根目录：`output/cma`
 - 运行产物默认写入：
   - checkpoints: `output/cma/checkpoints/<EXP_NAME>`（脚本模式）
@@ -164,11 +219,42 @@ conda activate satnav
   - logs: `output/cma/logs/<EXP_NAME>.log`
   - swanlab: `output/cma/swanlab`
 - 直接用 `run.py` 时，`configs/baselines/cma.yaml` 的默认路径为：
-  - checkpoint: `output/cma/checkpoints/default`
-  - results: `output/cma/results/default`
-  - videos: `output/cma/videos/default`
-  - 已支持 `SWANLAB.*` 与 `OUTPUT_ROOT` 配置；脚本默认通过 SwanLab `cloud` 模式写入上述目录树
+  - checkpoint: `output/cma/checkpoints/latest`
+  - results: `output/cma/results/latest`
+  - videos: `output/cma/videos/latest`
+  - 默认离线数据源：
+    - annotations: `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/annotations.json`
+    - images: `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/images`
+    - vocab: `output/seq2seq_offline/artifacts/vocab/train_vocab_260317.json`（与 seq2seq 共用）
+    - embeddings: `output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.gz`（与 seq2seq 共用）
+  - 已支持 `SWANLAB.*` 与 `OUTPUT_ROOT` 配置；`scripts/cma/train_ddp.sh` 默认启用 SwanLab `cloud`
+  - `offline_trainer` 记录的 SwanLab 口径：
+    - step 级：`train/loss`, `train/epoch`, `train/learning_rate`
+    - epoch 级：`train/epoch_loss`, `train/epoch_time`
+  - 训练完成后脚本会更新 `output/cma/checkpoints/latest -> <EXP_NAME>`
   - Python 3.8 + `swanlab==0.7.13` 下，`WxWebhookCallback` 在当前环境有兼容性问题，基础监控可用，企业微信通知暂不默认开启
+- class_weights（与 seq2seq 对齐，2026-03-24）：STOP=2.0, MOVE_FORWARD=1.0, TURN_LEFT=1.5, TURN_RIGHT=1.5
+- `INSTRUCTION_ENCODER.final_state_only: false`（CMA 架构需要所有时间步隐藏状态做 cross-attention）
+
+## CMA Eval Infrastructure (Updated: 2026-03-24)
+
+- 评测入口脚本：`scripts/cma/eval.sh`
+- 评测专用配置：`configs/baselines/cma_eval.yaml`
+- 调用方式：
+  ```bash
+  # 按实验名评测（推荐）
+  bash scripts/cma/eval.sh <exp_name> [split] [max_episodes]
+  # 例：
+  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260320-164653 val_seen
+  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260320-164653 val_seen 20
+
+  # 直接指定 checkpoint 路径
+  bash scripts/cma/eval.sh /path/to/best.pth val_seen
+  ```
+- 默认 split：`val_seen`（`val_unseen` 当前暂无 episodes）
+- 输出约定：`output/cma/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
+- 依赖 `satnav` conda 环境（脚本内自动 activate）
+- eval 流程与 seq2seq 完全一致（同一 `offline_trainer.eval()` 入口）
 
 ## Webhook
 

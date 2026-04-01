@@ -3,7 +3,7 @@
 
 import os
 import time
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import tqdm
@@ -25,70 +25,6 @@ class OfflineTrainer(BaseILTrainer):
     def __init__(self, config: DictConfig):
         super().__init__(config)
         self.dataset: Optional[OfflineTrajectoryDataset] = None
-
-    # ------------------------------------------------------------------
-    # SwanLab helpers
-    # ------------------------------------------------------------------
-
-    def _init_swanlab(self) -> Tuple[Optional[object], bool]:
-        """Initialize SwanLab logging. Returns (swanlab_module, use_swanlab)."""
-        swanlab_cfg = getattr(self.config, "SWANLAB", {})
-        if getattr(swanlab_cfg, "mode", "disabled") == "disabled":
-            if is_main_process(self.config):
-                print("SwanLab logging disabled")
-            return None, False
-
-        if not is_main_process(self.config):
-            return None, False
-
-        try:
-            import swanlab
-
-            callbacks = []
-            if bool(getattr(swanlab_cfg, "use_wxwork_notification", False)):
-                webhook_url = getattr(swanlab_cfg, "webhook_url", None)
-                if webhook_url:
-                    try:
-                        from swanlab.plugin.notification import WxWebhookCallback
-
-                        callbacks.append(
-                            WxWebhookCallback(
-                                webhook_url=webhook_url,
-                                secret=getattr(swanlab_cfg, "secret", None),
-                            )
-                        )
-                    except Exception as exc:
-                        print(
-                            f"Warning: SwanLab WXWork callback failed, "
-                            f"continuing without notifications: {exc}"
-                        )
-                else:
-                    print(
-                        "Warning: SWANLAB.webhook_url is empty, "
-                        "skipping WXWork notification"
-                    )
-
-            swanlab.init(
-                project=getattr(swanlab_cfg, "project", "SatNav"),
-                workspace=getattr(swanlab_cfg, "workspace", None),
-                experiment_name=getattr(swanlab_cfg, "experiment_name", "offline-seq2seq"),
-                config=OmegaConf.to_container(self.config, resolve=True),
-                logdir=getattr(swanlab_cfg, "logdir", "output/seq2seq_offline/swanlab"),
-                mode=getattr(swanlab_cfg, "mode", "local"),
-                callbacks=callbacks or None,
-            )
-            return swanlab, True
-
-        except ImportError:
-            print("Warning: swanlab not installed, continuing without logging")
-            return None, False
-        except Exception as exc:
-            print(f"Warning: SwanLab initialization failed, continuing without logging: {exc}")
-            return None, False
-
-    # ------------------------------------------------------------------
-    # Training
-    # ------------------------------------------------------------------
 
     def train(self) -> None:
         print("=" * 80)

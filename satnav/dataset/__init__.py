@@ -1,7 +1,33 @@
-"""Dataset loading for SatNav."""
+"""Dataset loading for SatNav.
 
-from satnav.dataset.satnav_dataset import SatNavDataset
+Keep package imports lightweight.
+
+`RecollectionDataset` pulls in the training package, which in turn imports the
+evaluator and environment stack. Import it lazily here to avoid circular import
+failures when evaluation code only needs `SatNavDataset`.
+"""
+
 from satnav.dataset.offline_trajectory_dataset import OfflineTrajectoryDataset
-from satnav.dataset.recollect_dataset import RecollectionDataset
+from satnav.dataset.satnav_dataset import SatNavDataset
 
-__all__ = ["SatNavDataset", "RecollectionDataset", "OfflineTrajectoryDataset"]
+__all__ = [
+    "SatNavDataset",
+    "RecollectionDataset",
+    "OfflineTrajectoryDataset",
+    "DaggerCollector",
+    "DaggerTrajectoryDataset",
+]
+
+
+def __getattr__(name):
+    if name == "RecollectionDataset":
+        from satnav.dataset.recollect_dataset import RecollectionDataset
+
+        return RecollectionDataset
+    if name in ("DaggerCollector", "DaggerTrajectoryDataset"):
+        from satnav.dataset.dagger_dataset import DaggerCollector, DaggerTrajectoryDataset
+
+        if name == "DaggerCollector":
+            return DaggerCollector
+        return DaggerTrajectoryDataset
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
