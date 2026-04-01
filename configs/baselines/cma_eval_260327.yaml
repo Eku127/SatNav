@@ -1,0 +1,79 @@
+# CMA Eval Config — ver_260327 在线仿真器评测
+#
+# 基于 configs/baselines/cma_eval.yaml
+# 仅切换到 260327 数据路径，模型与词表/embedding 维持与训练一致。
+
+_base_: configs/default.yaml
+
+BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml
+
+TRAINER_NAME: offline_trainer
+
+# ============================================================================
+# DIRECTORIES
+# ============================================================================
+CHECKPOINT_FOLDER: output/cma/checkpoints/latest
+RESULTS_DIR: output/cma/results/latest
+VIDEO_DIR: output/cma/videos/latest
+GENERATE_VIDEOS: false
+
+# ============================================================================
+# DATASET (ver_260327)
+# ============================================================================
+DATASET:
+  SPLIT: val_seen
+  DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260327/episodes/eval/{split}/all_episodes.json
+  SCENES_DIR: /mnt/data3/jiangjiajun/dataset/satnav_datasets/scenes
+  vocab_file: output/seq2seq_offline/artifacts/vocab/train_vocab_260317.json
+
+# ============================================================================
+# EVALUATION
+# ============================================================================
+EVAL:
+  SPLIT: val_seen
+  EPISODE_COUNT: -1
+  SAVE_RESULTS: true
+  CKPT_PATH: output/cma/checkpoints/latest/best.pth
+
+# ============================================================================
+# IL.OFFLINE
+# 评测阶段仅用于初始化 policy 的 observation/action space，不实际加载图片。
+# ============================================================================
+IL:
+  load_from_ckpt: false
+  ckpt_to_load: output/cma/checkpoints/latest/best.pth
+  OFFLINE:
+    annotations_path: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260327/trajectory_data/annotations.json
+    images_root: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260327/trajectory_data/images
+    num_workers: 0
+    pin_memory: false
+    max_traj_len: 500
+    max_instruction_len: 200
+    rgb_size: 224
+
+# ============================================================================
+# MODEL — 与训练保持一致
+# ============================================================================
+MODEL:
+  policy_name: cma
+
+  INSTRUCTION_ENCODER:
+    use_pretrained_embeddings: true
+    embedding_file: output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.gz
+    fine_tune_embeddings: false
+    embedding_size: 50
+    vocab_size: 5395
+    bidirectional: true
+    final_state_only: false
+
+  CMA:
+    hidden_size: 512
+    rnn_type: GRU
+    use_prev_action: true
+
+# ============================================================================
+# SwanLab — 评测不启用
+# ============================================================================
+SWANLAB:
+  mode: disabled
+

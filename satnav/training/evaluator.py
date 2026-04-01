@@ -81,7 +81,9 @@ class Evaluator:
         # Get evaluation config
         split = OmegaConf.select(self.config, 'EVAL.SPLIT', default='val_seen')
         episode_count = OmegaConf.select(self.config, 'EVAL.EPISODE_COUNT', default=-1)
+        episode_offset = int(OmegaConf.select(self.config, 'EVAL.EPISODE_OFFSET', default=0))
         save_results = OmegaConf.select(self.config, 'EVAL.SAVE_RESULTS', default=True)
+        min_stop_steps = int(OmegaConf.select(self.config, 'EVAL.MIN_STOP_STEPS', default=0))
         
         # Video generation: support both boolean (GENERATE_VIDEOS) and legacy (VIDEO_OPTION) formats
         generate_videos = OmegaConf.select(self.config, 'GENERATE_VIDEOS', default=False)
@@ -107,9 +109,12 @@ class Evaluator:
         
         print(f"Evaluation configuration:")
         print(f"  Split: {split}")
+        print(f"  Episode offset: {episode_offset}")
         print(f"  Episode count: {episode_count if episode_count > 0 else 'all'}")
         print(f"  Save results: {save_results}")
         print(f"  Video generation: {'Enabled' if video_enabled else 'Disabled'}")
+        if min_stop_steps > 0:
+            print(f"  Min stop steps: {min_stop_steps} (STOP suppressed before this step)")
         
         # ===================================================================
         # 1. Load checkpoint (skip for non-learning agents)
@@ -144,14 +149,20 @@ class Evaluator:
         # Create dataset with synced DATASET.SPLIT
         dataset = SatNavDataset(self.config.DATASET)
         num_episodes_total = len(dataset.episodes)
-        
+
+        # Apply episode offset for parallel eval sharding
+        if episode_offset > 0:
+            dataset.episodes = dataset.episodes[episode_offset:]
+
         # Determine number of episodes to evaluate
         if episode_count > 0:
-            num_episodes = min(episode_count, num_episodes_total)
+            num_episodes = min(episode_count, len(dataset.episodes))
         else:
-            num_episodes = num_episodes_total
-        
+            num_episodes = len(dataset.episodes)
+
         print(f"  Dataset: {num_episodes_total} episodes ({split} split)")
+        if episode_offset > 0:
+            print(f"  Shard: episodes [{episode_offset}, {episode_offset + num_episodes})")
         print(f"  Evaluating: {num_episodes} episodes")
         
         # Create environment
@@ -200,18 +211,21 @@ class Evaluator:
                     max_steps=max_steps,
                     video_enabled=video_enabled,
                     video_dir=video_dir,  # Already converted to Path or None
-                    checkpoint_index=checkpoint_index
+                    checkpoint_index=checkpoint_index,
+                    min_stop_steps=min_stop_steps,
                 )
                 
                 if metrics:
-                    ep_id = metrics['episode_id']
-                    episode_metrics[ep_id] = {
+                    ep_entry = {
                         'spl': metrics['spl'],
                         'success': metrics['success'],
                         'distance_to_goal': metrics['distance_to_goal'],
                         'path_length': metrics['path_length'],
                         'steps_taken': metrics['steps_taken'],
                     }
+                    # Use ep_idx as key to avoid collision: same episode_id can appear
+                    # multiple times (one per instruction) in multi-instruction datasets.
+                    episode_metrics[ep_idx] = ep_entry
                     diagnostics = metrics.get('diagnostics')
                     if diagnostics is not None:
                         episode_diagnostics.append(diagnostics)
@@ -223,8 +237,8 @@ class Evaluator:
                     # Update progress bar
                     pbar.update(1)
                     pbar.set_postfix({
-                        'SPL': f"{episode_metrics[ep_id]['spl']:.3f}",
-                        'Success': f"{episode_metrics[ep_id]['success']:.0f}"
+                        'SPL': f"{ep_entry['spl']:.3f}",
+                        'Success': f"{ep_entry['success']:.0f}"
                     })
                 else:
                     pbar.update(1)
@@ -318,7 +332,8 @@ class Evaluator:
         max_steps: int,
         video_enabled: bool,
         video_dir: Optional[Path],
-        checkpoint_index: int
+        checkpoint_index: int,
+        min_stop_steps: int = 0,
     ) -> Optional[Dict[str, Any]]:
         """Evaluate a single episode.
         
@@ -394,6 +409,9 @@ class Evaluator:
             
             # Execute action
             action_idx = actions[0].item()
+            # Suppress STOP before min_stop_steps to avoid trivial early-stop behavior.
+            if min_stop_steps > 0 and action_idx == 0 and step_count < min_stop_steps:
+                action_idx = 1  # override to MOVE_FORWARD
             action_name = action_names.get(action_idx, f"UNKNOWN_{action_idx}")
             action_counts[action_name] = action_counts.get(action_name, 0) + 1
             if len(action_preview) < action_preview_limit:

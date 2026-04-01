@@ -11,6 +11,10 @@
 #
 # 唯一默认训练路径：offline_trainer，不启动仿真器，直接读磁盘预渲染图片。
 #
+# class_weights 说明（20260326 诊断后修正）：
+#   首轮训练 STOP=2.0 导致策略塌到"早停"（99.3% stopped_too_far，mean_steps=10.7）。
+#   修正为 STOP=0.3，SR 从 0.27% 提升至 9.43%，mean_steps 从 10.7 升至 70.9。
+#
 # Usage:
 #   单卡:  python run.py --exp-config configs/baselines/cma.yaml --run-type train
 #   多卡:  bash scripts/cma/train_ddp.sh
@@ -71,11 +75,11 @@ IL:
     scheduled_sampling_p: 0.5
   
   use_inflection_weighting: true
-  inflection_weight_coef: 3.2
-  
+  inflection_weight_coef: 2.0
+
   use_class_weighting: true
   class_weights:
-    STOP: 2.0
+    STOP: 0.3
     MOVE_FORWARD: 1.0
     TURN_LEFT: 1.5
     TURN_RIGHT: 1.5
