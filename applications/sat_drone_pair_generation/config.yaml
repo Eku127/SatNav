@@ -1,0 +1,111 @@
+# Sat-Drone Pair Generation default config
+#
+# The launcher reads this file by default:
+#   python -m applications.sat_drone_pair_generation <dataset> <command>
+#
+# You can also override the config path:
+#   python -m applications.sat_drone_pair_generation --config /path/to/config.yaml <dataset> <command>
+#
+# Supported sections for each dataset command:
+# - input:  source dataset paths and required input files
+# - output: output directory / output file paths
+# - args:   other optional CLI flags or values
+#
+# CLI arguments still win over config values.
+
+DATASETS:
+  denseuav:
+    build_pairs:
+      input:
+        dataset_root: /mnt/data1/home/jiangjiajun/workspace/SatDronePair/DenseUAV/data/DenseUAV/DenseUAV
+      output:
+        output_dir: /mnt/data3/jiangjiajun/dataset/SatDronePair/denseuav
+      args:
+        workers: 16
+    sample_preview:
+      input:
+        dataset_dir: /mnt/data3/jiangjiajun/dataset/SatDronePair/denseuav
+      output:
+        output: /mnt/data3/jiangjiajun/dataset/SatDronePair/denseuav/samples_preview.jpg
+      args:
+        rows: 4
+        seed: 42
+
+  gta_uav:
+    build_pairs:
+      input:
+        data_root: /mnt/data1/home/jiangjiajun/workspace/SatDronePair/GTA-UAV/data/GTA-UAV-LR
+      output:
+        output_dir: /mnt/data3/jiangjiajun/dataset/SatDronePair/gta
+      args:
+        workers: 8
+    sample_preview:
+      input:
+        dataset_dir: /mnt/data3/jiangjiajun/dataset/SatDronePair/gta
+      output:
+        output: /mnt/data3/jiangjiajun/dataset/SatDronePair/gta/samples_preview.jpg
+
+  sues:
+    pipeline:
+      input:
+        data_root: /mnt/data1/home/jiangjiajun/workspace/SatDronePair/SUES-200-Benchmark/data/SUES-200-512x512
+      output:
+        output_dir: /mnt/data3/jiangjiajun/dataset/SatDronePair/sues
+      args:
+        heights: "150,200,250,300"
+        nadir_min_conf: 0.30
+        crop_sizes: "384,256"
+
+  uavvisloc:
+    export_selected:
+      input:
+        data_root: /mnt/data1/home/jiangjiajun/workspace/SatDronePair/UAV-VisLoc/data
+        sat_bounds_csv: "/mnt/data1/home/jiangjiajun/workspace/SatDronePair/UAV-VisLoc/satellite_ coordinates_range.csv"
+      output:
+        output_dir: /mnt/data3/jiangjiajun/dataset/SatDronePair/uavvisloc
+      args:
+        allow_missing_pose: true
+    sample_preview:
+      input:
+        dataset_dir: /mnt/data3/jiangjiajun/dataset/SatDronePair/uavvisloc
+      output:
+        output: /mnt/data3/jiangjiajun/dataset/SatDronePair/uavvisloc/samples_preview.jpg
+
+# Example:
+#
+# DATASETS:
+#   denseuav:
+#     build_pairs:
+#       input:
+#         dataset_root: /path/to/DenseUAV/DenseUAV
+#       output:
+#         output_dir: /path/to/output/denseuav
+#       args:
+#         workers: 16
+#
+#   gta_uav:
+#     build_pairs:
+#       input:
+#         data_root: /path/to/GTA-UAV-LR
+#       output:
+#         output_dir: /path/to/output/gta_uav
+#
+#   sues:
+#     pipeline:
+#       input:
+#         data_root: /path/to/SUES-200-512x512
+#       output:
+#         output_dir: /path/to/output/sues
+#       args:
+#         heights: "150,200,250,300"
+#         nadir_min_conf: 0.30
+#
+#   uavvisloc:
+#     export_selected:
+#       input:
+#         data_root: /path/to/UAV-VisLoc/data
+#         sat_bounds_csv: /path/to/satellite_coordinates_range.csv
+#       output:
+#         output_dir: /path/to/output/uavvisloc
+#       args:
+#         allow_missing_pose: true

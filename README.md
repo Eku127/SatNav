@@ -709,6 +709,39 @@ python -m applications.aerial_viewer
 
 详细文档：`applications/aerial_viewer/README.md`
 
+### 8.4 Sat-Drone Pair Generation（配对数据生产）
+
+用于从多个公开数据源构建 sat-drone image pair 数据集的应用，位于 `applications/sat_drone_pair_generation/`。
+
+当前纳入的数据源：
+
+- `denseuav`
+- `gta_uav`
+- `sues`
+- `uavvisloc`
+
+**设计约束**：
+- 保留各数据源原有 build/export 脚本边界
+- 不改原有生产逻辑
+- 统一入口仅负责路由和仓内模块化运行
+
+**快速开始**：
+```bash
+python -m applications.sat_drone_pair_generation denseuav build_pairs --help
+python -m applications.sat_drone_pair_generation gta-uav build_pairs --help
+python -m applications.sat_drone_pair_generation sues pipeline --help
+python -m applications.sat_drone_pair_generation uavvisloc export_selected --help
+```
+
+**说明**：
+- 推荐使用仓库现有 `satnav` conda 环境
+- 当前主流程依赖可由 SatNav 现有环境直接满足
+- `gta-uav` / `uav-visloc` 会自动映射到仓内模块名 `gta_uav` / `uavvisloc`
+- 默认会读取 `applications/sat_drone_pair_generation/config.yaml`
+- 可把常用数据路径写到配置中的 `input` / `output`，命令行显式传参会覆盖配置值
+
+详细文档：`applications/sat_drone_pair_generation/README.md`
+
 ---
 
 ## 9. 项目结构
@@ -785,11 +818,13 @@ SatNav/
 │   ├── test_training.py       # 训练测试
 │   └── test_geoutils.py
 ├── applications/             # 应用工具
+│   ├── trajectory_generation/       # 轨迹生成
 │   ├── satsim_viewer/       # 交互式查看器
 │   │   ├── free_viewer.py   # 自由探索查看器
 │   │   └── task_viewer.py   # 任务查看器
 │   ├── aerial_viewer/        # 3D 航拍查看器
-│   └── map_downloader/      # 地图下载器
+│   ├── map_downloader/      # 地图下载器
+│   └── sat_drone_pair_generation/  # sat-drone 配对数据生产
 ├── doc/                      # 文档目录 ⭐
 │   ├── CONFIG_SYSTEM.md      # 配置系统文档
 │   ├── EMBEDDING_GUIDE.md    # Embedding 指南
