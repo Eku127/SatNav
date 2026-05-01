@@ -269,8 +269,8 @@ class TestGetViewBounds:
         
         # Wide camera should have wider bounds
         assert width_w > width_sq
-        # Heights should be approximately the same
-        assert abs(height_w - height_sq) / height_sq < 0.1
+        # With a fixed horizontal FOV, a wider aspect ratio reduces vertical coverage.
+        assert height_w < height_sq
 
 
 class TestRenderImage:
@@ -516,4 +516,3 @@ class TestSatelliteCameraIntegration:
         # Should be able to render without errors
         result = camera.render_image(mock_dataset, position, altitude, rotation)
         assert result.shape == (224, 224, 3)
-
