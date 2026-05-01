@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """Path follower for SatNav continuous navigation.
 
 This module provides path following utilities for navigating in continuous
@@ -19,7 +21,6 @@ Reference:
 import math
 from typing import List, Optional, Union
 
-import numpy as np
 
 from satnav.core.simulator import Simulator
 from satnav.core.utils import geodesic_distance
@@ -134,7 +135,7 @@ class SatNavPathFollower:
     
     def get_next_action(
         self,
-        goal_position: Union[List[float], np.ndarray],
+        goal_position: List[float],
         simulator: Simulator
     ) -> Union[str, int]:
         """Get the next action to move towards the goal.
@@ -227,7 +228,7 @@ class SatNavPathFollower:
     
     def get_action_sequence_to_goal(
         self,
-        goal_position: Union[List[float], np.ndarray],
+        goal_position: List[float],
         simulator: Simulator,
         max_steps: int = 1000,
         execute_actions: bool = False
@@ -471,7 +472,7 @@ class ShortestPathSensor:
         simulator: Simulator,
         episode=None,
         goal_position: Optional[List[float]] = None
-    ) -> Union[int, str, np.ndarray]:
+    ) -> Union[int, str, List[float]]:
         """Get the oracle action observation.
         
         Args:

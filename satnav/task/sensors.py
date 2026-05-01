@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """Sensor implementations for SatNav VLN tasks."""
 
 import abc
 import math
 from typing import Any, Dict, List, Optional
-
-import numpy as np
 
 from satnav.core.episode import VLNEpisode
 from satnav.core.simulator import Simulator
@@ -50,7 +50,7 @@ class RGBSensor(Sensor):
         """
         self.uuid = uuid
     
-    def get_observation(self, sim_obs: Optional[Dict[str, Any]] = None, **kwargs) -> np.ndarray:
+    def get_observation(self, sim_obs: Optional[Dict[str, Any]] = None, **kwargs):
         """Get RGB image observation.
         
         Args:
@@ -71,12 +71,11 @@ class RGBSensor(Sensor):
         if "rgb" not in sim_obs:
             raise KeyError("sim_obs must contain 'rgb' key")
         
+        import numpy as np
+
         rgb_image = sim_obs["rgb"]
-        
-        # Ensure it's a numpy array
         if not isinstance(rgb_image, np.ndarray):
             rgb_image = np.array(rgb_image)
-        
         return rgb_image
 
 
@@ -153,7 +152,7 @@ class GlobalGPSSensor(Sensor):
         self,
         simulator: Optional[Simulator] = None,
         **kwargs
-    ) -> np.ndarray:
+    ):
         """Get current GPS position observation.
         
         Args:
@@ -177,9 +176,11 @@ class GlobalGPSSensor(Sensor):
         
         if self._dimensionality == 2:
             # Return only longitude and latitude
+            import numpy as np
             return np.array([position[0], position[1]], dtype=np.float32)
         else:
             # Return longitude, latitude, and altitude
+            import numpy as np
             return np.array(position, dtype=np.float32)
 
 
@@ -210,7 +211,7 @@ class VLNOracleProgressSensor(Sensor):
         episode: Optional[VLNEpisode] = None,
         simulator: Optional[Simulator] = None,
         **kwargs
-    ) -> np.ndarray:
+    ):
         """Get relative progress towards goal.
         
         Args:
@@ -249,7 +250,10 @@ class VLNOracleProgressSensor(Sensor):
         distance_to_target = sim.geodesic_distance(current_position, goal_position)
         
         # Handle invalid distances
-        if not np.isfinite(distance_to_target):
+        import math
+        import numpy as np
+
+        if not math.isfinite(distance_to_target):
             return np.array([0.0], dtype=np.float32)
         
         # Calculate initial distance from start to goal (cache it)
@@ -331,7 +335,7 @@ class AgentPoseSensor(Sensor):
         self,
         simulator: Optional[Simulator] = None,
         **kwargs
-    ) -> np.ndarray:
+    ):
         """Get relative pose observation in the ego-frame.
         
         Args:
@@ -377,6 +381,7 @@ class AgentPoseSensor(Sensor):
         sin_dh = math.sin(delta_heading_rad)
         cos_dh = math.cos(delta_heading_rad)
         
+        import numpy as np
         return np.array(
             [delta_forward, delta_right, sin_dh, cos_dh],
             dtype=np.float32

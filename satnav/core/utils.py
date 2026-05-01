@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """Utility functions for SatNav."""
 
 import math
-from typing import Sequence, Union
-
-import numpy as np
+from typing import Sequence
 
 # Earth's radius in meters (WGS84 ellipsoid mean radius)
 EARTH_RADIUS_METERS = 6371000.0
 
 
 def geodesic_distance(
-    position_a: Union[Sequence[float], np.ndarray],
-    position_b: Union[Sequence[float], np.ndarray]
+    position_a: Sequence[float],
+    position_b: Sequence[float]
 ) -> float:
     """Calculate geodesic distance between two positions using Haversine formula.
     
@@ -38,13 +38,10 @@ def geodesic_distance(
         >>> print(f"Distance: {distance:.2f} meters")
         Distance: 1067000.00 meters  # Approximately 1067 km
     """
-    # Convert to numpy arrays for easier manipulation
-    pos_a = np.array(position_a, dtype=np.float64)
-    pos_b = np.array(position_b, dtype=np.float64)
-    
-    # Extract longitude and latitude (ignore altitude for distance calculation)
-    lon1, lat1 = np.radians(pos_a[0]), np.radians(pos_a[1])
-    lon2, lat2 = np.radians(pos_b[0]), np.radians(pos_b[1])
+    lon1 = math.radians(float(position_a[0]))
+    lat1 = math.radians(float(position_a[1]))
+    lon2 = math.radians(float(position_b[0]))
+    lat2 = math.radians(float(position_b[1]))
     
     # Haversine formula
     dlat = lat2 - lat1
@@ -63,9 +60,9 @@ def geodesic_distance(
 
 
 def lonlat_to_ego_displacement(
-    start_position: Union[Sequence[float], np.ndarray],
+    start_position: Sequence[float],
     start_heading_deg: float,
-    current_position: Union[Sequence[float], np.ndarray]
+    current_position: Sequence[float]
 ) -> tuple:
     """Convert geographic displacement into ego-frame displacement (forward, right).
     
@@ -98,11 +95,10 @@ def lonlat_to_ego_displacement(
         >>> fwd, right = lonlat_to_ego_displacement(start, 0.0, current)
         >>> # fwd ≈ 10.0, right ≈ 0.0
     """
-    start_pos = np.array(start_position, dtype=np.float64)
-    curr_pos = np.array(current_position, dtype=np.float64)
-    
-    lon0, lat0 = start_pos[0], start_pos[1]
-    lon_t, lat_t = curr_pos[0], curr_pos[1]
+    lon0 = float(start_position[0])
+    lat0 = float(start_position[1])
+    lon_t = float(current_position[0])
+    lat_t = float(current_position[1])
     
     # Calculate geographic displacement in meters using spherical approximation
     # This is simpler and avoids dependency on GeoUtils/pyproj
@@ -138,8 +134,8 @@ def wrap_heading_deg(angle_deg: float) -> float:
 
 
 def geodesic_distance_with_altitude(
-    position_a: Union[Sequence[float], np.ndarray],
-    position_b: Union[Sequence[float], np.ndarray]
+    position_a: Sequence[float],
+    position_b: Sequence[float]
 ) -> float:
     """Calculate geodesic distance between two positions including altitude difference.
     

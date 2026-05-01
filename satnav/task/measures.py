@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """Measure implementations for SatNav VLN tasks in continuous space.
 
 All distance calculations use geodesic distance (Haversine formula) to account
@@ -8,10 +10,13 @@ for Earth's curvature, which is essential for continuous space navigation.
 import abc
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import numpy as np
 
 from satnav.core.episode import VLNEpisode
 from satnav.core.simulator import Simulator
+
+
+def _positions_close(position_a: List[float], position_b: List[float], atol: float = 1e-6) -> bool:
+    return len(position_a) == len(position_b) and all(abs(float(a) - float(b)) <= atol for a, b in zip(position_a, position_b))
 
 
 class Measure(abc.ABC):
@@ -748,7 +753,7 @@ class TopDownMapSatNav(Measure):
         self._success_distance = success_distance
         
         # State
-        self._top_down_map: Optional[np.ndarray] = None
+        self._top_down_map: Optional[Any] = None
         self._bounds: Optional[Dict[str, float]] = None
         self._step_count: int = 0
         self._agent_path: List[List[float]] = []  # List of [lon, lat, alt]
@@ -879,9 +884,7 @@ class TopDownMapSatNav(Measure):
         # Use rtol=0 to disable relative tolerance, only use absolute tolerance
         # This is important for geographic coordinates where values are large (e.g., 114 degrees)
         # and we want to detect small absolute changes (e.g., 0.00003 degrees ≈ 3 meters)
-        if self._previous_position is None or not np.allclose(
-            self._previous_position, current_position, atol=1e-6, rtol=0
-        ):
+        if self._previous_position is None or not _positions_close(self._previous_position, current_position, atol=1e-6):
             self._agent_path.append(current_position)
             self._previous_position = current_position
         
@@ -963,7 +966,7 @@ class TopDownMapSatNav(Measure):
         """
         if self._metric is None:
             return {
-                "map": np.zeros((100, 100, 3), dtype=np.uint8),
+                "map": __import__("numpy").zeros((100, 100, 3), dtype=__import__("numpy").uint8),
                 "agent_map_coord": (0, 0),
                 "agent_angle": 0.0,
                 "bounds": {},

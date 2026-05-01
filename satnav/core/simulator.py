@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """Simulator interfaces and data structures for SatNav."""
 
 import abc
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-import numpy as np
+
+
+class Position3D(list):
+    """List-like position container with numpy-like tolist() compatibility."""
+
+    def tolist(self) -> List[float]:
+        return list(self)
 
 
 class AgentState:
@@ -14,14 +22,14 @@ class AgentState:
         position: Agent position as [longitude, latitude, altitude].
         rotation: Agent rotation as roll angle (0-360 degrees, 0 = North).
     """
-    def __init__(self, position: np.ndarray, rotation: float):
+    def __init__(self, position: Sequence[float], rotation: float):
         """Initialize agent state.
         
         Args:
-            position: Agent position as numpy array [longitude, latitude, altitude].
+            position: Agent position as [longitude, latitude, altitude].
             rotation: Agent rotation as roll angle in degrees.
         """
-        self.position = np.array(position, dtype=np.float32)
+        self.position = Position3D(float(value) for value in position)
         self.rotation = float(rotation)
     
     def __repr__(self) -> str:
@@ -91,8 +99,8 @@ class Simulator(abc.ABC):
     @abc.abstractmethod
     def geodesic_distance(
         self,
-        position_a: Union[Sequence[float], np.ndarray],
-        position_b: Union[Sequence[float], np.ndarray]
+        position_a: Sequence[float],
+        position_b: Sequence[float]
     ) -> float:
         """Calculate geodesic distance between two positions.
         
@@ -109,7 +117,7 @@ class Simulator(abc.ABC):
         raise NotImplementedError
     
     @abc.abstractmethod
-    def is_navigable(self, position: Union[Sequence[float], np.ndarray]) -> bool:
+    def is_navigable(self, position: Sequence[float]) -> bool:
         """Check if a position is navigable.
         
         Args:
