@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 from omegaconf import OmegaConf
 
+from satnav.sims import create_simulator
 from satnav.sims.satsim_wrapper import SatSimWrapper
 from satnav.core.simulator import AgentState
 
@@ -23,6 +24,13 @@ class TestSatSimWrapper:
                 "HFOV": 90.0
             }
         }
+
+    def test_create_simulator_rejects_unknown_type(self):
+        """Test factory rejects non-SatSim simulator types."""
+        config = {"SIMULATOR": {"TYPE": "unknown"}}
+
+        with pytest.raises(ValueError, match="Supported type: 'satsim'"):
+            create_simulator(config)
     
     def test_init_with_dict_config(self):
         """Test initialization with dictionary config."""
@@ -253,4 +261,3 @@ class TestSatSimWrapper:
         
         # Should be approximately 100 meters (altitude difference)
         assert abs(distance - 100.0) < 1.0
-

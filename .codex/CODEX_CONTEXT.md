@@ -8,14 +8,14 @@
 - Repo: `SatNav`
 - Root: `/mnt/data1/home/jiangjiajun/workspace/SatNav`
 - 主要代码域：`satnav/*`
-- 定位：连续状态 VLN 评测平台，使用卫星/航拍地图作为场景
+- 定位：连续状态 VLN 评测平台，使用卫星地图作为场景
 
 ## Current Architecture Snapshot
 
 SatNav 是一个独立的 Python 包，核心结构如下：
 
 - 包根：`satnav/`
-- 仿真器：`satnav/sims/`（`SatSim` 2D 卫星图、`AerialSim` 3D Google Tiles）
+- 仿真器：`satnav/sims/`（`SatSim` 2D 卫星图）
 - 核心逻辑：`satnav/core/`
 - 数据集接口：`satnav/dataset/`
 - 导航逻辑：`satnav/navigation/`
@@ -31,7 +31,6 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 - 脚本目录：`scripts/`
 - 应用工具：`applications/`
   - 轨迹生成：`applications/trajectory_generation/generate.py`（串行）、`generate_parallel.py`（并行）
-  - 航拍查看器：`applications/aerial_viewer/`
 - 实验分析：`experiments/`
 - 使用示例：`examples/`
 - 测试：`tests/`（pytest，配置见 `pytest.ini`）
@@ -84,47 +83,10 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 - **文件操作**（脚本、配置写入、输出读写）：始终是本地操作，无需 SSH。
 - server 17 Docker 容器名查询：`ssh 10.246.132.17 "docker ps"`
 
-### AerialSim Production Notes (Updated: 2026-04-10)
+### Trajectory Generation Notes
 
-- `satnav/sims/aerialsim/aerialsim.py` 已加入生产级保护：
-  - Google 3D Tiles `root.json` preflight
-  - tileset ready / pending requests / loaded tiles 数量检查
-  - 图像级坏图判废（黑图、低方差空白图等）
-  - 单帧自动重试
-  - 连续失败后自动重建浏览器
-- 默认配置项位于 `SIMULATOR.AERIAL.*`：
-  - `CAPTURE_ATTEMPTS`
-  - `RESTART_AFTER_FAILURES`
-  - `MAX_BROWSER_RESTARTS`
-  - `MIN_TILES_LOADED`
-  - `QUALITY_*`
-- 默认语义：**宁可重试或抛错，也不输出明显坏图**。批量生产时若仍连续失败，应在 episode 级别重跑或跳过。
 - `applications/trajectory_generation/generate.py` 现支持 `--episode_indices_file`，可只生成指定 episode 子集
-- AerialSim 当前保留为可选 3D 渲染和数据生产能力，不是 SatNav/SwiftVLN 训练评测主链默认路径
-- group 级 AerialSim 筛选入口：`python -m applications.trajectory_generation.preselect_aerial_groups`
-  - 输入 trajectory group 候选，按代表 episode 采样 AerialSim 质量
-  - 输出 `recommended_top.json`、`evaluated_results.json`、`failed.json`、`summary.json`
-- 推荐轨迹的生产级编排入口：`python -m applications.trajectory_generation.produce_aerialsim_recommended`
-  - 输入 `recommended_top.json` / `trajectory_groups_full.json`
-  - 将推荐 trajectory group 展开成完整 episode 集合
-  - 按小批次 fresh browser 生成，避免长进程 tab crash
-  - 支持 `--runtime_root` + `--tmp_root`，默认会把 AerialSim HTML runtime、Chrome user-data、disk-cache、crash-dumps 和 batch 级 `TMPDIR` 迁到 `data3` 上的短路径 `/mnt/data3/jiangjiajun/tmp/sa/<hash>/{r,t}`，并在 batch 后自动清理
-  - 生产默认建议 `--episodes_per_batch=1`，用 episode 级隔离换稳定性
-  - 对未完成 episode 做 targeted cleanup + retry
-  - 最终产出 `production_manifest.json` 与聚合 `annotations.json`
-- 生产级 AerialSim 默认配置项已收敛到 `configs/satnav_task.yaml` 的 `SIMULATOR.AERIAL.*`
-- `applications/trajectory_generation/generate.py` 已支持 Aerial 预筛选工作流：
-  - `--preselect_aerial`
-  - `--preselect_candidates`
-  - `--preselect_samples`
-  - `--preselect_topk`
-  - `--preselect_min_avg_std`
-  - `--preselect_max_black_frac`
-  - `--preselect_min_height_range`
-  - `--preselect_only`
-- 预筛选会根据多帧图像质量和局部高度起伏打分，输出 `preselect_ranking.json`，并可仅对通过筛选的 episode 执行 trajectory 生成。
-- AerialSim episode/group 筛选共享评分公式维护在 `applications/trajectory_generation/aerial_quality.py`：
-  `avg_std + 0.25*avg_height_range + 0.02*avg_mean - 120.0*avg_black_frac`
+- `applications/trajectory_generation/generate_parallel.py` 是当前推荐的大规模轨迹生成入口
 
 ### Conda Environments
 

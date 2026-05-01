@@ -2,17 +2,15 @@
 
 ## 项目简介
 
-SatNav 是一个用于评测连续状态下视觉语言导航（VLN）的测试平台。该平台使用卫星地图作为场景，支持基于地理坐标（经度、纬度、高度）的连续空间导航，并提供**双仿真器架构**：
+SatNav 是一个用于评测连续状态下视觉语言导航（VLN）的测试平台。该平台使用卫星地图作为场景，支持基于地理坐标（经度、纬度、高度）的连续空间导航，并使用 **SatSim** 作为核心仿真器：
 
 - **SatSim**：2D 卫星地图仿真器（高速渲染，依赖本地 GeoTIFF 文件）
-- **AerialSim**：3D 航拍仿真器（使用 Google 3D Tiles，真实感渲染）
 
 **核心特点**：
 - 🌍 使用卫星地图作为场景（而非3D室内场景）
 - 📍 位置使用地理坐标（经度、纬度、高度）
 - 🧭 旋转使用航向角（heading，0度表示正北）
-- 🖼️ 支持 2D 卫星图像和 3D 航拍渲染两种模式
-- 🔄 仿真器可通过配置无缝切换，代码无需修改
+- 🖼️ 基于本地 GeoTIFF 生成 2D 卫星图像观测
 - 🚀 最小化实现，不依赖 Habitat 组件
 
 ---
@@ -130,43 +128,40 @@ SatSim 使用 `SatelliteCamera` 类生成 RGB 观测：
 
 ## 3. SatNav 架构
 
-SatNav 采用分层架构，通过工厂模式支持多种仿真器后端：
+SatNav 采用分层架构，通过工厂模式创建 SatSim 仿真器：
 
 ```
 Env → VLNTask → Simulator (抽象接口)
                     ↓
             create_simulator() 工厂函数
                     ↓
-        ┌───────────┴───────────┐
-        ↓                       ↓
-   SatSimWrapper          AerialSimWrapper
-        ↓                       ↓
-     SatSim                 AerialSim
-   (2D 卫星图)            (3D Google Tiles)
+              SatSimWrapper
+                    ↓
+                 SatSim
+              (2D 卫星图)
 ```
 
 - **Env（环境层）**：管理 Episode 迭代，提供 `reset()` 和 `step(action)` 接口
 - **VLNTask（任务层）**：管理传感器（RGB、Instruction）和评价指标（Success、SPL、DistanceToGoal等）
 - **Simulator（抽象接口）**：定义仿真器统一接口（`reset`、`step`、`get_agent_state` 等）
-- **SatSimWrapper / AerialSimWrapper（适配器层）**：实现 Simulator 接口
-- **SatSim / AerialSim（仿真器层）**：场景加载、动作执行、图像渲染
+- **SatSimWrapper（适配器层）**：实现 Simulator 接口
+- **SatSim（仿真器层）**：场景加载、动作执行、图像渲染
 
-### 3.1 仿真器切换
+### 3.1 仿真器配置
 
-通过配置文件中的 `SIMULATOR.TYPE` 字段即可切换仿真器，**无需修改任何代码**：
+配置文件中的 `SIMULATOR.TYPE` 当前只支持 `satsim`：
 
 ```yaml
 SIMULATOR:
   TYPE: satsim    # 使用 2D 卫星图仿真器
-  # TYPE: aerialsim  # 使用 3D 航拍仿真器
 ```
 
-| 特性 | SatSim | AerialSim |
-|------|--------|-----------|
-| 渲染速度 | ~1ms/帧 | ~5-6s/帧 |
-| 图像类型 | 2D 卫星俯视图 | 3D 航拍渲染 |
-| 数据依赖 | 本地 GeoTIFF 文件 | 网络 + Google API Key |
-| 覆盖范围 | 已下载的区域 | 全球（有 3D 数据的区域） |
+| 特性 | SatSim |
+|------|--------|
+| 渲染速度 | ~1ms/帧 |
+| 图像类型 | 2D 卫星俯视图 |
+| 数据依赖 | 本地 GeoTIFF 文件 |
+| 覆盖范围 | 已下载的区域 |
 
 ---
 
@@ -182,7 +177,7 @@ ENVIRONMENT:
   MAX_EPISODE_STEPS: 500
 
 SIMULATOR:
-  # 仿真器类型: "satsim" (2D卫星图) 或 "aerialsim" (3D航拍)
+  # 仿真器类型: "satsim" (2D卫星图)
   TYPE: satsim
   # 向前移动的步长（米）
   FORWARD_STEP_SIZE: 10
@@ -193,17 +188,6 @@ SIMULATOR:
     WIDTH: 448      # 图像宽度（像素）
     HEIGHT: 448     # 图像高度（像素）
     HFOV: 90        # 水平视野角度（度）
-  # AerialSim 专用配置（仅当 TYPE: aerialsim 时使用）
-  AERIAL:
-    API_KEY: "YOUR_GOOGLE_API_KEY"  # Google 3D Tiles API key
-    BROWSER: chrome                  # 浏览器: chrome/edge/firefox
-    HEADLESS: true                   # 无头模式（服务器环境推荐）
-    ENABLE_API_PREFLIGHT: true       # 启动前校验 API key / 网络
-    CAPTURE_ATTEMPTS: 4              # 单帧自动重试次数
-    RESTART_AFTER_FAILURES: 2        # 连续失败后重建浏览器
-    MIN_TILES_LOADED: 8              # 至少加载多少个 tiles 才允许截图
-    QUALITY_MAX_BLACK_FRAC: 0.60     # 坏图判废阈值
-    QUALITY_MIN_STD: 20.0            # 过低方差通常意味着空白/未加载完整
 
 TASK:
   TYPE: VLN
@@ -221,55 +205,6 @@ DATASET:
   DATA_PATH: data/datasets/satnav/{split}/{split}.json.gz
   # 场景数据目录（TIF 文件所在目录）
   SCENES_DIR: data/scene_datasets/
-```
-
-对于 `AerialSim`，当前默认行为是生产优先的严格模式：
-
-- 会先做 Google 3D Tiles `root.json` 预检，API key / quota / 网络异常会直接失败。
-- 只有在 tileset ready、无 pending request、已加载足够 tiles 后才允许截图。
-- 截图后还会做图像级质量检查（如大面积黑图、低方差空白图）。
-- 连续失败会自动重试并重建浏览器；若多次重试仍失败，则抛错而不是输出坏图。
-
-> 说明：AerialSim 当前保留为可选 3D 渲染和数据生产能力，不是 SatNav/SwiftVLN 训练评测主链的默认路径。
-
-对于想优先生产“3D 资产丰富”轨迹的场景，串行轨迹生成支持先筛后产：
-
-```bash
-python -m applications.trajectory_generation.generate \
-  --config configs/satnav_task.yaml \
-  --output_dir output/aerialsim_prod \
-  --preselect_aerial \
-  --preselect_candidates 300 \
-  --preselect_samples 4 \
-  --preselect_topk 80 \
-  --preselect_min_avg_std 35 \
-  --preselect_max_black_frac 0.01 \
-  --preselect_min_height_range 3.0
-```
-
-该流程会按多帧图像纹理复杂度、黑图比例和局部高度起伏进行打分，先输出 `preselect_ranking.json`，再只对通过筛选的 episode 进行正式 trajectory 生产。
-
-当你已经有一份 AerialSim 评估后的推荐 trajectory group 列表，希望保证整条 trajectory 的全部 episode 都可用时，仓库现在提供了生产编排脚本：
-
-```bash
-python -m applications.trajectory_generation.produce_aerialsim_recommended \
-  --config configs/satnav_task.yaml \
-  --recommended_json output/aerialsim_train_traj_quality_eval_full/recommended_top.json \
-  --trajectory_groups_json output/preselect_0404_train_trajectory/trajectory_groups_full.json \
-  --output_dir output/aerialsim_recommended_prod \
-  --runtime_root /mnt/data3/.../aerialsim_recommended_runtime \
-  --episodes_per_batch 1
-```
-
-这个 pipeline 会把推荐 trajectory 展开成完整 episode 集合，并默认按 `episodes_per_batch=1` 做 episode 级隔离生成，避免单次浏览器异常污染整条 trajectory。脚本默认把 AerialSim HTML runtime、Chrome user-data、disk-cache、crash-dumps 和 batch 级 `TMPDIR` 全部迁到 `data3` 上的短路径 `/mnt/data3/jiangjiajun/tmp/sa/<hash>/{r,t}`，并在每个 batch 结束后自动清理；之所以不用输出目录下的长路径，是因为 Chrome 会因 user-data 路径过长直接启动失败。批次结束后会校验 `summary.json` + JPG 序列完整性，并仅对未完成 episode 做定向重试，最终输出 `production_manifest.json`。
-
-group 级推荐列表可通过以下入口生产，产物包括 `recommended_top.json`、`evaluated_results.json`、`failed.json` 和 `summary.json`：
-
-```bash
-python -m applications.trajectory_generation.preselect_aerial_groups \
-  --config configs/satnav_task.yaml \
-  --preselect_json output/preselect_0404_train_trajectory/preselect_trajectory_list.json \
-  --output_dir output/aerialsim_train_traj_quality_eval_full
 ```
 
 ### 4.2 数据集格式
@@ -489,7 +424,7 @@ torchrun --nproc_per_node=4 run.py \
 python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eval
 ```
 
-当前推荐主线是基于预渲染 `trajectory_data` 的离线训练/在线评测：Seq2Seq 和 CMA 都通过 `offline_trainer` 训练，并在评测时回到 `Env` + SatSim/AerialSim 中 rollout。`RecollectTrainer`、`RandomAgent`、`GreedyAgent` 仍保留用于后续 recollection/online imitation 或非学习基线对比，但不是当前推荐训练流程。
+当前推荐主线是基于预渲染 `trajectory_data` 的离线训练/在线评测：Seq2Seq 和 CMA 都通过 `offline_trainer` 训练，并在评测时回到 `Env` + SatSim 中 rollout。`RecollectTrainer`、`RandomAgent`、`GreedyAgent` 仍保留用于后续 recollection/online imitation 或非学习基线对比，但不是当前推荐训练流程。
 
 ### 7.2 Configuration System
 
@@ -741,46 +676,6 @@ python -m applications.map_downloader
 
 详细文档：`applications/map_downloader/README.md`
 
-### 8.3 Aerial Viewer（3D 航拍查看器）
-
-使用 AerialSim 核心渲染非交互式 3D 航拍视图的工具，与 SatSim 相机模型兼容。
-
-**快速开始**：
-```bash
-python -m applications.aerial_viewer
-```
-
-**主要功能**：
-- 渲染 3D 航拍视图（使用 Google 3D Tiles）
-- 与 SatSim 相机参数兼容（垂直俯视、HFOV 匹配）
-- 支持序列渲染（优化后约 2x 加速）
-- 支持多种浏览器（Chrome、Edge、Firefox）
-- 命令行接口和配置文件支持
-
-**示例输出对比**：
-
-| SatSim 卫星视图（2D 正交投影） | AerialSim 3D 视图（3D 透视投影） |
-|:---:|:---:|
-| ![SatSim](applications/aerial_viewer/images/sat_crop_view.png) | ![AerialSim](applications/aerial_viewer/images/aerial_view.png) |
-
-**配置**：编辑 `applications/aerial_viewer/config.yaml` 设置：
-- `API.API_KEY`: Google 3D Tiles API key
-- `AGENT`: 智能体状态（经纬度、高度、旋转角度）
-- `CAMERA`: 相机参数（HFOV、宽度、高度）
-
-**与 SatSim 的区别**：
-- **投影模型**：SatSim 使用正交投影（无透视变形），AerialSim 使用透视投影（3D 渲染）
-- **地形**：SatSim 使用 2D 卫星图像（平面），AerialSim 使用 3D Tiles（包含建筑物高度和地形）
-- **图像来源**：SatSim 使用高分辨率 GeoTIFF 文件，AerialSim 使用 Google 3D Tiles（流式传输）
-
-**依赖要求**：
-- `selenium` - WebDriver 控制
-- `omegaconf` - 配置管理
-- `webdriver-manager`（推荐）- 自动管理浏览器驱动
-- Google 3D Tiles API key
-
-详细文档：`applications/aerial_viewer/README.md`
-
 ## 9. 项目结构
 
 ```
@@ -826,16 +721,11 @@ SatNav/
 │   └── sims/                 # 仿真器
 │       ├── __init__.py       # 仿真器工厂 (create_simulator)
 │       ├── satsim_wrapper.py # SatSim 适配器
-│       ├── aerialsim_wrapper.py # AerialSim 适配器 ⭐
 │       ├── satsim/           # SatSim 核心模块 (2D)
 │       │   ├── __init__.py
 │       │   ├── satsim.py     # 核心引擎
 │       │   ├── camera.py     # 相机渲染
 │       │   └── geoutils.py   # 坐标工具
-│       └── aerialsim/        # AerialSim 核心模块 (3D) ⭐
-│           ├── __init__.py
-│           ├── aerialsim.py  # 核心引擎
-│           └── cesium_template.html  # CesiumJS 模板
 ├── configs/                   # 配置文件 ⭐
 │   ├── default.yaml          # 默认配置模板
 │   ├── debug_vln_task.yaml   # 调试任务配置
@@ -866,7 +756,6 @@ SatNav/
 │   ├── satsim_viewer/       # 交互式查看器
 │   │   ├── free_viewer.py   # 自由探索查看器
 │   │   └── task_viewer.py   # 任务查看器
-│   ├── aerial_viewer/        # 3D 航拍查看器
 │   └── map_downloader/      # 地图下载器
 ├── doc/                      # 文档目录 ⭐
 │   ├── CONFIG_SYSTEM.md      # 配置系统文档

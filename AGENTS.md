@@ -17,9 +17,9 @@
 
 ## Repo Overview
 
-SatNav 是一个连续状态 VLN（视觉语言导航）评测平台，使用卫星/航拍地图作为场景：
+SatNav 是一个连续状态 VLN（视觉语言导航）评测平台，使用卫星地图作为场景：
 
-- **双仿真器架构**：`SatSim`（2D 卫星图）、`AerialSim`（3D Google Tiles）
+- **仿真器架构**：`SatSim`（2D 卫星图）
 - **核心包**：`satnav/`（含 `core/`、`dataset/`、`navigation/`、`sims/`、`task/`、`training/`、`models/`）
 - **配置文件**：`configs/`（`default.yaml`、`satnav_task.yaml`、`vln_task.yaml`、`configs/baselines/`）
 - **脚本**：`scripts/`

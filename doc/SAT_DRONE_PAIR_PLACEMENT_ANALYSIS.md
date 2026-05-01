@@ -129,7 +129,6 @@
 - `applications/trajectory_generation/`
 - `applications/map_downloader/`
 - `applications/satsim_viewer/`
-- `applications/aerial_viewer/`
 
 其中 `applications/trajectory_generation/` 的角色非常关键：
 
@@ -339,4 +338,3 @@ python -m applications.sat_drone_pair.main uavvisloc ...
 最终建议可以概括为一句话：
 
 > 把 `sat-drone pair` 功能视为“多数据源数据资产构建应用”，统一收敛到 `SatNav/applications/`，由 `SwiftVLN` 作为下游训练消费者接入，而不是把 pair builder 并入 `SwiftVLN/src`。
-

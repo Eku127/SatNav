@@ -7,7 +7,7 @@ ENVIRONMENT:
   MAX_EPISODE_STEPS: 500
 
 SIMULATOR:
-  # Simulator type: "satsim" (2D satellite imagery) or "aerialsim" (3D aerial view)
+  # Simulator type: "satsim" (2D satellite imagery)
   TYPE: satsim
   
   # Forward movement step size in meters
@@ -24,12 +24,6 @@ SIMULATOR:
     HEIGHT: 512
     # Horizontal field of view in degrees
     HFOV: 90
-  
-  # AerialSim-specific configuration (used when TYPE: aerialsim)
-  AERIAL:
-    API_KEY: ""
-    BROWSER: chrome
-    HEADLESS: true
 
 TASK:
   # Task type identifier
@@ -81,4 +75,3 @@ DATASET:
   # Directory containing scene datasets (satellite maps)
   # For example testing, use: tests/test_data/
   SCENES_DIR: tests/test_data/
-

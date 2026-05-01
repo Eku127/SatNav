@@ -25,10 +25,6 @@ tqdm>=4.60.0  # Progress bar for downloads
 requests>=2.25.0  # HTTP requests
 pillow>=8.0.0  # Image processing
 
-# Aerial viewer dependencies
-selenium>=4.0.0  # Browser automation for aerial viewer
-webdriver-manager>=4.0.0  # Automatic browser driver management
-
 # Video generation dependencies (optional, for make_video function)
 imageio>=2.9.0  # Video I/O
 imageio-ffmpeg>=0.4.0  # FFMPEG plugin for imageio
