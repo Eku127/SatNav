@@ -153,6 +153,9 @@ class AerialSim:
             os.environ.get("SATNAV_AERIALSIM_CHROME_CRASH_DUMPS_DIR")
             or _cfg_get(aerial_config, "CHROME_CRASH_DUMPS_DIR", "")
         )
+        self._chrome_remote_debugging_port = int(
+            _cfg_get(aerial_config, "CHROME_REMOTE_DEBUGGING_PORT", 0)
+        )
 
         # Production robustness knobs. These defaults favor correctness over
         # raw throughput because invalid frames are more expensive than retries.
@@ -283,6 +286,25 @@ class AerialSim:
         if self._position is None or self._rotation is None:
             raise RuntimeError("Agent state not initialized. Call set_agent_state() first.")
         return list(self._position), self._rotation
+
+    def get_diagnostics(self) -> Dict[str, Any]:
+        """Return public rendering diagnostics for application-level filtering."""
+        return {
+            "local_height_range": float(self._last_local_height_range),
+            "last_ground_height": self._last_ground_height,
+            "last_query_pos": self._last_query_pos,
+            "ground_height_cache_threshold": float(self._ground_height_threshold),
+            "initialized": bool(self._initialized),
+            "consecutive_capture_failures": int(self._consecutive_capture_failures),
+            "browser_restart_count": int(self._browser_restart_count),
+        }
+
+    def set_ground_height_cache_threshold(self, threshold_meters: float) -> None:
+        """Set the distance threshold for reusing cached ground-height queries."""
+        threshold = float(threshold_meters)
+        if threshold < 0:
+            raise ValueError("ground height cache threshold must be non-negative")
+        self._ground_height_threshold = threshold
     
     def step(self, action: Union[int, str, Dict[str, Any]]) -> Dict[str, Any]:
         """Execute an action and return new observations.
@@ -419,6 +441,10 @@ class AerialSim:
                 return candidate_path
         return None
 
+    def _get_chrome_remote_debugging_argument(self) -> str:
+        """Return Chrome remote debugging argument; 0 asks Chrome to choose a free port."""
+        return f"--remote-debugging-port={self._chrome_remote_debugging_port}"
+
     def _parse_action(self, action: Union[int, str, Dict[str, Any]]) -> str:
         """Parse action to action name.
         
@@ -484,7 +510,7 @@ class AerialSim:
             if chrome_crash_dumps_dir is not None:
                 options.add_argument(f"--crash-dumps-dir={chrome_crash_dumps_dir}")
 
-            options.add_argument("--remote-debugging-port=9222")
+            options.add_argument(self._get_chrome_remote_debugging_argument())
             options.add_argument("--disable-blink-features=AutomationControlled")
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             options.add_experimental_option('useAutomationExtension', False)
@@ -715,6 +741,7 @@ class AerialSim:
         self._driver.execute_script(
             f"window.updateViewWithFOV({lat}, {lng}, {adjusted_height}, {rotation}, -90, 0, {hfov});"
         )
+        salvage_status = False
         try:
             status = self._wait_for_scene_stable(
                 timeout_sec=self._render_stable_timeout_sec,
@@ -723,6 +750,7 @@ class AerialSim:
         except RenderValidationError as exc:
             if self._can_salvage_capture_from_status(exc.status):
                 status = exc.status
+                salvage_status = True
             else:
                 raise
         
@@ -746,7 +774,11 @@ class AerialSim:
         import numpy as np
         rgb = np.array(img.convert('RGB'), dtype=np.uint8)
         metrics = self.compute_image_quality_metrics(rgb)
-        quality_reasons = self._get_quality_failure_reasons(metrics, status)
+        quality_reasons = self._get_quality_failure_reasons(
+            metrics,
+            status,
+            allow_salvage_status=salvage_status,
+        )
         if quality_reasons:
             raise RenderValidationError(
                 "Rejected invalid aerial frame: "
@@ -755,6 +787,7 @@ class AerialSim:
                 + f" | status={self._format_status(status)}",
                 candidate_rgb=rgb,
                 metrics=metrics,
+                status=status,
             )
 
         return rgb
@@ -780,6 +813,7 @@ class AerialSim:
         self,
         metrics: ImageQualityMetrics,
         status: Optional[Dict[str, Any]] = None,
+        allow_salvage_status: bool = False,
     ) -> List[str]:
         """Return human-readable reasons why a frame should be rejected."""
         reasons: List[str] = []
@@ -809,13 +843,19 @@ class AerialSim:
                 reasons.append(
                     f"tiles_loaded={int(status.get('tiles_loaded', 0))} < {self._min_tiles_loaded}"
                 )
-            if int(status.get("pending_requests", 0)) > 0:
+            pending_request_limit = (
+                self._salvage_max_pending_requests if allow_salvage_status else 0
+            )
+            tiles_processing_limit = (
+                self._salvage_max_tiles_processing if allow_salvage_status else 0
+            )
+            if int(status.get("pending_requests", 0)) > pending_request_limit:
                 reasons.append(
-                    f"pending_requests={int(status.get('pending_requests', 0))} > 0"
+                    f"pending_requests={int(status.get('pending_requests', 0))} > {pending_request_limit}"
                 )
-            if int(status.get("tiles_processing", 0)) > 0:
+            if int(status.get("tiles_processing", 0)) > tiles_processing_limit:
                 reasons.append(
-                    f"tiles_processing={int(status.get('tiles_processing', 0))} > 0"
+                    f"tiles_processing={int(status.get('tiles_processing', 0))} > {tiles_processing_limit}"
                 )
             if status.get("tileset_error"):
                 reasons.append(f"tileset_error={status['tileset_error']}")

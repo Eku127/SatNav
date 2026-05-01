@@ -173,6 +173,14 @@ class AerialSimWrapper(Simulator):
         """
         position, rotation = self._aerialsim.get_agent_state()
         return AgentState(position=position, rotation=rotation)
+
+    def get_aerial_diagnostics(self) -> Dict[str, Any]:
+        """Return public AerialSim diagnostics for application code."""
+        return self._aerialsim.get_diagnostics()
+
+    def set_ground_height_cache_threshold(self, threshold_meters: float) -> None:
+        """Configure AerialSim ground-height cache reuse distance."""
+        self._aerialsim.set_ground_height_cache_threshold(threshold_meters)
     
     def set_agent_state(
         self,
