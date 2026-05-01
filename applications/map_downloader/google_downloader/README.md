@@ -1,38 +1,124 @@
-# Google XYZ Downloader
+# Google Map Tiles Downloader
 
-这个包只使用官方 Google Map Tiles API 的 XYZ 瓦片接口生成 GeoTIFF。旧的 Google Static Maps 测试分支已从 release 代码中移除。
+Download Google Map Tiles API imagery and export EPSG:3857 GeoTIFF files for SatNav scenes.
+SatNav episode scenes are generated at zoom level `19`.
 
-## 使用
-
-推荐先设置环境变量：
+Use the top-level provider entry:
 
 ```bash
-export GOOGLE_MAPS_API_KEY="你的 Google key"
+python -m applications.map_downloader google --help
 ```
 
-按中心点下载：
+Direct module execution also works:
+
+```bash
+python -m applications.map_downloader.google_downloader --help
+```
+
+## API Key
+
+Enable Google Map Tiles API and create an API key:
+
+- Map Tiles API: https://console.cloud.google.com/apis/library/tile.googleapis.com
+- Credentials: https://console.cloud.google.com/google/maps-apis/credentials
+- Official guide: https://developers.google.com/maps/documentation/tile/get-api-key
+
+Configure the key with an environment variable:
+
+```bash
+export GOOGLE_MAPS_API_KEY="your-google-key"
+```
+
+You can also pass `--api-key` explicitly.
+
+## Single Scene
+
+Download by lower-left and upper-right WGS84 corners:
 
 ```bash
 python -m applications.map_downloader google \
-  --type center \
-  --center-lat 41.939165 \
-  --center-lon 12.483188 \
-  --height-m 500 \
-  --width-m 500 \
-  --zoom 19
-```
-
-如果需要走系统代理：
-
-```bash
-python -m applications.map_downloader google \
-  --type center \
-  --center-lat 41.939165 \
-  --center-lon 12.483188 \
-  --height-m 100 \
-  --width-m 100 \
+  --type corners \
+  --lat1 46.161791698085 \
+  --lon1 6.082932204008 \
+  --lat2 46.179030896969 \
+  --lon2 6.116151362658 \
   --zoom 19 \
-  --use-env-proxy
+  --output output/map_downloader/Geneva-1.tif
 ```
 
-输出为 `EPSG:3857` GeoTIFF，默认在最终图像左下角添加 Google 返回的 attribution 文本。
+Download by center point and size:
+
+```bash
+python -m applications.map_downloader google \
+  --type center \
+  --center-lat 46.170411 \
+  --center-lon 6.099542 \
+  --height-m 1900 \
+  --width-m 2500 \
+  --zoom 19 \
+  --output output/map_downloader/Geneva-1.tif
+```
+
+## Batch Scenes
+
+Google supports `--scene-config` batch mode. Batch options are read from the YAML first; explicit CLI flags override them.
+
+Use this mode with the dataset `scenes_list.yaml` when generating SatNav scenes.
+
+Test config:
+
+```bash
+applications/map_downloader/test_config/test_scenes_list.yaml
+```
+
+Dry run:
+
+```bash
+python -m applications.map_downloader google \
+  --scene-config applications/map_downloader/test_config/test_scenes_list.yaml \
+  --dry-run
+```
+
+Download:
+
+```bash
+python -m applications.map_downloader google \
+  --scene-config applications/map_downloader/test_config/test_scenes_list.yaml
+```
+
+Full scene list:
+
+```bash
+applications/map_downloader/test_config/scenes_list.yaml
+```
+
+## Config Fields
+
+```yaml
+download:
+  zoom: 19
+  mode: parallel
+  max_workers: 12
+
+output:
+  output_dir: output/map_downloader/scenes
+  filename_template: "{scene_id}.tif"
+  skip_existing: true
+
+network:
+  use_env_proxy: false
+```
+
+Useful CLI overrides:
+
+- `--output-dir`
+- `--zoom`
+- `--scene-id`
+- `--limit`
+- `--overwrite`
+- `--dry-run`
+- `--use-env-proxy`
+
+If Google `createSession` fails because `tile.googleapis.com` is unreachable, retry with `--use-env-proxy`.
+
+By default, the final TIFF includes a bottom-left Google attribution panel.

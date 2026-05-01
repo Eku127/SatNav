@@ -31,6 +31,7 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 - 脚本目录：`scripts/`
 - 应用工具：`applications/`
   - 轨迹生成：`applications/trajectory_generation/generate.py`（串行）、`generate_parallel.py`（并行）
+  - 地图下载：`applications/map_downloader/`，Google provider 支持 `--scene-config` 批量下载 scene GeoTIFF
 - 实验分析：`experiments/`
 - 使用示例：`examples/`
 - 测试：`tests/`（pytest，配置见 `pytest.ini`）
@@ -59,6 +60,7 @@ SatNav 是一个独立的 Python 包，核心结构如下：
   - 删除不完整城市目录 `Venezia`
   - 将 `highway / multiway / multway / waterway` 统一映射为 `trajectory_type = Road`
   - 同时保留细分类到顶层字段 `trajectory_subtype`，规范值为 `Highway / Multiway / Waterway`
+- 城市/scene 命名约定：迪拜使用 `Dubai-1`。
 - 当前默认城市划分（0316 起）：
   - eval: `Amsterdam-1`, `Rome-1`, `NewYork-1`
   - train: 其余全部城市
@@ -88,6 +90,13 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 - `applications/trajectory_generation/generate.py` 现支持 `--episode_indices_file`，可只生成指定 episode 子集
 - `applications/trajectory_generation/generate_parallel.py` 是当前推荐的大规模轨迹生成入口
 - trajectory generation 的小规模测试配置位于 `applications/trajectory_generation/test_config/`
+
+### Map Downloader Notes
+
+- Google 地图批量 scene 配置示例：`applications/map_downloader/test_config/scenes_list.yaml`
+- 批量下载入口：
+  `python -m applications.map_downloader google --scene-config applications/map_downloader/test_config/scenes_list.yaml`
+- API key 通过 `GOOGLE_MAPS_API_KEY` / `GOOGLE_API_KEY` 环境变量或 `--api-key` 传入，不写入仓库配置。
 
 ### Conda Environments
 
