@@ -1,6 +1,6 @@
 # Minimal SatNav trajectory-generation test config.
 # Derived from configs/satnav_task.yaml, but points to the small example dataset
-# in this directory and the tiny GeoTIFF scene under tests/test_data/.
+# in this directory and the tiny GeoTIFF scene under applications/resources/.
 
 ENVIRONMENT:
   MAX_EPISODE_STEPS: 500
@@ -28,4 +28,4 @@ DATASET:
   TYPE: SatNav
   SPLIT: test
   DATA_PATH: applications/trajectory_generation/test_config/traj_gen_example.json
-  SCENES_DIR: tests/test_data/
+  SCENES_DIR: applications/resources/
