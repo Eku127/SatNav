@@ -212,7 +212,7 @@ class TestEnv:
         }
         return SatNavDataset(config)
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_init_with_dataset(self, mock_wrapper_class):
         """Test initialization with provided dataset."""
         config = self.create_test_config()
@@ -228,7 +228,7 @@ class TestEnv:
         assert env.max_episode_steps == 500
         assert env._episode_iterator is not None
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_init_with_config_dataset(self, mock_wrapper_class):
         """Test initialization with dataset from config."""
         config = self.create_test_config()
@@ -241,7 +241,7 @@ class TestEnv:
         assert env._dataset is not None
         assert len(env._dataset.episodes) > 0
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_init_with_empty_dataset(self, mock_wrapper_class):
         """Test initialization with empty dataset raises error."""
         config = self.create_test_config()
@@ -258,7 +258,7 @@ class TestEnv:
         with pytest.raises(ValueError, match="Dataset must have at least one episode"):
             Env(config, dataset=empty_dataset)
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_reset(self, mock_wrapper_class):
         """Test reset() method."""
         config = self.create_test_config()
@@ -285,7 +285,7 @@ class TestEnv:
         assert env.episode_over is False
         assert env.current_episode is not None
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_reset_without_dataset(self, mock_wrapper_class):
         """Test reset() without dataset raises error."""
         config = self.create_test_config()
@@ -299,7 +299,7 @@ class TestEnv:
         with pytest.raises(RuntimeError, match="dataset is not available"):
             env.reset()
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_step_with_string_action(self, mock_wrapper_class):
         """Test step() with string action."""
         config = self.create_test_config()
@@ -326,7 +326,7 @@ class TestEnv:
         assert info["elapsed_steps"] == 1
         assert info["episode_over"] == done
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_step_with_dict_action(self, mock_wrapper_class):
         """Test step() with dictionary action."""
         config = self.create_test_config()
@@ -344,7 +344,7 @@ class TestEnv:
         assert isinstance(done, bool)
         assert info["elapsed_steps"] == 1
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_step_with_int_action(self, mock_wrapper_class):
         """Test step() with integer action index."""
         config = self.create_test_config()
@@ -363,7 +363,7 @@ class TestEnv:
         assert isinstance(done, bool)
         assert info["elapsed_steps"] == 1
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_step_without_reset(self, mock_wrapper_class):
         """Test step() without reset() raises error."""
         config = self.create_test_config()
@@ -377,7 +377,7 @@ class TestEnv:
         with pytest.raises(RuntimeError, match="episode not set"):
             env.step("MOVE_FORWARD")
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_step_after_episode_over(self, mock_wrapper_class):
         """Test step() after episode is over raises error."""
         config = self.create_test_config()
@@ -395,7 +395,7 @@ class TestEnv:
         with pytest.raises(RuntimeError, match="episode is over"):
             env.step("MOVE_FORWARD")
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_episode_ends_at_max_steps(self, mock_wrapper_class):
         """Test episode ends when max steps reached."""
         config = self.create_test_config()
@@ -418,7 +418,7 @@ class TestEnv:
         assert env.episode_over is True
         assert info["episode_over"] is True
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_get_metrics(self, mock_wrapper_class):
         """Test get_metrics() method."""
         config = self.create_test_config()
@@ -440,7 +440,7 @@ class TestEnv:
         # Metrics should contain enabled measures
         assert "distance_to_goal" in metrics
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_observation_space(self, mock_wrapper_class):
         """Test observation_space property."""
         config = self.create_test_config()
@@ -457,7 +457,7 @@ class TestEnv:
         assert "instruction" in obs_space
         assert obs_space["rgb"]["shape"] == (224, 224, 3)
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_action_space(self, mock_wrapper_class):
         """Test action_space property."""
         config = self.create_test_config()
@@ -474,7 +474,7 @@ class TestEnv:
         assert "STOP" in action_space["actions"]
         assert "MOVE_FORWARD" in action_space["actions"]
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_episode_iterator_restart_with_cycle(self, mock_wrapper_class):
         """Test episode iterator restarts when exhausted with cycle=True."""
         config = self.create_test_config()
@@ -503,7 +503,7 @@ class TestEnv:
         # Should get first episode again
         assert episode_id_2 == episode_id_1
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_episode_iterator_exhaustion_without_cycle(self, mock_wrapper_class):
         """Test episode iterator raises error when exhausted with cycle=False."""
         config = self.create_test_config()
@@ -524,7 +524,7 @@ class TestEnv:
         with pytest.raises(RuntimeError, match="All episodes exhausted"):
             env.reset()
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_current_episode_property(self, mock_wrapper_class):
         """Test current_episode property."""
         config = self.create_test_config()
@@ -543,7 +543,7 @@ class TestEnv:
         assert env.current_episode is not None
         assert isinstance(env.current_episode, VLNEpisode)
     
-    @patch('satnav.core.env.SatSimWrapper')
+    @patch('satnav.core.env.create_simulator')
     def test_episode_over_property(self, mock_wrapper_class):
         """Test episode_over property."""
         config = self.create_test_config()

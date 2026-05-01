@@ -84,6 +84,48 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 - **文件操作**（脚本、配置写入、输出读写）：始终是本地操作，无需 SSH。
 - server 17 Docker 容器名查询：`ssh 10.246.132.17 "docker ps"`
 
+### AerialSim Production Notes (Updated: 2026-04-10)
+
+- `satnav/sims/aerialsim/aerialsim.py` 已加入生产级保护：
+  - Google 3D Tiles `root.json` preflight
+  - tileset ready / pending requests / loaded tiles 数量检查
+  - 图像级坏图判废（黑图、低方差空白图等）
+  - 单帧自动重试
+  - 连续失败后自动重建浏览器
+- 默认配置项位于 `SIMULATOR.AERIAL.*`：
+  - `CAPTURE_ATTEMPTS`
+  - `RESTART_AFTER_FAILURES`
+  - `MAX_BROWSER_RESTARTS`
+  - `MIN_TILES_LOADED`
+  - `QUALITY_*`
+- 默认语义：**宁可重试或抛错，也不输出明显坏图**。批量生产时若仍连续失败，应在 episode 级别重跑或跳过。
+- `applications/trajectory_generation/generate.py` 现支持 `--episode_indices_file`，可只生成指定 episode 子集
+- AerialSim 当前保留为可选 3D 渲染和数据生产能力，不是 SatNav/SwiftVLN 训练评测主链默认路径
+- group 级 AerialSim 筛选入口：`python -m applications.trajectory_generation.preselect_aerial_groups`
+  - 输入 trajectory group 候选，按代表 episode 采样 AerialSim 质量
+  - 输出 `recommended_top.json`、`evaluated_results.json`、`failed.json`、`summary.json`
+- 推荐轨迹的生产级编排入口：`python -m applications.trajectory_generation.produce_aerialsim_recommended`
+  - 输入 `recommended_top.json` / `trajectory_groups_full.json`
+  - 将推荐 trajectory group 展开成完整 episode 集合
+  - 按小批次 fresh browser 生成，避免长进程 tab crash
+  - 支持 `--runtime_root` + `--tmp_root`，默认会把 AerialSim HTML runtime、Chrome user-data、disk-cache、crash-dumps 和 batch 级 `TMPDIR` 迁到 `data3` 上的短路径 `/mnt/data3/jiangjiajun/tmp/sa/<hash>/{r,t}`，并在 batch 后自动清理
+  - 生产默认建议 `--episodes_per_batch=1`，用 episode 级隔离换稳定性
+  - 对未完成 episode 做 targeted cleanup + retry
+  - 最终产出 `production_manifest.json` 与聚合 `annotations.json`
+- 生产级 AerialSim 默认配置项已收敛到 `configs/satnav_task.yaml` 的 `SIMULATOR.AERIAL.*`
+- `applications/trajectory_generation/generate.py` 已支持 Aerial 预筛选工作流：
+  - `--preselect_aerial`
+  - `--preselect_candidates`
+  - `--preselect_samples`
+  - `--preselect_topk`
+  - `--preselect_min_avg_std`
+  - `--preselect_max_black_frac`
+  - `--preselect_min_height_range`
+  - `--preselect_only`
+- 预筛选会根据多帧图像质量和局部高度起伏打分，输出 `preselect_ranking.json`，并可仅对通过筛选的 episode 执行 trajectory 生成。
+- AerialSim episode/group 筛选共享评分公式维护在 `applications/trajectory_generation/aerial_quality.py`：
+  `avg_std + 0.25*avg_height_range + 0.02*avg_mean - 120.0*avg_black_frac`
+
 ### Conda Environments
 
 | Env | Purpose |
@@ -106,6 +148,7 @@ conda activate satnav
 ## Seq2Seq Eval Infrastructure (Updated: 2026-03-24)
 
 - 评测入口脚本：`scripts/seq2seq/eval.sh`
+- 并行评测脚本：`scripts/seq2seq/eval_parallel.sh`
 - 评测专用配置：`configs/baselines/seq2seq_eval.yaml`
 - 调用方式：
   ```bash
@@ -117,15 +160,23 @@ conda activate satnav
 
   # 直接指定 checkpoint 路径
   bash scripts/seq2seq/eval.sh /path/to/best.pth val_seen
+
+  # 多卡并行评测（按 episode 分片，自动合并结果）
+  bash scripts/seq2seq/eval_parallel.sh <exp_name> val_seen 8 0,1,2,3,4,5,6,7
   ```
 - 默认 split：`val_seen`（`val_unseen` 当前暂无 episodes）
 - 输出约定：`output/seq2seq_offline/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
+- 并行评测输出约定：
+  - 分片目录：`output/seq2seq_offline/results/<exp_name>/<split>/shard_<i>/`
+  - 合并结果：`output/seq2seq_offline/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
+  - 合并 diagnostics：`output/seq2seq_offline/results/<exp_name>/<split>/eval_ckpt_0_<split>_diagnostics.json`
 - 依赖 `satnav` conda 环境（脚本内自动 activate）
 - 使用 `offline_trainer.eval()` 入口：
   1. `OfflineTrajectoryDataset` 提供 obs/action space 供 policy 初始化
   2. `SatNavDataset` + `Env`（仿真器 online rollout）运行完整 episode
   3. `Evaluator` 记录 spl / success / distance_to_goal / path_length
 - `DATA_PATH` 使用 `{split}` 占位符，自动展开 eval split 路径
+- `Evaluator` 已支持 `EVAL.EPISODE_OFFSET`，可供多卡脚本做静态 episode 分片
 - 评测需要 SCENES_DIR（卫星 TIF 图）；不支持无仿真器的离线评测
 
 ## Offline Training (Updated: 2026-03-24)
@@ -140,10 +191,7 @@ conda activate satnav
   - `satnav/training/offline_trainer.py`
   - `configs/baselines/seq2seq_offline.yaml`
   - `configs/baselines/seq2seq_offline_smoke.yaml`
-  - `scripts/seq2seq/make_offline_smoke_subset.py`
-  - `scripts/seq2seq/train_offline.sh`
   - `scripts/seq2seq/train_offline_ddp.sh`
-  - `scripts/seq2seq/organize_output.sh`
   - `scripts/cma/train.sh`
   - `scripts/cma/train_ddp.sh`
 - 离线训练默认数据源：
@@ -174,34 +222,25 @@ conda activate satnav
     - swanlab: `output/seq2seq_offline/swanlab`
     - legacy: `output/seq2seq_offline/legacy`
     - artifacts: `output/seq2seq_offline/artifacts/{vocab_260317, embeddings_260317, smoke_260317}`
-  - 历史顶层 `output/checkpoints`、`output/results`、`output/videos`、`output/logs`、`output/swanlab*` 如需收敛到新结构，使用 `scripts/seq2seq/organize_output.sh`
 
-## Seq2Seq DAgger Training (Updated: 2026-03-24)
+## SatNav Mainline Cleanup (Updated: 2026-05-01)
 
-- 已新增在线聚合训练入口：`TRAINER_NAME=dagger_trainer`
-- 核心文件：
+- 当前推荐主线：
+  - Seq2Seq/CMA 训练：`TRAINER_NAME=offline_trainer`
+  - Seq2Seq/CMA 评测：`offline_trainer.eval()` + `Env` online rollout
+  - 应用工具：`applications/`，尤其 trajectory generation 继续使用 `SatNavPathFollower`
+  - SwiftVLN 兼容：保留 `Env`、`SatNavDataset`、`Env.reset_to_episode()`、`Env.step()`、`Env.get_metrics()`、`episode_over`、`max_episode_steps`、`_dataset.episodes`、`_task._sim.get_agent_state()`、`satnav.utils.maps.*`、`satnav.core.utils.geodesic_distance`
+- 已移除 DAgger 主链：
   - `satnav/training/dagger_trainer.py`
   - `satnav/dataset/dagger_dataset.py`
   - `configs/baselines/seq2seq_dagger.yaml`
-- 设计定位：
-  - `offline_trainer`：纯离线预训练
-  - `recollect_trainer`：teacher-forcing recollection
-  - `dagger_trainer`：policy rollout + expert label + dataset aggregation
-- expert 复用 `ReferencePathFollower`
-- 聚合数据当前使用磁盘 `traj_*.pt` 轨迹文件，不依赖 `lmdb/msgpack`
-- 默认输出根目录：`output/seq2seq_dagger`
-  - checkpoints: `output/seq2seq_dagger/checkpoints/latest`
-  - results: `output/seq2seq_dagger/results/latest`
-  - datasets: `output/seq2seq_dagger/datasets/{split}`
-  - videos: `output/seq2seq_dagger/videos/latest`
-  - swanlab: `output/seq2seq_dagger/swanlab`
-- 默认训练流程：
-  1. 从 offline checkpoint 恢复
-  2. 按 `IL.DAGGER.iterations` 循环
-  3. 每轮先按 beta 混合 rollout 聚合 expert 标注轨迹
-  4. 再对聚合数据做监督训练
-  - `IL.DAGGER.update_size` 现按全局语义解释；多卡时每个 rank 只收 `ceil(update_size / world_size)` 条成功轨迹
-  - 聚合目录下额外维护 `manifest_rank*.tsv`，训练前优先读取 manifest 构建数据集，避免每轮全量 `torch.load` 扫描所有 `traj_*.pt`
+  - `run.py` 不再注册 `dagger_trainer`
+- 保留但非当前主线：
+  - `satnav/training/recollect_trainer.py`
+  - `satnav/dataset/recollect_dataset.py`
+  - `RandomAgent` / `GreedyAgent`
+- 传感器当前只保留 VLNTask 主链使用的 `RGBSensor`、`InstructionSensor`、`AgentPoseSensor`。
+
 ## CMA Baseline (Updated: 2026-03-24)
 
 - 默认配置：`configs/baselines/cma.yaml`
@@ -239,6 +278,7 @@ conda activate satnav
 ## CMA Eval Infrastructure (Updated: 2026-03-24)
 
 - 评测入口脚本：`scripts/cma/eval.sh`
+- 并行评测脚本：`scripts/cma/eval_parallel.sh`
 - 评测专用配置：`configs/baselines/cma_eval.yaml`
 - 调用方式：
   ```bash
@@ -250,11 +290,31 @@ conda activate satnav
 
   # 直接指定 checkpoint 路径
   bash scripts/cma/eval.sh /path/to/best.pth val_seen
+
+  # 多卡并行评测
+  bash scripts/cma/eval_parallel.sh <exp_name> val_seen 8 0,1,2,3,4,5,6,7
   ```
 - 默认 split：`val_seen`（`val_unseen` 当前暂无 episodes）
 - 输出约定：`output/cma/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
 - 依赖 `satnav` conda 环境（脚本内自动 activate）
 - eval 流程与 seq2seq 完全一致（同一 `offline_trainer.eval()` 入口）
+
+## CMA Rollout Selection Workflow (Updated: 2026-04-14)
+
+- `offline_trainer` 现在支持 epoch 级 checkpoint 保存：
+  - `IL.CHECKPOINT.save_every_epoch`
+  - `IL.CHECKPOINT.save_latest_each_epoch`
+  - `IL.CHECKPOINT.epoch_filename_pattern`
+- 可通过训练配置开启：
+  - `IL.CHECKPOINT.save_every_epoch: true`
+  - `IL.CHECKPOINT.save_latest_each_epoch: true`
+  - `IL.CHECKPOINT.epoch_filename_pattern: epoch_{epoch:02d}.pth`
+- `scripts/cma/eval_parallel.sh` 现在既能收实验名，也能直接收 checkpoint 路径：
+  ```bash
+  bash scripts/cma/eval_parallel.sh <EXP_NAME> val_seen 8 0,1,2,3,4,5,6,7
+  bash scripts/cma/eval_parallel.sh /path/to/epoch_03.pth val_seen 8 0,1,2,3,4,5,6,7
+  ```
+- `RESULTS_DIR_OVERRIDE` 可显式指定并行 eval 输出目录，便于多 checkpoint 独立对比。
 
 ## Webhook
 

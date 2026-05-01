@@ -2,7 +2,7 @@
 """Offline trajectory dataset backed by pre-rendered trajectory_data."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Tuple
 
 import json
 import numpy as np
@@ -93,15 +93,27 @@ class OfflineTrajectoryDataset(torch.utils.data.Dataset):
         return valid_annotations
 
     def _trajectory_length(self, ann: Dict[str, Any]) -> int:
-        # actions = [-1, a1, a2, ..., a_steps]  len = steps + 1
-        # We train on all steps (a1 … a_steps inclusive, where a_steps == STOP).
-        # traj_len = steps = len(actions) - 1
-        actions = ann.get("actions", [])
-        if len(actions) < 2:
-            return 0
-        # Strip the leading -1 sentinel if present; everything else is a valid step.
-        start = 1 if actions[0] == -1 else 0
-        return max(len(actions) - start, 0)
+        _, teacher_actions = self._action_sequences(ann)
+        return len(teacher_actions)
+
+    def _action_sequences(self, ann: Dict[str, Any]) -> Tuple[List[int], List[int]]:
+        actions = list(ann.get("actions", []))
+        if not actions:
+            return [], []
+
+        if actions[0] == -1:
+            prev_actions = actions[:-1]
+            teacher_actions = actions[1:]
+        else:
+            prev_actions = [-1] + actions[:-1]
+            teacher_actions = actions
+
+        # Match online RecollectTrainer semantics: do not train the final STOP.
+        if teacher_actions and teacher_actions[-1] == 0:
+            teacher_actions = teacher_actions[:-1]
+            prev_actions = prev_actions[: len(teacher_actions)]
+
+        return prev_actions, teacher_actions
 
     def _resolve_frame_dir(self, ann: Dict[str, Any]) -> Path:
         video_path = Path(ann["video"])
@@ -130,8 +142,8 @@ class OfflineTrajectoryDataset(torch.utils.data.Dataset):
                 f"Trajectory {ann.get('id')} has only {len(frame_paths)} frames for required length {traj_len}"
             )
 
-        # Keep observations aligned with online RecollectTrainer:
-        # use frames before each non-STOP teacher action and drop the duplicated post-STOP frame.
+        # Keep observations aligned with online RecollectTrainer: use frames
+        # before each non-STOP teacher action and drop the duplicated post-STOP frame.
         selected_paths = frame_paths[:traj_len]
         frames = []
         for path in selected_paths:
@@ -142,12 +154,12 @@ class OfflineTrajectoryDataset(torch.utils.data.Dataset):
         return torch.stack(frames, dim=0)
 
     def _build_action_tensors(self, ann: Dict[str, Any], traj_len: int) -> Dict[str, torch.Tensor]:
-        actions = ann["actions"]
+        prev_actions_raw, teacher_actions_raw = self._action_sequences(ann)
         prev_actions = torch.tensor(
-            [max(a, 0) for a in actions[:traj_len]], dtype=torch.long
+            [max(a, 0) for a in prev_actions_raw[:traj_len]], dtype=torch.long
         )
         teacher_actions = torch.tensor(
-            actions[1 : traj_len + 1], dtype=torch.long
+            teacher_actions_raw[:traj_len], dtype=torch.long
         )
         return {
             "prev_actions": prev_actions,

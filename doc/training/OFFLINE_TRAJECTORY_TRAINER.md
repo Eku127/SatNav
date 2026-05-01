@@ -139,8 +139,6 @@ satnav/training/distributed.py
 configs/baselines/seq2seq_offline.yaml
 configs/baselines/seq2seq_offline_smoke.yaml
 scripts/seq2seq/train_offline_ddp.sh
-scripts/seq2seq/make_offline_smoke_subset.py
-scripts/seq2seq/organize_output.sh
 ```
 
 ### 修改
@@ -218,15 +216,9 @@ IL:
 3. 单卡训练 `1` 个 epoch
 4. 验证 checkpoint 写出
 
-建议命令：
+建议命令（需先在配置中指向已准备好的 smoke annotations）：
 
 ```bash
-python scripts/seq2seq/make_offline_smoke_subset.py \
-  --src /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/annotations.json \
-  --dst output/seq2seq_offline/artifacts/smoke/offline_annotations_128_260317.json \
-  --count 128 \
-  --per-scene 2
-
 python run.py \
   --exp-config configs/baselines/seq2seq_offline_smoke.yaml \
   --run-type train

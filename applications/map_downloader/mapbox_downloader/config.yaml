@@ -1,0 +1,43 @@
+# Mapbox downloader configuration
+
+MAPBOX:
+  # Prefer setting MAPBOX_ACCESS_TOKEN in the environment.
+  # On Windows, this program also falls back to reading the user/system env var
+  # from the registry if the current shell session has not been refreshed yet.
+  ACCESS_TOKEN: ""
+  TILESET_ID: "mapbox.satellite"
+
+REGION:
+  TYPE: "center"
+
+  CORNERS:
+    LAT1: 39.900000
+    LON1: 116.397000
+    LAT2: 39.903000
+    LON2: 116.400000
+
+  CENTER:
+    LAT: 39.901500
+    LON: 116.398500
+    HEIGHT_M: 1000.0
+    WIDTH_M: 1000.0
+
+DOWNLOAD:
+  ZOOM: 19
+  FORMAT: "jpg90"
+  SCALE: 1
+  MODE: "parallel"
+  MAX_WORKERS: 12
+
+NETWORK:
+  USE_ENV_PROXY: false
+
+OUTPUT:
+  OUTPUT_DIR: "data/scene_datasets"
+  WRITE_ATTRIBUTION_FILE: true
+  FILENAME_PATTERN_CENTER: "mapbox_{tileset_id}_center_{center_lat:.6f}_{center_lon:.6f}_h{height_m:.0f}w{width_m:.0f}_z{zoom}.tif"
+
+WATERMARK:
+  ENABLED: true
+  LOGO_PATH: ""
+  LOGO_WIDTH_PX: 220

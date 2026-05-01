@@ -4,7 +4,7 @@
 
 # Google 3D Tiles API Configuration
 API:
-  API_KEY: "AIzaSyAvdA9uijk4A2IX0sYeMOc2Kv3dH7GpDRc"  # Google 3D Tiles API key
+  API_KEY: "YOUR_GOOGLE_API_KEY"  # Google 3D Tiles API key
 
 # Agent State Configuration (SatSim-compatible)
 AGENT:

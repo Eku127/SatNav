@@ -8,7 +8,6 @@ Organization:
     - registry.py: Model registration system
     - baselines/: Baseline model implementations (Seq2Seq, CMA, etc.)
     - encoders/: Shared encoder modules (instruction, visual, state)
-    - adapters/: Adapters for external models (NavID, NavILA, etc.)
     - utils.py: Model utilities
 
 Reference:
@@ -40,4 +39,3 @@ __all__ = [
     "RandomAgent",
     "GreedyAgent",
 ]
-

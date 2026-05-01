@@ -244,8 +244,8 @@ class AerialRenderer:
         # Ensure engine is initialized
         aerialsim = self._ensure_aerialsim()
         
-        # Update ground height threshold
-        aerialsim._ground_height_threshold = ground_height_threshold
+        # Update ground height cache reuse threshold.
+        aerialsim.set_ground_height_cache_threshold(ground_height_threshold)
         
         output_files = []
         

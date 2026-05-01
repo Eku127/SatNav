@@ -177,6 +177,14 @@ def get_agent_sprite() -> np.ndarray:
     return _AGENT_SPRITE.copy()
 
 
+def create_agent_sprite(size: int = 100) -> np.ndarray:
+    """Return an RGBA agent sprite resized to the requested square size."""
+    sprite = get_agent_sprite()
+    if sprite.shape[0] == size and sprite.shape[1] == size:
+        return sprite
+    return cv2.resize(sprite, (size, size), interpolation=cv2.INTER_AREA)
+
+
 def geo_to_pixel(
     lon: float,
     lat: float,
@@ -1192,4 +1200,3 @@ def annotate_topdown_map(
     except Exception:
         # Silently ignore errors
         return None
-

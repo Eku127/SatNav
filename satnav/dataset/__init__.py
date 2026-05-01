@@ -14,8 +14,6 @@ __all__ = [
     "SatNavDataset",
     "RecollectionDataset",
     "OfflineTrajectoryDataset",
-    "DaggerCollector",
-    "DaggerTrajectoryDataset",
 ]
 
 
@@ -24,10 +22,4 @@ def __getattr__(name):
         from satnav.dataset.recollect_dataset import RecollectionDataset
 
         return RecollectionDataset
-    if name in ("DaggerCollector", "DaggerTrajectoryDataset"):
-        from satnav.dataset.dagger_dataset import DaggerCollector, DaggerTrajectoryDataset
-
-        if name == "DaggerCollector":
-            return DaggerCollector
-        return DaggerTrajectoryDataset
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

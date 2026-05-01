@@ -17,7 +17,6 @@ __all__ = [
     "BaseILTrainer",
     
     # Trainers
-    "DaggerTrainer",
     "OfflineTrainer",
     "RecollectTrainer",
     
@@ -35,10 +34,6 @@ __all__ = [
 
 
 def __getattr__(name):
-    if name == "DaggerTrainer":
-        from satnav.training.dagger_trainer import DaggerTrainer
-
-        return DaggerTrainer
     if name == "Evaluator":
         from satnav.training.evaluator import Evaluator
 

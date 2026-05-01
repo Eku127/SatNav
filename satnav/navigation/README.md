@@ -92,7 +92,7 @@ actions = follower.get_action_sequence_to_goal(
 
 **Use Cases**:
 - Converting `reference_path` from dataset to action sequences
-- Generating DAgger training data
+- Generating teacher forcing data for offline/recollection training
 - Evaluating path following accuracy
 
 ```python
@@ -278,4 +278,3 @@ planner = DiscretePathPlanner(
 
 - [VLN-CE: habitat_extensions/discrete_planner.py](https://github.com/jacobkrantz/VLN-CE)
 - [Habitat-lab: habitat/tasks/nav/shortest_path_follower.py](https://github.com/facebookresearch/habitat-lab)
-

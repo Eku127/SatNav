@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """AerialSim wrapper implementation for SatNav.
 
 This wrapper provides the Simulator interface for AerialSim, allowing seamless
@@ -10,7 +12,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
 from omegaconf import DictConfig
 
 from satnav.core.simulator import AgentState, Observations, Simulator
@@ -172,10 +173,18 @@ class AerialSimWrapper(Simulator):
         """
         position, rotation = self._aerialsim.get_agent_state()
         return AgentState(position=position, rotation=rotation)
+
+    def get_aerial_diagnostics(self) -> Dict[str, Any]:
+        """Return public AerialSim diagnostics for application code."""
+        return self._aerialsim.get_diagnostics()
+
+    def set_ground_height_cache_threshold(self, threshold_meters: float) -> None:
+        """Configure AerialSim ground-height cache reuse distance."""
+        self._aerialsim.set_ground_height_cache_threshold(threshold_meters)
     
     def set_agent_state(
         self,
-        position: Union[List[float], np.ndarray],
+        position: List[float],
         rotation: float
     ) -> None:
         """Set the state of the agent.
@@ -199,8 +208,8 @@ class AerialSimWrapper(Simulator):
     
     def geodesic_distance(
         self,
-        position_a: Union[List[float], np.ndarray],
-        position_b: Union[List[float], np.ndarray]
+        position_a: List[float],
+        position_b: List[float]
     ) -> float:
         """Calculate geodesic distance between two positions.
         
@@ -214,11 +223,9 @@ class AerialSimWrapper(Simulator):
         Returns:
             Distance in meters between the two positions (3D distance including altitude).
         """
-        position_a = np.array(position_a, dtype=np.float32)
-        position_b = np.array(position_b, dtype=np.float32)
         return geodesic_distance_with_altitude(position_a, position_b)
     
-    def is_navigable(self, position: Union[List[float], np.ndarray]) -> bool:
+    def is_navigable(self, position: List[float]) -> bool:
         """Check if a position is navigable.
         
         For AerialSim with global 3D tiles, all positions are considered

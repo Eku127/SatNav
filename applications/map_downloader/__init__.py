@@ -1,15 +1,11 @@
-"""Map downloader application for generating GeoTIFF files from Google Maps."""
+"""Map downloader application for SatNav.
 
-from .downloader import GoogleMapDownloader
+The package provides provider-specific downloaders under:
 
-# Lazy import to avoid RuntimeWarning when running as module with python -m
-# Use: from applications.map_downloader.generate_geotiff import generate_geotiff
-# Or: from applications.map_downloader import generate_geotiff (will work but triggers import)
-def __getattr__(name):
-    if name == "generate_geotiff":
-        from .generate_geotiff import generate_geotiff
-        return generate_geotiff
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+- applications.map_downloader.google_downloader
+- applications.map_downloader.mapbox_downloader
+"""
 
-__all__ = ["GoogleMapDownloader", "generate_geotiff"]
+from .main import main
 
+__all__ = ["main"]

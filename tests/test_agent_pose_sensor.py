@@ -107,13 +107,10 @@ def test_sensor_with_simulator():
         }
     }
     
-    # Create simulator
-    sim = SatSimWrapper(config)
     scene_path = os.path.join(os.path.dirname(__file__), 'test_data', 'map.tif')
-    sim.reset("map")  # Will fail without scenes_dir, use direct path
-    # Actually, reset needs the scene path. Let me use _satsim directly
-    sim._satsim.load_scene(scene_path)
-    sim._scene_id = "map"
+    scenes_dir = os.path.dirname(scene_path)
+    sim = SatSimWrapper(config, scenes_dir=scenes_dir)
+    sim.reset("map")
     
     # Use coordinates from test dataset (known to be within map.tif bounds)
     start_position = [114.064413, 22.543496, 100.0]
@@ -131,6 +128,8 @@ def test_sensor_with_simulator():
     episode.start_position = start_position
     episode.start_rotation = start_heading
     sensor.reset(episode)
+    sensor_start_position = sensor._start_position
+    sensor_start_heading = sensor._start_heading
     
     # ------------------------------------------
     # Step 0: At start, pose should be [0, 0, 0, 1]
@@ -170,7 +169,7 @@ def test_sensor_with_simulator():
         current_heading = agent_state.rotation
         
         expected = manual_compute_pose(
-            start_position, start_heading,
+            sensor_start_position, sensor_start_heading,
             current_pos, current_heading
         )
         
@@ -189,7 +188,7 @@ def test_sensor_with_simulator():
         print(f"    {status}")
     
     print()
-    return all_passed
+    assert all_passed
 
 
 def test_boundary_return():
@@ -268,7 +267,6 @@ def test_boundary_return():
     print(f"    PASSED (returned to start, fwd≈0, right≈0)")
     
     print()
-    return True
 
 
 if __name__ == "__main__":
@@ -280,10 +278,12 @@ if __name__ == "__main__":
     test_utils_basic()
     
     # Test 2: Sensor with real simulator
-    passed_2 = test_sensor_with_simulator()
+    test_sensor_with_simulator()
+    passed_2 = True
     
     # Test 3: Boundary return scenario
-    passed_3 = test_boundary_return()
+    test_boundary_return()
+    passed_3 = True
     
     # Summary
     print("=" * 60)

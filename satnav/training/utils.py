@@ -4,7 +4,7 @@
 This module provides utility functions for batch processing, padding,
 and data collation used during training.
 
-Reference: VLN-CE vlnce_baselines/dagger_trainer.py
+Reference: VLN-CE training utilities.
 """
 
 from collections import defaultdict

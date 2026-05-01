@@ -164,6 +164,7 @@ def test_cma_forward_pass():
     }
     
     # Initialize model states
+    device = torch.device("cpu")
     rnn_states = policy.net.get_initial_state(batch_size, device)
     
     prev_actions = torch.zeros(batch_size, 1, dtype=torch.long)
@@ -306,4 +307,3 @@ def test_cma_parameter_count():
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '-s'])
-

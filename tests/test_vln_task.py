@@ -174,7 +174,7 @@ class TestVLNTask:
         
         assert task.success_distance == 3.0  # default
         assert len(task.sensors) == 3  # Always includes RGB, Instruction and AgentPose
-        assert len(task.measures) == 4  # All measures if none specified
+        assert len(task.measures) == 5  # Default measures include OracleSuccess
     
     def test_init_sensors(self):
         """Test that sensors are initialized correctly."""

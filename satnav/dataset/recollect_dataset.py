@@ -4,6 +4,10 @@
 This module provides a dataset class that collects trajectories from
 the environment in real-time using teacher forcing with reference paths.
 
+This is retained for future recollection / online imitation work. The current
+release training path for Seq2Seq and CMA uses OfflineTrajectoryDataset with
+OfflineTrainer instead.
+
 Reference: VLN-CE vlnce_baselines/common/recollection_dataset.py
 """
 

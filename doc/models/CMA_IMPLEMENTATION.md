@@ -113,9 +113,6 @@ configs/baselines/
 tests/
 ├── test_cma_policy.py                  # Unit tests
 └── test_cma_trainer_integration.py     # Integration tests
-
-examples/
-└── cma_quick_test.py       # Quick demo script
 ```
 
 ### Key Classes
@@ -308,13 +305,6 @@ pytest tests/test_cma_policy.py::test_cma_forward_pass -v
 pytest tests/test_cma_trainer_integration.py -v
 ```
 
-### Quick Test
-
-```bash
-# Run quick validation
-python examples/cma_quick_test.py
-```
-
 ## Performance Expectations
 
 ### Compared to Seq2Seq
@@ -382,4 +372,3 @@ python examples/cma_quick_test.py
 - [Seq2Seq Implementation](SEQ2SEQ_IMPLEMENTATION.md)
 - [Model Comparison](../training/MODEL_COMPARISON.md)
 - [Baselines README](../../satnav/models/baselines/README.md)
-
