@@ -51,9 +51,19 @@
 
     // Set render ready flag
     window.__renderReady = false;
+    window.__lastRenderTimestamp = 0;
     viewer.scene.postRender.addEventListener(function() {
       window.__renderReady = true;
+      window.__lastRenderTimestamp = Date.now();
     });
+
+    window.forceRender = function() {
+      if (typeof viewer !== 'undefined') {
+        window.__renderReady = false;
+        viewer.resize();
+        viewer.scene.requestRender();
+      }
+    };
 
     // Function to update camera view (called by Python)
     window.updateView = function(lat, lng, height, heading, pitch, roll) {
@@ -208,14 +218,27 @@
     window.__tilesetLoadingProgress = 0;
     window.__lastFrameNumber = 0;
     window.__lastTilesLoaded = 0;
+    window.__tilesetError = "";
+    window.__tileFailedCount = 0;
+    window.__lastTileFailedMessage = "";
     
     tileset.readyPromise.then(function() {
       window.__tilesetReady = true;
       window.__tilesetLoadingProgress = 1.0;
     }).catch(function(error) {
       console.error("Tileset failed to load:", error);
+      window.__tilesetError = String((error && (error.message || error.toString())) || "Tileset failed to load");
       window.__tilesetReady = false;
     });
+
+    if (tileset.tileFailed && typeof tileset.tileFailed.addEventListener === 'function') {
+      tileset.tileFailed.addEventListener(function(error) {
+        window.__tileFailedCount += 1;
+        window.__lastTileFailedMessage = String(
+          (error && (error.message || error.url || error.toString())) || "tileFailed"
+        );
+      });
+    }
 
     // Track tileset loading progress
     viewer.scene.globe.tileLoadProgressEvent.addEventListener(function(progress) {
@@ -250,12 +273,28 @@
       
       // Get current tiles loaded count using CesiumJS statistics
       let currentTilesLoaded = 0;
+      let pendingRequests = 0;
+      let tilesProcessing = 0;
+      let selectedTiles = 0;
+      let totalTiles = 0;
       try {
         // Method 1: Use statistics property (primary method for CesiumJS 1.105+)
         if (tileset.statistics) {
           // Try numberOfTilesWithContentReady first (most accurate)
           if (typeof tileset.statistics.numberOfTilesWithContentReady === 'number') {
             currentTilesLoaded = tileset.statistics.numberOfTilesWithContentReady;
+          }
+          if (typeof tileset.statistics.numberOfPendingRequests === 'number') {
+            pendingRequests = tileset.statistics.numberOfPendingRequests;
+          }
+          if (typeof tileset.statistics.numberOfTilesProcessing === 'number') {
+            tilesProcessing = tileset.statistics.numberOfTilesProcessing;
+          }
+          if (typeof tileset.statistics.selected === 'number') {
+            selectedTiles = tileset.statistics.selected;
+          }
+          if (typeof tileset.statistics.numberOfTilesTotal === 'number') {
+            totalTiles = tileset.statistics.numberOfTilesTotal;
           }
           // Fallback to numberOfTilesTotal if ready count not available
           else if (typeof tileset.statistics.numberOfTilesTotal === 'number' && currentTilesLoaded === 0) {
@@ -266,6 +305,18 @@
         if (currentTilesLoaded === 0 && tileset._statistics) {
           if (typeof tileset._statistics.numberOfTilesWithContentReady === 'number') {
             currentTilesLoaded = tileset._statistics.numberOfTilesWithContentReady;
+          }
+          if (typeof tileset._statistics.numberOfPendingRequests === 'number') {
+            pendingRequests = pendingRequests || tileset._statistics.numberOfPendingRequests;
+          }
+          if (typeof tileset._statistics.numberOfTilesProcessing === 'number') {
+            tilesProcessing = tilesProcessing || tileset._statistics.numberOfTilesProcessing;
+          }
+          if (typeof tileset._statistics.selected === 'number') {
+            selectedTiles = selectedTiles || tileset._statistics.selected;
+          }
+          if (typeof tileset._statistics.numberOfTilesTotal === 'number') {
+            totalTiles = totalTiles || tileset._statistics.numberOfTilesTotal;
           }
         }
         // Method 3: Recursively count loaded tiles from root (fallback)
@@ -311,14 +362,24 @@
       // 3. Frame rate has stabilized (not rendering every frame)
       const stable = window.__renderReady && 
                      !tilesChanged && 
-                     framesSinceLastCheck <= 1;
+                     framesSinceLastCheck <= 1 &&
+                     pendingRequests === 0 &&
+                     tilesProcessing === 0;
       
       return {
         ready: window.__tilesetReady,
         progress: window.__tilesetLoadingProgress,
         stable: stable,
         tilesLoaded: currentTilesLoaded,
-        framesSinceLastCheck: framesSinceLastCheck
+        framesSinceLastCheck: framesSinceLastCheck,
+        pendingRequests: pendingRequests,
+        tilesProcessing: tilesProcessing,
+        selectedTiles: selectedTiles,
+        totalTiles: totalTiles,
+        renderReady: window.__renderReady,
+        tilesetError: window.__tilesetError,
+        tileFailedCount: window.__tileFailedCount,
+        lastTileFailedMessage: window.__lastTileFailedMessage
       };
     };
   </script>
