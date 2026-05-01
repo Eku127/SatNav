@@ -27,6 +27,17 @@ def load_config(config_path: Path) -> Dict[str, Any]:
         return yaml.safe_load(handle) or {}
 
 
+def load_required_config(config_path: Path) -> Dict[str, Any]:
+    """Load a required YAML/JSON config file."""
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file does not exist: {config_path}")
+    with config_path.open("r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle) or {}
+    if not isinstance(data, dict):
+        raise ValueError(f"Config file must contain a mapping: {config_path}")
+    return data
+
+
 def cfg_get(config: Dict[str, Any], *keys: str, default: Any = None) -> Any:
     """Safely read nested dict values."""
     current: Any = config
@@ -35,6 +46,15 @@ def cfg_get(config: Dict[str, Any], *keys: str, default: Any = None) -> Any:
             return default
         current = current[key]
     return current
+
+
+def cfg_get_any(config: Dict[str, Any], paths: list[tuple[str, ...]], default: Any = None) -> Any:
+    """Read a config value from the first matching key path."""
+    for path in paths:
+        value = cfg_get(config, *path, default=None)
+        if value is not None:
+            return value
+    return default
 
 
 def read_windows_env_var(name: str) -> Optional[str]:
@@ -404,6 +424,318 @@ def generate_xyz_geotiff(
     return output_path
 
 
+def _format_scene_output_path(
+    scene: Dict[str, Any],
+    output_dir: Path,
+    filename_template: str,
+) -> Path:
+    scene_id = scene.get("scene_id") or scene.get("name")
+    if not scene_id:
+        raise ValueError("Every scene must define scene_id")
+    output_name = scene.get("output") or scene.get("filename")
+    if output_name:
+        output_path = Path(str(output_name))
+        if not output_path.is_absolute():
+            output_path = output_dir / output_path
+    else:
+        output_path = output_dir / filename_template.format(scene_id=scene_id)
+    return output_path
+
+
+def _scene_to_corners(scene: Dict[str, Any]) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    corners = scene.get("corners")
+    if isinstance(corners, dict):
+        lat1 = corners.get("lat1")
+        lon1 = corners.get("lon1")
+        lat2 = corners.get("lat2")
+        lon2 = corners.get("lon2")
+    else:
+        lat1 = scene.get("lat1")
+        lon1 = scene.get("lon1")
+        lat2 = scene.get("lat2")
+        lon2 = scene.get("lon2")
+
+    if None not in (lat1, lon1, lat2, lon2):
+        lat1_f, lon1_f, lat2_f, lon2_f = map(float, (lat1, lon1, lat2, lon2))
+        if lat1_f >= lat2_f:
+            raise ValueError(f"Scene {scene.get('scene_id')} has lat1 >= lat2")
+        if lon1_f >= lon2_f:
+            raise ValueError(f"Scene {scene.get('scene_id')} has lon1 >= lon2")
+        return (lat1_f, lon1_f), (lat2_f, lon2_f)
+
+    center = scene.get("center")
+    if isinstance(center, dict):
+        center_lat = center.get("lat")
+        center_lon = center.get("lon")
+        height_m = center.get("height_m")
+        width_m = center.get("width_m")
+    else:
+        center_lat = scene.get("center_lat")
+        center_lon = scene.get("center_lon")
+        height_m = scene.get("height_m")
+        width_m = scene.get("width_m")
+
+    if None not in (center_lat, center_lon, height_m, width_m):
+        return center_to_corners(
+            float(center_lat),
+            float(center_lon),
+            float(height_m),
+            float(width_m),
+        )
+
+    raise ValueError(
+        f"Scene {scene.get('scene_id')} must define either corners or center"
+    )
+
+
+def _cli_has(cli_flags: set[str], *flags: str) -> bool:
+    return any(flag in cli_flags for flag in flags)
+
+
+def _scene_config_value(
+    scene_config: Dict[str, Any],
+    cli_flags: set[str],
+    cli_flag_names: tuple[str, ...],
+    cli_value: Any,
+    config_paths: list[tuple[str, ...]],
+    default: Any = None,
+) -> Any:
+    if _cli_has(cli_flags, *cli_flag_names):
+        return cli_value
+    return cfg_get_any(scene_config, config_paths, default=cli_value if cli_value is not None else default)
+
+
+def run_scene_config(args: argparse.Namespace, base_config: Dict[str, Any], cli_flags: set[str]) -> None:
+    """Download all scenes defined by a YAML/JSON scene config."""
+    scene_config_path = Path(args.scene_config)
+    scene_config = load_required_config(scene_config_path)
+    scenes = scene_config.get("scenes") or scene_config.get("SCENES")
+    if not isinstance(scenes, list) or not scenes:
+        raise ValueError(f"{scene_config_path} must contain a non-empty scenes list")
+
+    api_key = args.api_key or resolve_api_key(base_config)
+    if not api_key and not args.dry_run:
+        raise ValueError(
+            "Google Maps API key is required. Set GOOGLE_MAPS_API_KEY, "
+            "config.yaml -> GOOGLE.API_KEY, or pass --api-key."
+        )
+
+    output_dir = Path(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--output-dir",),
+            args.output_dir,
+            [("output", "output_dir"), ("OUTPUT", "OUTPUT_DIR")],
+            ".",
+        )
+    )
+    filename_template = str(
+        cfg_get_any(
+            scene_config,
+            [("output", "filename_template"), ("OUTPUT", "FILENAME_TEMPLATE")],
+            default="{scene_id}.tif",
+        )
+    )
+    skip_existing = bool(
+        cfg_get_any(
+            scene_config,
+            [("output", "skip_existing"), ("OUTPUT", "SKIP_EXISTING")],
+            default=True,
+        )
+    )
+    if args.overwrite:
+        skip_existing = False
+
+    zoom = int(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--zoom",),
+            args.zoom,
+            [("download", "zoom"), ("DOWNLOAD", "ZOOM")],
+            19,
+        )
+    )
+    maptype = str(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--maptype",),
+            args.maptype,
+            [("download", "maptype"), ("DOWNLOAD", "MAPTYPE")],
+            "satellite",
+        )
+    )
+    download_mode = str(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--download-mode",),
+            args.download_mode,
+            [("download", "mode"), ("DOWNLOAD", "MODE")],
+            "parallel",
+        )
+    )
+    max_workers = _scene_config_value(
+        scene_config,
+        cli_flags,
+        ("--max-workers",),
+        args.max_workers,
+        [("download", "max_workers"), ("DOWNLOAD", "MAX_WORKERS")],
+    )
+    max_workers = int(max_workers) if max_workers is not None else None
+    image_format = str(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--xyz-image-format",),
+            args.xyz_image_format,
+            [("google_xyz", "image_format"), ("GOOGLE_XYZ", "IMAGE_FORMAT")],
+            "jpeg",
+        )
+    )
+    scale = str(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--xyz-scale",),
+            args.xyz_scale,
+            [("google_xyz", "scale"), ("GOOGLE_XYZ", "SCALE")],
+            "scaleFactor1x",
+        )
+    )
+    high_dpi = bool(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--xyz-high-dpi",),
+            args.xyz_high_dpi,
+            [("google_xyz", "high_dpi"), ("GOOGLE_XYZ", "HIGH_DPI")],
+            False,
+        )
+    )
+    language = str(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--xyz-language",),
+            args.xyz_language,
+            [("google_xyz", "language"), ("GOOGLE_XYZ", "LANGUAGE")],
+            "en-US",
+        )
+    )
+    region = str(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--xyz-region",),
+            args.xyz_region,
+            [("google_xyz", "region"), ("GOOGLE_XYZ", "REGION")],
+            "US",
+        )
+    )
+    use_env_proxy = bool(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--use-env-proxy",),
+            args.use_env_proxy,
+            [("network", "use_env_proxy"), ("NETWORK", "USE_ENV_PROXY")],
+            False,
+        )
+    )
+    add_attribution_panel = not args.no_attribution_panel
+    logo_path = str(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--logo-path",),
+            args.logo_path,
+            [("watermark", "logo_path"), ("WATERMARK", "LOGO_PATH")],
+            "",
+        )
+        or ""
+    )
+    logo_width_px = int(
+        _scene_config_value(
+            scene_config,
+            cli_flags,
+            ("--logo-width-px",),
+            args.logo_width_px,
+            [("watermark", "logo_width_px"), ("WATERMARK", "LOGO_WIDTH_PX")],
+            105,
+        )
+    )
+
+    selected_scenes = scenes
+    if args.scene_id:
+        wanted = set(args.scene_id)
+        selected_scenes = [
+            scene for scene in scenes if (scene.get("scene_id") or scene.get("name")) in wanted
+        ]
+        missing = sorted(wanted - {scene.get("scene_id") or scene.get("name") for scene in selected_scenes})
+        if missing:
+            raise ValueError(f"Scene ids not found in config: {', '.join(missing)}")
+    if args.limit is not None:
+        selected_scenes = selected_scenes[: args.limit]
+
+    print("=" * 60)
+    print("Google scene-config batch download")
+    print(f"Config: {scene_config_path}")
+    print(f"Scenes: {len(selected_scenes)} / {len(scenes)}")
+    print(f"Output dir: {output_dir}")
+    print(f"Zoom level: {zoom}")
+    print(f"Map type: {maptype}")
+    print(f"Dry run: {args.dry_run}")
+    print("=" * 60)
+
+    completed = 0
+    skipped = 0
+    for index, scene in enumerate(selected_scenes, start=1):
+        scene_id = scene.get("scene_id") or scene.get("name")
+        if not scene_id:
+            raise ValueError(f"Scene #{index} must define scene_id")
+        (lat1, lon1), (lat2, lon2) = _scene_to_corners(scene)
+        output_path = _format_scene_output_path(scene, output_dir, filename_template)
+
+        print(f"\n[{index}/{len(selected_scenes)}] {scene_id}")
+        print(f"  Bounds: lat {lat1:.8f}..{lat2:.8f}, lon {lon1:.8f}..{lon2:.8f}")
+        print(f"  Output: {output_path}")
+
+        if output_path.exists() and skip_existing:
+            print("  Skip: output already exists")
+            skipped += 1
+            continue
+        if args.dry_run:
+            continue
+
+        generate_xyz_geotiff(
+            latlng1=(lat1, lon1),
+            latlng2=(lat2, lon2),
+            api_key=api_key,
+            zoom=zoom,
+            out_path=str(output_path),
+            maptype=maptype,
+            download_mode=download_mode,
+            max_workers=max_workers,
+            image_format=image_format,
+            scale=scale,
+            high_dpi=high_dpi,
+            language=language,
+            region=region,
+            use_env_proxy=use_env_proxy,
+            add_attribution_panel=add_attribution_panel,
+            logo_path=logo_path or None,
+            logo_width_px=logo_width_px,
+        )
+        completed += 1
+
+    print("\nBatch download completed.")
+    print(f"  Downloaded: {completed}")
+    print(f"  Skipped: {skipped}")
+
+
 # Backward-compatible name for callers that imported google_downloader.generate_geotiff.
 generate_geotiff = generate_xyz_geotiff
 
@@ -512,12 +844,49 @@ def main() -> None:
         default=cfg_get(config, "OUTPUT", "OUTPUT_DIR", default="."),
     )
     parser.add_argument("--output", type=str, default=None)
+    parser.add_argument(
+        "--scene-config",
+        type=str,
+        default=None,
+        help="YAML/JSON file containing a batch list of scenes to download.",
+    )
+    parser.add_argument(
+        "--scene-id",
+        action="append",
+        default=[],
+        help="Only download a named scene from --scene-config. Can be repeated.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Only process the first N scenes from --scene-config.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and print scene-config work without downloading tiles.",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing scene outputs when using --scene-config.",
+    )
 
     args = parser.parse_args()
+    cli_flags = {item.split("=", 1)[0] for item in sys.argv[1:] if item.startswith("--")}
 
     if args.backend != "xyz":
         print("Error: release builds only support the Google Map Tiles API xyz backend.", file=sys.stderr)
         sys.exit(1)
+    if args.scene_config:
+        try:
+            run_scene_config(args, config, cli_flags)
+        except Exception as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            sys.exit(1)
+        return
+
     if not args.api_key:
         print(
             "Error: Google Maps API key is required. Set GOOGLE_MAPS_API_KEY, "
