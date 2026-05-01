@@ -198,6 +198,12 @@ SIMULATOR:
     API_KEY: "YOUR_GOOGLE_API_KEY"  # Google 3D Tiles API key
     BROWSER: chrome                  # 浏览器: chrome/edge/firefox
     HEADLESS: true                   # 无头模式（服务器环境推荐）
+    ENABLE_API_PREFLIGHT: true       # 启动前校验 API key / 网络
+    CAPTURE_ATTEMPTS: 4              # 单帧自动重试次数
+    RESTART_AFTER_FAILURES: 2        # 连续失败后重建浏览器
+    MIN_TILES_LOADED: 8              # 至少加载多少个 tiles 才允许截图
+    QUALITY_MAX_BLACK_FRAC: 0.60     # 坏图判废阈值
+    QUALITY_MIN_STD: 20.0            # 过低方差通常意味着空白/未加载完整
 
 TASK:
   TYPE: VLN
@@ -216,6 +222,44 @@ DATASET:
   # 场景数据目录（TIF 文件所在目录）
   SCENES_DIR: data/scene_datasets/
 ```
+
+对于 `AerialSim`，当前默认行为是生产优先的严格模式：
+
+- 会先做 Google 3D Tiles `root.json` 预检，API key / quota / 网络异常会直接失败。
+- 只有在 tileset ready、无 pending request、已加载足够 tiles 后才允许截图。
+- 截图后还会做图像级质量检查（如大面积黑图、低方差空白图）。
+- 连续失败会自动重试并重建浏览器；若多次重试仍失败，则抛错而不是输出坏图。
+
+对于想优先生产“3D 资产丰富”轨迹的场景，串行轨迹生成支持先筛后产：
+
+```bash
+python -m applications.trajectory_generation.generate \
+  --config configs/satnav_task.yaml \
+  --output_dir output/aerialsim_prod \
+  --preselect_aerial \
+  --preselect_candidates 300 \
+  --preselect_samples 4 \
+  --preselect_topk 80 \
+  --preselect_min_avg_std 35 \
+  --preselect_max_black_frac 0.01 \
+  --preselect_min_height_range 3.0
+```
+
+该流程会按多帧图像纹理复杂度、黑图比例和局部高度起伏进行打分，先输出 `preselect_ranking.json`，再只对通过筛选的 episode 进行正式 trajectory 生产。
+
+当你已经有一份 AerialSim 评估后的推荐 trajectory group 列表，希望保证整条 trajectory 的全部 episode 都可用时，仓库现在提供了生产编排脚本：
+
+```bash
+python scripts/trajectory_generation/produce_aerialsim_recommended.py \
+  --config configs/satnav_task.yaml \
+  --recommended_json output/aerialsim_train_traj_quality_eval_full/recommended_top.json \
+  --trajectory_groups_json output/preselect_0404_train_trajectory/trajectory_groups_full.json \
+  --output_dir output/aerialsim_recommended_prod \
+  --runtime_root /mnt/data3/.../aerialsim_recommended_runtime \
+  --episodes_per_batch 1
+```
+
+这个 pipeline 会把推荐 trajectory 展开成完整 episode 集合，并默认按 `episodes_per_batch=1` 做 episode 级隔离生成，避免单次浏览器异常污染整条 trajectory。脚本默认把 AerialSim HTML runtime、Chrome user-data、disk-cache、crash-dumps 和 batch 级 `TMPDIR` 全部迁到 `data3` 上的短路径 `/mnt/data3/jiangjiajun/tmp/sa/<hash>/{r,t}`，并在每个 batch 结束后自动清理；之所以不用输出目录下的长路径，是因为 Chrome 会因 user-data 路径过长直接启动失败。批次结束后会校验 `summary.json` + JPG 序列完整性，并仅对未完成 episode 做定向重试，最终输出 `production_manifest.json`。
 
 ### 4.2 数据集格式
 
@@ -709,41 +753,6 @@ python -m applications.aerial_viewer
 
 详细文档：`applications/aerial_viewer/README.md`
 
-### 8.4 Sat-Drone Pair Generation（配对数据生产）
-
-用于从多个公开数据源构建 sat-drone image pair 数据集的应用，位于 `applications/sat_drone_pair_generation/`。
-
-当前纳入的数据源：
-
-- `denseuav`
-- `gta_uav`
-- `sues`
-- `uavvisloc`
-
-**设计约束**：
-- 保留各数据源原有 build/export 脚本边界
-- 不改原有生产逻辑
-- 统一入口仅负责路由和仓内模块化运行
-
-**快速开始**：
-```bash
-python -m applications.sat_drone_pair_generation denseuav build_pairs --help
-python -m applications.sat_drone_pair_generation gta-uav build_pairs --help
-python -m applications.sat_drone_pair_generation sues pipeline --help
-python -m applications.sat_drone_pair_generation uavvisloc export_selected --help
-```
-
-**说明**：
-- 推荐使用仓库现有 `satnav` conda 环境
-- 当前主流程依赖可由 SatNav 现有环境直接满足
-- `gta-uav` / `uav-visloc` 会自动映射到仓内模块名 `gta_uav` / `uavvisloc`
-- 默认会读取 `applications/sat_drone_pair_generation/config.yaml`
-- 可把常用数据路径写到配置中的 `input` / `output`，命令行显式传参会覆盖配置值
-
-详细文档：`applications/sat_drone_pair_generation/README.md`
-
----
-
 ## 9. 项目结构
 
 ```
@@ -823,8 +832,7 @@ SatNav/
 │   │   ├── free_viewer.py   # 自由探索查看器
 │   │   └── task_viewer.py   # 任务查看器
 │   ├── aerial_viewer/        # 3D 航拍查看器
-│   ├── map_downloader/      # 地图下载器
-│   └── sat_drone_pair_generation/  # sat-drone 配对数据生产
+│   └── map_downloader/      # 地图下载器
 ├── doc/                      # 文档目录 ⭐
 │   ├── CONFIG_SYSTEM.md      # 配置系统文档
 │   ├── EMBEDDING_GUIDE.md    # Embedding 指南

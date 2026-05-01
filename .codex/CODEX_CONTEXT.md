@@ -84,6 +84,42 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 - **文件操作**（脚本、配置写入、输出读写）：始终是本地操作，无需 SSH。
 - server 17 Docker 容器名查询：`ssh 10.246.132.17 "docker ps"`
 
+### AerialSim Production Notes (Updated: 2026-04-10)
+
+- `satnav/sims/aerialsim/aerialsim.py` 已加入生产级保护：
+  - Google 3D Tiles `root.json` preflight
+  - tileset ready / pending requests / loaded tiles 数量检查
+  - 图像级坏图判废（黑图、低方差空白图等）
+  - 单帧自动重试
+  - 连续失败后自动重建浏览器
+- 默认配置项位于 `SIMULATOR.AERIAL.*`：
+  - `CAPTURE_ATTEMPTS`
+  - `RESTART_AFTER_FAILURES`
+  - `MAX_BROWSER_RESTARTS`
+  - `MIN_TILES_LOADED`
+  - `QUALITY_*`
+- 默认语义：**宁可重试或抛错，也不输出明显坏图**。批量生产时若仍连续失败，应在 episode 级别重跑或跳过。
+- `applications/trajectory_generation/generate.py` 现支持 `--episode_indices_file`，可只生成指定 episode 子集
+- 推荐轨迹的生产级编排脚本：`scripts/trajectory_generation/produce_aerialsim_recommended.py`
+  - 输入 `recommended_top.json` / `trajectory_groups_full.json`
+  - 将推荐 trajectory group 展开成完整 episode 集合
+  - 按小批次 fresh browser 生成，避免长进程 tab crash
+  - 支持 `--runtime_root` + `--tmp_root`，默认会把 AerialSim HTML runtime、Chrome user-data、disk-cache、crash-dumps 和 batch 级 `TMPDIR` 迁到 `data3` 上的短路径 `/mnt/data3/jiangjiajun/tmp/sa/<hash>/{r,t}`，并在 batch 后自动清理
+  - 生产默认建议 `--episodes_per_batch=1`，用 episode 级隔离换稳定性
+  - 对未完成 episode 做 targeted cleanup + retry
+  - 最终产出 `production_manifest.json` 与聚合 `annotations.json`
+- 生产级 AerialSim 默认配置项已收敛到 `configs/satnav_task.yaml` 的 `SIMULATOR.AERIAL.*`
+- `applications/trajectory_generation/generate.py` 已支持 Aerial 预筛选工作流：
+  - `--preselect_aerial`
+  - `--preselect_candidates`
+  - `--preselect_samples`
+  - `--preselect_topk`
+  - `--preselect_min_avg_std`
+  - `--preselect_max_black_frac`
+  - `--preselect_min_height_range`
+  - `--preselect_only`
+- 预筛选会根据多帧图像质量和局部高度起伏打分，输出 `preselect_ranking.json`，并可仅对通过筛选的 episode 执行 trajectory 生成。
+
 ### Conda Environments
 
 | Env | Purpose |
@@ -106,6 +142,7 @@ conda activate satnav
 ## Seq2Seq Eval Infrastructure (Updated: 2026-03-24)
 
 - 评测入口脚本：`scripts/seq2seq/eval.sh`
+- 并行评测脚本：`scripts/seq2seq/eval_parallel.sh`
 - 评测专用配置：`configs/baselines/seq2seq_eval.yaml`
 - 调用方式：
   ```bash
@@ -117,15 +154,23 @@ conda activate satnav
 
   # 直接指定 checkpoint 路径
   bash scripts/seq2seq/eval.sh /path/to/best.pth val_seen
+
+  # 多卡并行评测（按 episode 分片，自动合并结果）
+  bash scripts/seq2seq/eval_parallel.sh <exp_name> val_seen 8 0,1,2,3,4,5,6,7
   ```
 - 默认 split：`val_seen`（`val_unseen` 当前暂无 episodes）
 - 输出约定：`output/seq2seq_offline/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
+- 并行评测输出约定：
+  - 分片目录：`output/seq2seq_offline/results/<exp_name>/<split>/shard_<i>/`
+  - 合并结果：`output/seq2seq_offline/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
+  - 合并 diagnostics：`output/seq2seq_offline/results/<exp_name>/<split>/eval_ckpt_0_<split>_diagnostics.json`
 - 依赖 `satnav` conda 环境（脚本内自动 activate）
 - 使用 `offline_trainer.eval()` 入口：
   1. `OfflineTrajectoryDataset` 提供 obs/action space 供 policy 初始化
   2. `SatNavDataset` + `Env`（仿真器 online rollout）运行完整 episode
   3. `Evaluator` 记录 spl / success / distance_to_goal / path_length
 - `DATA_PATH` 使用 `{split}` 占位符，自动展开 eval split 路径
+- `Evaluator` 已支持 `EVAL.EPISODE_OFFSET`，可供多卡脚本做静态 episode 分片
 - 评测需要 SCENES_DIR（卫星 TIF 图）；不支持无仿真器的离线评测
 
 ## Offline Training (Updated: 2026-03-24)
@@ -140,10 +185,7 @@ conda activate satnav
   - `satnav/training/offline_trainer.py`
   - `configs/baselines/seq2seq_offline.yaml`
   - `configs/baselines/seq2seq_offline_smoke.yaml`
-  - `scripts/seq2seq/make_offline_smoke_subset.py`
-  - `scripts/seq2seq/train_offline.sh`
   - `scripts/seq2seq/train_offline_ddp.sh`
-  - `scripts/seq2seq/organize_output.sh`
   - `scripts/cma/train.sh`
   - `scripts/cma/train_ddp.sh`
 - 离线训练默认数据源：
@@ -174,7 +216,6 @@ conda activate satnav
     - swanlab: `output/seq2seq_offline/swanlab`
     - legacy: `output/seq2seq_offline/legacy`
     - artifacts: `output/seq2seq_offline/artifacts/{vocab_260317, embeddings_260317, smoke_260317}`
-  - 历史顶层 `output/checkpoints`、`output/results`、`output/videos`、`output/logs`、`output/swanlab*` 如需收敛到新结构，使用 `scripts/seq2seq/organize_output.sh`
 
 ## Seq2Seq DAgger Training (Updated: 2026-03-24)
 
@@ -239,6 +280,7 @@ conda activate satnav
 ## CMA Eval Infrastructure (Updated: 2026-03-24)
 
 - 评测入口脚本：`scripts/cma/eval.sh`
+- 并行评测脚本：`scripts/cma/eval_parallel.sh`
 - 评测专用配置：`configs/baselines/cma_eval.yaml`
 - 调用方式：
   ```bash
@@ -250,11 +292,31 @@ conda activate satnav
 
   # 直接指定 checkpoint 路径
   bash scripts/cma/eval.sh /path/to/best.pth val_seen
+
+  # 多卡并行评测
+  bash scripts/cma/eval_parallel.sh <exp_name> val_seen 8 0,1,2,3,4,5,6,7
   ```
 - 默认 split：`val_seen`（`val_unseen` 当前暂无 episodes）
 - 输出约定：`output/cma/results/<exp_name>/<split>/eval_ckpt_0_<split>.json`
 - 依赖 `satnav` conda 环境（脚本内自动 activate）
 - eval 流程与 seq2seq 完全一致（同一 `offline_trainer.eval()` 入口）
+
+## CMA Rollout Selection Workflow (Updated: 2026-04-14)
+
+- `offline_trainer` 现在支持 epoch 级 checkpoint 保存：
+  - `IL.CHECKPOINT.save_every_epoch`
+  - `IL.CHECKPOINT.save_latest_each_epoch`
+  - `IL.CHECKPOINT.epoch_filename_pattern`
+- 可通过训练配置开启：
+  - `IL.CHECKPOINT.save_every_epoch: true`
+  - `IL.CHECKPOINT.save_latest_each_epoch: true`
+  - `IL.CHECKPOINT.epoch_filename_pattern: epoch_{epoch:02d}.pth`
+- `scripts/cma/eval_parallel.sh` 现在既能收实验名，也能直接收 checkpoint 路径：
+  ```bash
+  bash scripts/cma/eval_parallel.sh <EXP_NAME> val_seen 8 0,1,2,3,4,5,6,7
+  bash scripts/cma/eval_parallel.sh /path/to/epoch_03.pth val_seen 8 0,1,2,3,4,5,6,7
+  ```
+- `RESULTS_DIR_OVERRIDE` 可显式指定并行 eval 输出目录，便于多 checkpoint 独立对比。
 
 ## Webhook
 
