@@ -602,7 +602,11 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default=str(Path(__file__).parent.parent.parent / "configs" / "vln_task.yaml"),
+        default=str(
+            Path(__file__).parent.parent
+            / "resources"
+            / "satnav_example_task.yaml"
+        ),
         help="Path to task configuration YAML file"
     )
     

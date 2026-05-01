@@ -6,16 +6,17 @@ annotations.
 
 ## Quick Test
 
-This directory includes a small test config and dataset:
+Shared example resources are stored under `applications/resources/`:
 
-- `test_config/traj_gen_satnav.yaml`: task/simulator config for trajectory generation
-- `test_config/traj_gen_example.json`: two tiny example episodes
+- `satnav_example_task.yaml`: task/simulator config for trajectory generation
+- `satnav_example_episodes.json`: two tiny example episodes
+- `map.tif`: tiny GeoTIFF scene used by the example episodes
 
 Run the test generation from the repo root:
 
 ```bash
 python -m applications.trajectory_generation.generate \
-  --config applications/trajectory_generation/test_config/traj_gen_satnav.yaml \
+  --config applications/resources/satnav_example_task.yaml \
   --output_dir output/trajectory_generation_test
 ```
 
@@ -38,7 +39,7 @@ For larger datasets, use the parallel entrypoint:
 
 ```bash
 python -m applications.trajectory_generation.generate_parallel \
-  --config applications/trajectory_generation/test_config/traj_gen_satnav.yaml \
+  --config applications/resources/satnav_example_task.yaml \
   --output_dir output/trajectory_generation_test_parallel \
   --num_workers 2
 ```
@@ -49,7 +50,7 @@ in the YAML config with the target episode JSON and GeoTIFF scene directory.
 ## Processing SatNav Data
 
 To generate trajectories from a SatNav dataset release, copy
-`test_config/traj_gen_satnav.yaml` and update the `DATASET` fields:
+`applications/resources/satnav_example_task.yaml` and update the `DATASET` fields:
 
 ```yaml
 DATASET:
