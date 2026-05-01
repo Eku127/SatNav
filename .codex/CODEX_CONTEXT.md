@@ -100,7 +100,11 @@ SatNav 是一个独立的 Python 包，核心结构如下：
   - `QUALITY_*`
 - 默认语义：**宁可重试或抛错，也不输出明显坏图**。批量生产时若仍连续失败，应在 episode 级别重跑或跳过。
 - `applications/trajectory_generation/generate.py` 现支持 `--episode_indices_file`，可只生成指定 episode 子集
-- 推荐轨迹的生产级编排脚本：`scripts/trajectory_generation/produce_aerialsim_recommended.py`
+- AerialSim 当前保留为可选 3D 渲染和数据生产能力，不是 SatNav/SwiftVLN 训练评测主链默认路径
+- group 级 AerialSim 筛选入口：`python -m applications.trajectory_generation.preselect_aerial_groups`
+  - 输入 trajectory group 候选，按代表 episode 采样 AerialSim 质量
+  - 输出 `recommended_top.json`、`evaluated_results.json`、`failed.json`、`summary.json`
+- 推荐轨迹的生产级编排入口：`python -m applications.trajectory_generation.produce_aerialsim_recommended`
   - 输入 `recommended_top.json` / `trajectory_groups_full.json`
   - 将推荐 trajectory group 展开成完整 episode 集合
   - 按小批次 fresh browser 生成，避免长进程 tab crash
@@ -119,6 +123,8 @@ SatNav 是一个独立的 Python 包，核心结构如下：
   - `--preselect_min_height_range`
   - `--preselect_only`
 - 预筛选会根据多帧图像质量和局部高度起伏打分，输出 `preselect_ranking.json`，并可仅对通过筛选的 episode 执行 trajectory 生成。
+- AerialSim episode/group 筛选共享评分公式维护在 `applications/trajectory_generation/aerial_quality.py`：
+  `avg_std + 0.25*avg_height_range + 0.02*avg_mean - 120.0*avg_black_frac`
 
 ### Conda Environments
 
@@ -217,32 +223,24 @@ conda activate satnav
     - legacy: `output/seq2seq_offline/legacy`
     - artifacts: `output/seq2seq_offline/artifacts/{vocab_260317, embeddings_260317, smoke_260317}`
 
-## Seq2Seq DAgger Training (Updated: 2026-03-24)
+## SatNav Mainline Cleanup (Updated: 2026-05-01)
 
-- 已新增在线聚合训练入口：`TRAINER_NAME=dagger_trainer`
-- 核心文件：
+- 当前推荐主线：
+  - Seq2Seq/CMA 训练：`TRAINER_NAME=offline_trainer`
+  - Seq2Seq/CMA 评测：`offline_trainer.eval()` + `Env` online rollout
+  - 应用工具：`applications/`，尤其 trajectory generation 继续使用 `SatNavPathFollower`
+  - SwiftVLN 兼容：保留 `Env`、`SatNavDataset`、`Env.reset_to_episode()`、`Env.step()`、`Env.get_metrics()`、`episode_over`、`max_episode_steps`、`_dataset.episodes`、`_task._sim.get_agent_state()`、`satnav.utils.maps.*`、`satnav.core.utils.geodesic_distance`
+- 已移除 DAgger 主链：
   - `satnav/training/dagger_trainer.py`
   - `satnav/dataset/dagger_dataset.py`
   - `configs/baselines/seq2seq_dagger.yaml`
-- 设计定位：
-  - `offline_trainer`：纯离线预训练
-  - `recollect_trainer`：teacher-forcing recollection
-  - `dagger_trainer`：policy rollout + expert label + dataset aggregation
-- expert 复用 `ReferencePathFollower`
-- 聚合数据当前使用磁盘 `traj_*.pt` 轨迹文件，不依赖 `lmdb/msgpack`
-- 默认输出根目录：`output/seq2seq_dagger`
-  - checkpoints: `output/seq2seq_dagger/checkpoints/latest`
-  - results: `output/seq2seq_dagger/results/latest`
-  - datasets: `output/seq2seq_dagger/datasets/{split}`
-  - videos: `output/seq2seq_dagger/videos/latest`
-  - swanlab: `output/seq2seq_dagger/swanlab`
-- 默认训练流程：
-  1. 从 offline checkpoint 恢复
-  2. 按 `IL.DAGGER.iterations` 循环
-  3. 每轮先按 beta 混合 rollout 聚合 expert 标注轨迹
-  4. 再对聚合数据做监督训练
-  - `IL.DAGGER.update_size` 现按全局语义解释；多卡时每个 rank 只收 `ceil(update_size / world_size)` 条成功轨迹
-  - 聚合目录下额外维护 `manifest_rank*.tsv`，训练前优先读取 manifest 构建数据集，避免每轮全量 `torch.load` 扫描所有 `traj_*.pt`
+  - `run.py` 不再注册 `dagger_trainer`
+- 保留但非当前主线：
+  - `satnav/training/recollect_trainer.py`
+  - `satnav/dataset/recollect_dataset.py`
+  - `RandomAgent` / `GreedyAgent`
+- 传感器当前只保留 VLNTask 主链使用的 `RGBSensor`、`InstructionSensor`、`AgentPoseSensor`。
+
 ## CMA Baseline (Updated: 2026-03-24)
 
 - 默认配置：`configs/baselines/cma.yaml`

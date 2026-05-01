@@ -21,9 +21,9 @@ python -m applications.trajectory_generation.generate \
     --output_dir /path/to/output
 ```
 
-### AerialSim 先筛后产（推荐）
+### AerialSim episode 级先筛后产
 
-当你希望优先生产 3D 资产更丰富、渲染更稳定的轨迹时，建议先做预筛选：
+AerialSim 当前保留为可选 3D 渲染和数据生产能力，不是 SatNav/SwiftVLN 训练评测主链的默认路径。当你希望快速筛选 3D 资产更丰富、渲染更稳定的代表 episodes 时，可以先做 episode 级预筛选：
 
 ```bash
 python -m applications.trajectory_generation.generate \
@@ -48,12 +48,31 @@ python -m applications.trajectory_generation.generate \
     --preselect_only
 ```
 
+### AerialSim trajectory group 级预筛选
+
+当你已有 trajectory group 候选列表，并希望按代表 episode 的 AerialSim 质量推荐整组 trajectory 时，使用 group 级预筛入口：
+
+```bash
+python -m applications.trajectory_generation.preselect_aerial_groups \
+    --config configs/satnav_task.yaml \
+    --preselect_json output/preselect_0404_train_trajectory/preselect_trajectory_list.json \
+    --output_dir output/aerialsim_train_traj_quality_eval_full \
+    --samples_per_episode 2
+```
+
+该入口支持断点续跑，并输出：
+
+- `recommended_top.json`
+- `evaluated_results.json`
+- `failed.json`
+- `summary.json`
+
 ### AerialSim 推荐轨迹生产 Pipeline
 
 当你已经有一份经过 AerialSim 筛选的 trajectory group 列表，希望把整条 trajectory 对应的全部 episode 稳定产出时，不建议再用一个超长进程直接全量生成。仓库现在提供专门的生产编排脚本：
 
 ```bash
-python scripts/trajectory_generation/produce_aerialsim_recommended.py \
+python -m applications.trajectory_generation.produce_aerialsim_recommended \
     --config configs/satnav_task.yaml \
     --recommended_json output/aerialsim_train_traj_quality_eval_full/recommended_top.json \
     --trajectory_groups_json output/preselect_0404_train_trajectory/trajectory_groups_full.json \
@@ -80,7 +99,7 @@ python scripts/trajectory_generation/produce_aerialsim_recommended.py \
 python -m applications.trajectory_generation.generate \
     --config configs/satnav_task.yaml \
     --output_dir output/aerialsim_recommended_prod \
-    --episode_indices_file output/aerialsim_recommended_prod/pipeline/selected_episode_indices.json
+    --episode_indices_file output/aerialsim_train_traj_quality_eval_full/recommended_top.json
 ```
 
 ### 并行版本（推荐）

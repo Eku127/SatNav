@@ -230,6 +230,8 @@ DATASET:
 - 截图后还会做图像级质量检查（如大面积黑图、低方差空白图）。
 - 连续失败会自动重试并重建浏览器；若多次重试仍失败，则抛错而不是输出坏图。
 
+> 说明：AerialSim 当前保留为可选 3D 渲染和数据生产能力，不是 SatNav/SwiftVLN 训练评测主链的默认路径。
+
 对于想优先生产“3D 资产丰富”轨迹的场景，串行轨迹生成支持先筛后产：
 
 ```bash
@@ -250,7 +252,7 @@ python -m applications.trajectory_generation.generate \
 当你已经有一份 AerialSim 评估后的推荐 trajectory group 列表，希望保证整条 trajectory 的全部 episode 都可用时，仓库现在提供了生产编排脚本：
 
 ```bash
-python scripts/trajectory_generation/produce_aerialsim_recommended.py \
+python -m applications.trajectory_generation.produce_aerialsim_recommended \
   --config configs/satnav_task.yaml \
   --recommended_json output/aerialsim_train_traj_quality_eval_full/recommended_top.json \
   --trajectory_groups_json output/preselect_0404_train_trajectory/trajectory_groups_full.json \
@@ -260,6 +262,15 @@ python scripts/trajectory_generation/produce_aerialsim_recommended.py \
 ```
 
 这个 pipeline 会把推荐 trajectory 展开成完整 episode 集合，并默认按 `episodes_per_batch=1` 做 episode 级隔离生成，避免单次浏览器异常污染整条 trajectory。脚本默认把 AerialSim HTML runtime、Chrome user-data、disk-cache、crash-dumps 和 batch 级 `TMPDIR` 全部迁到 `data3` 上的短路径 `/mnt/data3/jiangjiajun/tmp/sa/<hash>/{r,t}`，并在每个 batch 结束后自动清理；之所以不用输出目录下的长路径，是因为 Chrome 会因 user-data 路径过长直接启动失败。批次结束后会校验 `summary.json` + JPG 序列完整性，并仅对未完成 episode 做定向重试，最终输出 `production_manifest.json`。
+
+group 级推荐列表可通过以下入口生产，产物包括 `recommended_top.json`、`evaluated_results.json`、`failed.json` 和 `summary.json`：
+
+```bash
+python -m applications.trajectory_generation.preselect_aerial_groups \
+  --config configs/satnav_task.yaml \
+  --preselect_json output/preselect_0404_train_trajectory/preselect_trajectory_list.json \
+  --output_dir output/aerialsim_train_traj_quality_eval_full
+```
 
 ### 4.2 数据集格式
 
@@ -478,6 +489,8 @@ torchrun --nproc_per_node=4 run.py \
 python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eval
 ```
 
+当前推荐主线是基于预渲染 `trajectory_data` 的离线训练/在线评测：Seq2Seq 和 CMA 都通过 `offline_trainer` 训练，并在评测时回到 `Env` + SatSim/AerialSim 中 rollout。`RecollectTrainer`、`RandomAgent`、`GreedyAgent` 仍保留用于后续 recollection/online imitation 或非学习基线对比，但不是当前推荐训练流程。
+
 ### 7.2 Configuration System
 
 采用 VLN-CE 风格的统一配置系统：
@@ -489,6 +502,10 @@ python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eva
 配置文件结构：
 - `configs/default.yaml` - 默认配置模板（参考文档）
 - `configs/baselines/seq2seq_offline.yaml` - Seq2Seq 离线训练配置
+- `configs/baselines/seq2seq_eval.yaml` - Seq2Seq 评测配置
+- `configs/baselines/cma.yaml` - CMA 离线训练配置
+- `configs/baselines/cma_eval.yaml` - CMA 评测配置
+- `configs/baselines/random_agent.yaml` / `configs/baselines/greedy_agent.yaml` - 保留的非学习基线配置
 - `configs/debug_vln_task.yaml` - 调试任务配置
 
 详细文档: [配置系统文档](doc/CONFIG_SYSTEM.md)
@@ -501,6 +518,17 @@ python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eva
 - ✅ 进度条显示和实时指标更新
 - ✅ 保存 aggregated metrics 到 JSON
 - ✅ 可选的视频生成（需启用 TOP_DOWN_MAP）
+
+### 7.4 SwiftVLN Compatibility
+
+SwiftVLN 的 OpenFly、NaVILA、StreamVLN、Uni-NaVid SatNav 评测脚本直接依赖 SatNav 环境接口。清理后继续保留这些兼容面：
+- `satnav.core.env.Env`
+- `satnav.dataset.satnav_dataset.SatNavDataset`
+- `Env.reset_to_episode()`、`Env.step()`、`Env.get_metrics()`
+- `Env.episode_over`、`Env.max_episode_steps`、`Env._dataset.episodes`
+- `Env._task._sim.get_agent_state()`
+- `satnav.utils.maps.make_video` / `annotate_topdown_map`
+- `satnav.core.utils.geodesic_distance`
 
 ---
 
@@ -565,7 +593,7 @@ python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type tra
 
 多卡训练说明：
 - 使用 `torchrun --nproc_per_node=<GPU数>` 启动，不再手动设置每个 rank 的 `TORCH_GPU_ID`
-- `RecollectionDataset` 会按 rank 自动切分 episode，避免多卡重复训练同一批轨迹
+- `OfflineTrajectoryDataset` 会按 rank 自动切分 episode，避免多卡重复训练同一批轨迹
 - checkpoint 与单卡格式保持兼容，单卡和多卡可以相互续训
 
 **Evaluation**:
@@ -772,12 +800,16 @@ SatNav/
 │   │   └── measures.py       # 评价指标
 │   ├── dataset/              # 数据集
 │   │   ├── satnav_dataset.py     # SatNav数据集加载器
-│   │   └── recollect_dataset.py  # 实时收集数据集
+│   │   ├── offline_trajectory_dataset.py  # 离线轨迹训练数据集
+│   │   └── recollect_dataset.py  # 保留：recollection / online imitation
 │   ├── models/               # 模型
 │   │   ├── registry.py       # 模型注册表
 │   │   ├── base.py           # 基类
 │   │   ├── baselines/        # 基线模型
-│   │   │   └── seq2seq_policy.py  # Seq2Seq 模型
+│   │   │   ├── seq2seq_policy.py  # Seq2Seq 模型
+│   │   │   ├── cma_policy.py      # CMA 模型
+│   │   │   ├── random_agent.py    # 保留：随机非学习基线
+│   │   │   └── greedy_agent.py    # 保留：贪心非学习基线
 │   │   └── encoders/         # 编码器
 │   │       ├── instruction_encoder.py
 │   │       ├── visual_encoder.py
@@ -785,7 +817,8 @@ SatNav/
 │   ├── training/             # 训练模块 ⭐
 │   │   ├── registry.py       # Trainer 注册表
 │   │   ├── base_il_trainer.py  # 基础 IL trainer
-│   │   ├── recollect_trainer.py  # 实时收集 trainer
+│   │   ├── offline_trainer.py  # 当前主线 trainer
+│   │   ├── recollect_trainer.py  # 保留：recollection / online imitation
 │   │   └── utils.py          # 训练工具
 │   ├── navigation/           # 导航策略
 │   │   ├── path_follower.py  # 路径跟随器
@@ -809,7 +842,9 @@ SatNav/
 │   ├── vln_task.yaml         # 完整任务配置
 │   └── baselines/            # 基线模型配置
 │       ├── seq2seq_offline.yaml  # Seq2Seq 离线训练配置
-│       └── cma.yaml              # CMA 模型配置
+│       ├── seq2seq_eval.yaml     # Seq2Seq 评测配置
+│       ├── cma.yaml              # CMA 模型配置
+│       └── cma_eval.yaml         # CMA 评测配置
 ├── examples/                  # 示例代码
 │   ├── satnav_path_follower_example.py  # SatNavPathFollower 示例（批量运行）
 │   └── reference_follower_example.py    # ReferencePathFollower 示例（单 episode）
