@@ -27,5 +27,5 @@ TASK:
 DATASET:
   TYPE: SatNav
   SPLIT: test
-  DATA_PATH: applications/trajectory_generation/config/traj_gen_example.json
+  DATA_PATH: applications/trajectory_generation/test_config/traj_gen_example.json
   SCENES_DIR: tests/test_data/

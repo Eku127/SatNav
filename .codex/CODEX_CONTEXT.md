@@ -87,6 +87,7 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 
 - `applications/trajectory_generation/generate.py` 现支持 `--episode_indices_file`，可只生成指定 episode 子集
 - `applications/trajectory_generation/generate_parallel.py` 是当前推荐的大规模轨迹生成入口
+- trajectory generation 的小规模测试配置位于 `applications/trajectory_generation/test_config/`
 
 ### Conda Environments
 
