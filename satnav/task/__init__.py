@@ -6,8 +6,7 @@ from satnav.task.sensors import (
     Sensor,
     RGBSensor,
     InstructionSensor,
-    GlobalGPSSensor,
-    VLNOracleProgressSensor,
+    AgentPoseSensor,
 )
 from satnav.task.measures import (
     Measure,
@@ -25,8 +24,7 @@ __all__ = [
     "Sensor",
     "RGBSensor",
     "InstructionSensor",
-    "GlobalGPSSensor",
-    "VLNOracleProgressSensor",
+    "AgentPoseSensor",
     "Measure",
     "DistanceToGoal",
     "Success",
@@ -36,4 +34,3 @@ __all__ = [
     "TopDownMapSatNav",
     "VLNTask",
 ]
-
