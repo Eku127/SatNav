@@ -43,6 +43,12 @@ def _load_episode_indices(path: Path):
             payload = payload["episode_indices"]
         elif "episodes" in payload:
             payload = payload["episodes"]
+        elif "selected" in payload:
+            payload = payload["selected"]
+        elif "ranked" in payload:
+            payload = payload["ranked"]
+        elif "items" in payload:
+            payload = payload["items"]
 
     if isinstance(payload, list):
         indices = []
@@ -50,8 +56,12 @@ def _load_episode_indices(path: Path):
             if isinstance(item, dict):
                 if "episode_index" in item:
                     indices.append(int(item["episode_index"]))
+                elif "representative_episode_index" in item:
+                    indices.append(int(item["representative_episode_index"]))
                 elif "id" in item:
                     indices.append(int(item["id"]))
+                elif "episode_indices" in item:
+                    indices.extend(int(idx) for idx in item["episode_indices"])
             else:
                 indices.append(int(item))
         return indices

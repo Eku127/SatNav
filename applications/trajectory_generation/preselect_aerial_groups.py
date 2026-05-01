@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate train trajectory groups with AerialSim and select high-quality ones.
+"""Preselect AerialSim trajectory groups and select high-quality ones.
 
 This script is designed for long-running full-dataset screening and supports
 resume by reading existing JSONL results in output_dir.
@@ -12,6 +12,12 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
+from applications.trajectory_generation.aerial_quality import (
+    SCORE_FORMULA,
+    compute_aerial_quality_score_from_row,
+    format_aerial_quality_threshold_rule,
+    passes_aerial_quality_thresholds,
+)
 from applications.trajectory_generation.runner import SatNavTrajectoryRunner
 
 
@@ -94,17 +100,10 @@ def evaluate_one(
     if metrics is None:
         raise RuntimeError("no_metrics")
 
-    score = (
-        metrics["avg_std"]
-        + 0.25 * metrics["avg_height_range"]
-        + 0.02 * metrics["avg_mean"]
-        - 120.0 * metrics["avg_black_frac"]
-    )
-
     return {
         **entry,
         **metrics,
-        "score": float(score),
+        "score": compute_aerial_quality_score_from_row(metrics),
     }
 
 
@@ -129,14 +128,13 @@ def aggregate_outputs(
 
     recommended = []
     for row in successes:
-        ok = (
-            row["avg_std"] >= min_std
-            and row["avg_black_frac"] <= max_black
-            and row["avg_height_range"] >= min_height
-        )
-        if min_score is not None:
-            ok = ok and row["score"] >= min_score
-        if ok:
+        if passes_aerial_quality_thresholds(
+            row,
+            min_score=min_score,
+            min_avg_std=min_std,
+            max_avg_black_frac=max_black,
+            min_avg_height_range=min_height,
+        ):
             recommended.append(row)
 
     summary = {
@@ -150,12 +148,12 @@ def aggregate_outputs(
         "config": {
             "aerial_config": config_path,
             "samples_per_episode": samples_per_episode,
-            "score": "avg_std + 0.25*avg_height_range + 0.02*avg_mean - 120*avg_black_frac",
-            "recommend_rule": (
-                f"avg_std>={min_std} && avg_black_frac<={max_black} && "
-                f"avg_height_range>={min_height}" + (
-                    f" && score>={min_score}" if min_score is not None else ""
-                )
+            "score": SCORE_FORMULA,
+            "recommend_rule": format_aerial_quality_threshold_rule(
+                min_avg_std=min_std,
+                max_avg_black_frac=max_black,
+                min_avg_height_range=min_height,
+                min_score=min_score,
             ),
         },
     }
@@ -180,7 +178,7 @@ def aggregate_outputs(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Full AerialSim train trajectory screening with resume",
+        description="Preselect AerialSim train trajectory groups with resume",
     )
     parser.add_argument(
         "--preselect_json",

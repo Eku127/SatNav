@@ -23,6 +23,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from applications.trajectory_generation.aerial_quality import passes_aerial_quality_thresholds
 from applications.trajectory_generation.utils import format_episode_dirname
 from satnav.core.config import load_config
 from satnav.dataset.satnav_dataset import SatNavDataset
@@ -80,18 +81,13 @@ def _passes_thresholds(
     max_avg_black_frac: float,
     min_avg_height_range: float,
 ) -> bool:
-    score = float(row.get("score", float("-inf")))
-    avg_std = float(row.get("avg_std", float("-inf")))
-    avg_black = float(row.get("avg_black_frac", float("inf")))
-    avg_height = float(row.get("avg_height_range", float("-inf")))
-    ok = (
-        avg_std >= min_avg_std
-        and avg_black <= max_avg_black_frac
-        and avg_height >= min_avg_height_range
+    return passes_aerial_quality_thresholds(
+        row,
+        min_score=min_score,
+        min_avg_std=min_avg_std,
+        max_avg_black_frac=max_avg_black_frac,
+        min_avg_height_range=min_avg_height_range,
     )
-    if min_score is not None:
-        ok = ok and score >= min_score
-    return ok
 
 
 def _build_targets(

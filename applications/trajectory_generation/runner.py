@@ -22,6 +22,10 @@ from satnav.dataset.satnav_dataset import SatNavDataset
 from satnav.navigation import SatNavPathFollower
 from satnav.sims.aerialsim.aerialsim import AerialSim
 
+from .aerial_quality import (
+    compute_aerial_quality_score_from_row,
+    passes_aerial_quality_thresholds,
+)
 from .utils import (
     INITIAL_ACTION,
     format_episode_dirname,
@@ -135,12 +139,16 @@ class SatNavTrajectoryRunner:
         return scene_id
 
     def _get_current_height_range(self) -> float:
-        """Read local terrain/building height range from AerialSim internals."""
+        """Read local terrain/building height range from AerialSim diagnostics."""
         sim = self.env._task._sim
-        aerialsim = getattr(sim, "_aerialsim", None)
-        if aerialsim is None:
-            return 0.0
-        return float(getattr(aerialsim, "_last_local_height_range", 0.0))
+        diagnostics_getter = getattr(sim, "get_aerial_diagnostics", None)
+        if callable(diagnostics_getter):
+            diagnostics = diagnostics_getter()
+        else:
+            aerialsim = getattr(sim, "_aerialsim", None)
+            diagnostics_getter = getattr(aerialsim, "get_diagnostics", None)
+            diagnostics = diagnostics_getter() if callable(diagnostics_getter) else {}
+        return float(diagnostics.get("local_height_range", 0.0))
 
     def _collect_episode_preselect_metrics(
         self,
@@ -262,24 +270,14 @@ class SatNavTrajectoryRunner:
                 skipped += 1
                 continue
 
-            # Weighted quality/richness score for sorting:
-            # high texture variance + high local height variation + low black ratio.
-            score = (
-                metrics["avg_std"]
-                + 0.25 * metrics["avg_height_range"]
-                + 0.02 * metrics["avg_mean"]
-                - 120.0 * metrics["avg_black_frac"]
+            metrics["score"] = compute_aerial_quality_score_from_row(metrics)
+            metrics["passes"] = passes_aerial_quality_thresholds(
+                metrics,
+                min_score=min_score,
+                min_avg_std=min_avg_std,
+                max_avg_black_frac=max_avg_black_frac,
+                min_avg_height_range=min_avg_height_range,
             )
-            metrics["score"] = float(score)
-
-            passes = (
-                metrics["avg_std"] >= min_avg_std
-                and metrics["avg_black_frac"] <= max_avg_black_frac
-                and metrics["avg_height_range"] >= min_avg_height_range
-            )
-            if min_score is not None:
-                passes = passes and score >= min_score
-            metrics["passes"] = bool(passes)
             ranked.append(metrics)
 
         ranked.sort(key=lambda item: item["score"], reverse=True)
