@@ -21,6 +21,68 @@ python -m applications.trajectory_generation.generate \
     --output_dir /path/to/output
 ```
 
+### AerialSim 先筛后产（推荐）
+
+当你希望优先生产 3D 资产更丰富、渲染更稳定的轨迹时，建议先做预筛选：
+
+```bash
+python -m applications.trajectory_generation.generate \
+    --config configs/satnav_task.yaml \
+    --output_dir output/aerialsim_prod \
+    --preselect_aerial \
+    --preselect_candidates 300 \
+    --preselect_samples 4 \
+    --preselect_topk 80 \
+    --preselect_min_avg_std 35 \
+    --preselect_max_black_frac 0.01 \
+    --preselect_min_height_range 3.0
+```
+
+只做预筛选（不生成轨迹）：
+
+```bash
+python -m applications.trajectory_generation.generate \
+    --config configs/satnav_task.yaml \
+    --output_dir output/aerialsim_prod \
+    --preselect_aerial \
+    --preselect_only
+```
+
+### AerialSim 推荐轨迹生产 Pipeline
+
+当你已经有一份经过 AerialSim 筛选的 trajectory group 列表，希望把整条 trajectory 对应的全部 episode 稳定产出时，不建议再用一个超长进程直接全量生成。仓库现在提供专门的生产编排脚本：
+
+```bash
+python scripts/trajectory_generation/produce_aerialsim_recommended.py \
+    --config configs/satnav_task.yaml \
+    --recommended_json output/aerialsim_train_traj_quality_eval_full/recommended_top.json \
+    --trajectory_groups_json output/preselect_0404_train_trajectory/trajectory_groups_full.json \
+    --output_dir output/aerialsim_recommended_prod \
+    --runtime_root /mnt/data3/.../aerialsim_recommended_runtime \
+    --episodes_per_batch 1 \
+    --trajectories_per_batch 3 \
+    --max_rounds 4 \
+    --max_episode_attempts 4
+```
+
+这条 pipeline 会做以下事情：
+
+- 将 `recommended` 里的 trajectory group 展开为完整 episode 集合（通常每条 trajectory 对应 3 个 episode）
+- 每次只生成一个小批次，批次之间强制 fresh process / fresh browser，避免长生命周期 Chrome tab crash 污染整轮生产
+- 每个 episode 默认独立进程生成；脚本会把 AerialSim HTML runtime、Chrome user-data、disk-cache、crash-dumps 和 batch 级 `TMPDIR` 全部迁到 `data3` 上的短路径（默认 `/mnt/data3/jiangjiajun/tmp/sa/<hash>/{r,t}`），并在每个 batch 结束后自动清理，避免把系统根分区 `/` 挤满或因路径过长导致 Chrome 启动失败
+- 每个批次结束后，根据 `summary.json` 和磁盘上的 JPG 序列双重校验 episode 是否真正可用，同时自动清理该批次 runtime 临时目录
+- 对仍不完整的 episode 做定向清理后再重试，而不是盲目全量重跑
+- 最终输出 `production_manifest.json`，按 trajectory 和 episode 两个粒度给出 `completed / pending / failed` 状态
+
+如果你只想用串行生成入口跑一个明确的 episode 子集，也可以直接传：
+
+```bash
+python -m applications.trajectory_generation.generate \
+    --config configs/satnav_task.yaml \
+    --output_dir output/aerialsim_recommended_prod \
+    --episode_indices_file output/aerialsim_recommended_prod/pipeline/selected_episode_indices.json
+```
+
 ### 并行版本（推荐）
 
 使用多进程并行生成，速度显著提升：
@@ -39,6 +101,15 @@ python -m applications.trajectory_generation.generate_parallel \
 | `--config` | SatNav 任务配置文件路径（YAML 格式） |
 | `--output_dir` | 输出目录，用于保存生成的数据 |
 | `--num_workers` | （仅并行版本）工作进程数，默认为 min(CPU核心数, 64) |
+| `--preselect_aerial` | （仅串行版本）启用 AerialSim 预筛选后再生产 |
+| `--preselect_candidates` | 预筛选候选 episode 数量 |
+| `--preselect_samples` | 每个候选 episode 采样帧数 |
+| `--preselect_topk` | 阈值过滤后最多保留多少个 episode |
+| `--preselect_min_avg_std` | 平均纹理方差下限（越高越倾向 3D 细节丰富） |
+| `--preselect_max_black_frac` | 平均黑像素比例上限（过滤空白/异常渲染） |
+| `--preselect_min_height_range` | 局部高度起伏下限（越高越倾向高楼场景） |
+| `--preselect_only` | 只输出预筛选结果，不执行轨迹生成 |
+| `--episode_indices_file` | 指定只生成哪些 episode（JSON/JSONL/逗号分隔文本） |
 
 **性能对比：**
 
@@ -113,6 +184,7 @@ JSONL 格式（每行一个 JSON），在生成过程中逐行追加，包含额
 - **断点续传**：自动跳过已生成的 episodes，支持中断后继续生成
 - **进度显示**：使用 tqdm 显示生成进度
 - **路径跟随**：使用 `SatNavPathFollower` 沿 `reference_path` 导航
+- **Aerial 预筛选**：（串行版本）支持按多帧质量 + 局部高度起伏评分，优先生产 3D 资产更丰富的 episode
 - **多进程并行**：（并行版本）支持多核 CPU 并行处理，大幅提升生成速度
 
 ## 配置要求
