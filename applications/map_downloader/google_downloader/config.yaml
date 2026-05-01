@@ -1,0 +1,48 @@
+# Google downloader configuration
+
+GOOGLE:
+  # Prefer setting GOOGLE_MAPS_API_KEY in the environment.
+  # On Windows, this program also falls back to the user/system env var from
+  # the registry if the current shell session has not been refreshed yet.
+  API_KEY: ""
+
+REGION:
+  TYPE: "center"
+
+  CORNERS:
+    LAT1: 39.900000
+    LON1: 116.397000
+    LAT2: 39.903000
+    LON2: 116.400000
+
+  CENTER:
+    LAT: 39.901500
+    LON: 116.398500
+    HEIGHT_M: 1000.0
+    WIDTH_M: 1000.0
+
+DOWNLOAD:
+  # Release builds only support the official Google Map Tiles API z/x/y grid.
+  BACKEND: "xyz"
+  ZOOM: 19
+  MAPTYPE: "satellite"
+  MODE: "parallel"
+  MAX_WORKERS: 12
+
+GOOGLE_XYZ:
+  IMAGE_FORMAT: "jpeg"
+  SCALE: "scaleFactor1x"
+  HIGH_DPI: false
+  LANGUAGE: "en-US"
+  REGION: "US"
+
+NETWORK:
+  USE_ENV_PROXY: false
+
+OUTPUT:
+  OUTPUT_DIR: "data/google_scene_datasets"
+  FILENAME_PATTERN_CENTER: "google_xyz_center_{center_lat:.6f}_{center_lon:.6f}_h{height_m:.0f}w{width_m:.0f}_z{zoom}.tif"
+
+WATERMARK:
+  LOGO_PATH: ""
+  LOGO_WIDTH_PX: 105

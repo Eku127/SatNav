@@ -1,7 +1,7 @@
-"""Entry point for running map downloader as a module."""
+"""Module entry point for map downloader."""
 
-from .generate_geotiff import main
+from .main import main
+
 
 if __name__ == "__main__":
-    main()
-
+    raise SystemExit(main())
