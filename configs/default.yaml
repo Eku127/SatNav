@@ -68,6 +68,12 @@ IL:
   
   # Path to checkpoint file (used if load_from_ckpt is true)
   ckpt_to_load: data/checkpoints/default/best.pth
+
+  # Checkpoint saving policy
+  CHECKPOINT:
+    save_every_epoch: false
+    save_latest_each_epoch: false
+    epoch_filename_pattern: epoch_{epoch:02d}.pth
   
   # RecollectTrainer-specific settings
   RECOLLECT_TRAINER:

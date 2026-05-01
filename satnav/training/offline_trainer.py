@@ -77,6 +77,13 @@ class OfflineTrainer(BaseILTrainer):
             print(f"Training for {self.config.IL.epochs} epochs")
             print("=" * 80)
 
+        checkpoint_cfg = OmegaConf.select(self.config, "IL.CHECKPOINT", default={}) or {}
+        save_every_epoch = bool(getattr(checkpoint_cfg, "save_every_epoch", False))
+        save_latest_each_epoch = bool(getattr(checkpoint_cfg, "save_latest_each_epoch", False))
+        epoch_filename_pattern = str(
+            getattr(checkpoint_cfg, "epoch_filename_pattern", "epoch_{epoch:02d}.pth")
+        )
+
         best_loss = float("inf")
 
         try:
@@ -186,6 +193,21 @@ class OfflineTrainer(BaseILTrainer):
                         },
                         step=self.step_id,
                     )
+
+                if save_every_epoch:
+                    epoch_ckpt_name = epoch_filename_pattern.format(
+                        epoch=epoch + 1,
+                        zero_based_epoch=epoch,
+                        step_id=self.step_id,
+                    )
+                    if is_main_process(self.config):
+                        print(f"  Saving epoch checkpoint: {epoch_ckpt_name}")
+                    self.save_checkpoint(epoch_ckpt_name, epoch, self.step_id, avg_epoch_loss)
+
+                if save_latest_each_epoch:
+                    if is_main_process(self.config):
+                        print("  Updating latest_epoch.pth")
+                    self.save_checkpoint("latest_epoch.pth", epoch, self.step_id, avg_epoch_loss)
 
                 if avg_epoch_loss < best_loss:
                     best_loss = avg_epoch_loss
