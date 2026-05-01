@@ -3,11 +3,11 @@
 # Parallel CMA Evaluation — splits val_seen episodes across N GPUs.
 #
 # Usage:
-#   bash scripts/cma/eval_parallel.sh <exp_name> [split] [num_gpus] [gpu_list]
+#   bash scripts/cma/eval_parallel.sh <exp_name|ckpt_path> [split] [num_gpus] [gpu_list]
 #
 # Examples:
 #   bash scripts/cma/eval_parallel.sh cma-stop-fix val_seen 8 0,1,2,3,4,5,6,7
-#   bash scripts/cma/eval_parallel.sh cma-stop-fix val_seen 4 0,1,2,3
+#   bash scripts/cma/eval_parallel.sh /path/to/epoch_03.pth val_seen 4 0,1,2,3
 #
 # Output:
 #   output/cma/results/<exp_name>/<split>/eval_ckpt_0_<split>.json  (merged)
@@ -22,13 +22,13 @@ print_success() { echo -e "${GREEN}[OK]${NC} $1"; }
 print_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # ---- Args ----
-EXP_NAME="${1:-}"
+INPUT="${1:-}"
 SPLIT="${2:-val_seen}"
 NUM_GPUS="${3:-8}"
 GPU_LIST="${4:-0,1,2,3,4,5,6,7}"
 
-if [ -z "$EXP_NAME" ]; then
-    print_error "Usage: bash scripts/cma/eval_parallel.sh <exp_name> [split] [num_gpus] [gpu_list]"
+if [ -z "$INPUT" ]; then
+    print_error "Usage: bash scripts/cma/eval_parallel.sh <exp_name|ckpt_path> [split] [num_gpus] [gpu_list]"
     exit 1
 fi
 
@@ -37,13 +37,39 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONFIG_PATH="${CONFIG_PATH:-configs/baselines/cma_eval.yaml}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-output/cma}"
 
-CKPT_PATH="${REPO_ROOT}/${OUTPUT_ROOT}/checkpoints/${EXP_NAME}/best.pth"
-if [ ! -f "$CKPT_PATH" ]; then
-    print_error "Checkpoint not found: ${CKPT_PATH}"
-    exit 1
+EVAL_MODE="by_name"
+if [[ "$INPUT" = /* ]] || [[ "$INPUT" = *.pth ]]; then
+    EVAL_MODE="by_path"
 fi
 
-RESULTS_DIR="${REPO_ROOT}/${OUTPUT_ROOT}/results/${EXP_NAME}/${SPLIT}"
+if [ "${EVAL_MODE}" = "by_name" ]; then
+    EXP_NAME="$INPUT"
+    CKPT_PATH="${REPO_ROOT}/${OUTPUT_ROOT}/checkpoints/${EXP_NAME}/best.pth"
+    if [ ! -f "$CKPT_PATH" ]; then
+        print_error "Checkpoint not found: ${CKPT_PATH}"
+        exit 1
+    fi
+    DEFAULT_RESULTS_DIR="${REPO_ROOT}/${OUTPUT_ROOT}/results/${EXP_NAME}/${SPLIT}"
+else
+    CKPT_PATH="$INPUT"
+    if [ ! -f "$CKPT_PATH" ]; then
+        print_error "Checkpoint not found: ${CKPT_PATH}"
+        exit 1
+    fi
+    EXP_NAME="$(basename "$(dirname "${CKPT_PATH}")")"
+    DEFAULT_RESULTS_DIR="${REPO_ROOT}/${OUTPUT_ROOT}/results/by-path/${EXP_NAME}/${SPLIT}"
+fi
+
+RESULTS_DIR_OVERRIDE="${RESULTS_DIR_OVERRIDE:-}"
+if [ -n "${RESULTS_DIR_OVERRIDE}" ]; then
+    if [[ "${RESULTS_DIR_OVERRIDE}" = /* ]]; then
+        RESULTS_DIR="${RESULTS_DIR_OVERRIDE}"
+    else
+        RESULTS_DIR="${REPO_ROOT}/${RESULTS_DIR_OVERRIDE}"
+    fi
+else
+    RESULTS_DIR="${DEFAULT_RESULTS_DIR}"
+fi
 mkdir -p "${RESULTS_DIR}"
 
 # ---- Conda ----
