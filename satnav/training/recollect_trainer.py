@@ -4,6 +4,9 @@
 This trainer collects trajectories from the environment in real-time
 using teacher forcing and trains the policy with imitation learning.
 
+This trainer is retained for future recollection / online imitation work. The
+current release training path for Seq2Seq and CMA uses OfflineTrainer.
+
 Reference: VLN-CE vlnce_baselines/recollect_trainer.py
 """
 

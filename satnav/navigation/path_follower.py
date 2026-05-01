@@ -282,7 +282,7 @@ class ReferencePathFollower:
     Given a reference path (list of geographic waypoints), this follower
     generates actions to visit each waypoint in sequence. This is useful for:
     - Converting reference_path from dataset to action sequences (for training)
-    - Generating teacher forcing data for DAgger
+    - Generating teacher forcing data for offline/recollection training
     - Evaluating path following accuracy
     
     The follower maintains internal state tracking which waypoint it's currently
@@ -493,4 +493,3 @@ class ShortestPathSensor:
         action = self._follower.get_next_action(goal_position, simulator)
         
         return action
-

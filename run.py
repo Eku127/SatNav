@@ -30,7 +30,6 @@ from omegaconf import OmegaConf
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import satnav.training.dagger_trainer  # noqa: F401
 import satnav.training.offline_trainer  # noqa: F401
 import satnav.training.recollect_trainer  # noqa: F401
 from satnav.training.registry import get_trainer
