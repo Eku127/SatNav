@@ -116,6 +116,7 @@ data/scene_datasets/
 *.json
 # Keep example dataset for tests
 !tests/test_data/*.json
+!applications/trajectory_generation/config/traj_gen_example.json
 
 # Scene files (GeoTIFF)
 *.tif
