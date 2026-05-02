@@ -250,7 +250,7 @@ normalize_angle_diff(450)   # → 90
 Ensure navigation component parameters match your simulator configuration:
 
 ```yaml
-# configs/vln_task.yaml
+# configs/satnav_task.yaml
 SIMULATOR:
   FORWARD_STEP_SIZE: 0.25   # ← planner.forward_distance
   TURN_ANGLE: 15            # ← planner.turn_angle
@@ -263,7 +263,7 @@ TASK:
 # Initialize using config
 from satnav.core.config import load_config
 
-config = load_config("configs/vln_task.yaml")
+config = load_config("configs/satnav_task.yaml")
 
 planner = DiscretePathPlanner(
     forward_distance=config.SIMULATOR.FORWARD_STEP_SIZE,

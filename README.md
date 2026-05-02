@@ -169,7 +169,7 @@ SIMULATOR:
 
 ### 4.1 配置文件格式
 
-SatNav 使用 YAML 格式的配置文件，示例：`configs/vln_task.yaml`
+SatNav 使用 YAML 格式的配置文件，主线任务配置为 `configs/satnav_task.yaml`
 
 ```yaml
 ENVIRONMENT:
@@ -441,7 +441,7 @@ python run.py --exp-config configs/baselines/seq2seq_offline.yaml --run-type eva
 - `configs/baselines/cma.yaml` - CMA 离线训练配置
 - `configs/baselines/cma_eval.yaml` - CMA 评测配置
 - `configs/baselines/random_agent.yaml` / `configs/baselines/greedy_agent.yaml` - 保留的非学习基线配置
-- `configs/debug_vln_task.yaml` - 调试任务配置
+- `configs/satnav_task.yaml` - 主线 VLN 任务配置
 
 详细文档: [配置系统文档](doc/CONFIG_SYSTEM.md)
 
@@ -649,7 +649,7 @@ python -m applications.satsim_viewer.task_viewer
 - `SPACE`: 停止并显示评估指标，然后加载下一个 episode
 - `ESC`: 退出
 
-**配置**：使用 VLN 任务配置文件（如 `configs/vln_task.yaml`）。
+**配置**：使用 VLN 任务配置文件（如 `configs/satnav_task.yaml`）。
 
 详细文档：`applications/satsim_viewer/README.md`
 
@@ -728,8 +728,7 @@ SatNav/
 │       │   └── geoutils.py   # 坐标工具
 ├── configs/                   # 配置文件 ⭐
 │   ├── default.yaml          # 默认配置模板
-│   ├── debug_vln_task.yaml   # 调试任务配置
-│   ├── vln_task.yaml         # 完整任务配置
+│   ├── satnav_task.yaml      # 主线 VLN 任务配置
 │   └── baselines/            # 基线模型配置
 │       ├── seq2seq_offline.yaml  # Seq2Seq 离线训练配置
 │       ├── seq2seq_eval.yaml     # Seq2Seq 评测配置

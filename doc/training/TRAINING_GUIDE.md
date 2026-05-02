@@ -92,7 +92,7 @@ SatNav 采用 VLN-CE 风格的统一配置系统：
 
 ```yaml
 # ===== 基础配置 =====
-BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml  # 任务配置路径
+BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml     # 任务配置路径
 TRAINER_NAME: recollect_trainer                     # Trainer 名称
 CHECKPOINT_FOLDER: data/checkpoints/seq2seq         # Checkpoint 目录
 RESULTS_DIR: data/results/seq2seq                   # 结果目录
@@ -148,7 +148,7 @@ WANDB:
 
 - **默认配置模板**: `configs/default.yaml`（参考文档）
 - **实验配置**: `configs/baselines/seq2seq.yaml`
-- **任务配置**: `configs/debug_vln_task.yaml`
+- **任务配置**: `configs/satnav_task.yaml`
 
 ## 训练流程
 
@@ -171,7 +171,7 @@ RecollectTrainer 实时从环境收集训练数据：
 SatNav VLN - TRAIN Mode
 ================================================================================
 Experiment config: configs/baselines/seq2seq.yaml
-Loading task config: configs/debug_vln_task.yaml
+Loading task config: configs/satnav_task.yaml
 Trainer: recollect_trainer
 ================================================================================
 
@@ -246,7 +246,7 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
     EVAL.EPISODE_COUNT 100
 ```
 
-**重要说明**：`EVAL.SPLIT` 会在评估时**自动同步**到 `DATASET.SPLIT`，确保加载正确的数据集文件。你**不需要**手动修改 task config (`debug_vln_task.yaml`) 中的 `DATASET.SPLIT`。
+**重要说明**：`EVAL.SPLIT` 会在评估时**自动同步**到 `DATASET.SPLIT`，确保加载正确的数据集文件。你**不需要**手动修改 task config (`satnav_task.yaml`) 中的 `DATASET.SPLIT`。
 
 评估时会看到类似输出：
 ```
@@ -411,7 +411,7 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
 
 ```bash
 python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
-    BASE_TASK_CONFIG_PATH configs/vln_task.yaml
+    BASE_TASK_CONFIG_PATH configs/satnav_task.yaml
 ```
 
 ### 调试模式（小规模训练）

@@ -21,10 +21,9 @@ SatNav 是一个连续状态 VLN（视觉语言导航）评测平台，使用卫
 
 - **仿真器架构**：`SatSim`（2D 卫星图）
 - **核心包**：`satnav/`（含 `core/`、`dataset/`、`navigation/`、`sims/`、`task/`、`training/`、`models/`）
-- **配置文件**：`configs/`（`default.yaml`、`satnav_task.yaml`、`vln_task.yaml`、`configs/baselines/`）
+- **配置文件**：`configs/`（`default.yaml`、`satnav_task.yaml`、`configs/baselines/`）
 - **脚本**：`scripts/`
 - **应用示例**：`applications/`
-- **实验分析**：`experiments/`
 
 ## Repo Skills
 
@@ -42,7 +41,7 @@ SatNav 是一个连续状态 VLN（视觉语言导航）评测平台，使用卫
 ## Execution Rules
 
 - 优先使用 `configs/` 下现有配置文件，通过 `run.py` 启动任务。
-- 修改仿真器参数时，优先编辑 `configs/satnav_task.yaml` 或 `configs/vln_task.yaml`，避免硬编码。
+- 修改仿真器参数时，优先编辑 `configs/satnav_task.yaml`，避免硬编码。
 - 新增 baseline 配置请放入 `configs/baselines/` 目录。
 - 数据集 episode 相关逻辑位于 `satnav/dataset/`，导航逻辑位于 `satnav/navigation/`。
 - 测试用例放入 `tests/`，并通过 `pytest` 运行（配置见 `pytest.ini`）。

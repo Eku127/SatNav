@@ -77,7 +77,7 @@ Use the validated config in [`references/seq2seq-smoke-260317.yaml`](/mnt/data1/
 - 0317 data and scenes load correctly
 - vocab wiring works
 - trainer reaches the first epoch and writes a checkpoint
-- the run is actually based on `configs/satnav_task.yaml`, not `configs/debug_vln_task.yaml`
+- the run is actually based on `configs/satnav_task.yaml`
 
 Smoke config contents are fixed in the YAML file because `BASE_TASK_CONFIG_PATH` must be present before `run.py` loads task config. The file sets:
 
@@ -117,7 +117,7 @@ If the run fails on embeddings:
 - confirm `DATASET.vocab_file` exists
 - confirm `MODEL.INSTRUCTION_ENCODER.vocab_size 5395`
 
-If startup still prints `Loading task config: configs/debug_vln_task.yaml`:
+If startup prints an unexpected task config path:
 
 - do not try to fix it with CLI `BASE_TASK_CONFIG_PATH`
 - run through the validated smoke YAML file in `references/`

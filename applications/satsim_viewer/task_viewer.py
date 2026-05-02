@@ -14,7 +14,7 @@ The viewer displays:
 - Right: Top-down map visualization with agent path and waypoints (optional)
 - Bottom: Instruction text and distance information
 
-Input: Task YAML configuration file (e.g., configs/vln_task.yaml)
+Input: Task YAML configuration file (e.g., configs/satnav_task.yaml)
 """
 
 import sys

@@ -27,12 +27,11 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 
 ## Key Directories & Entry Scripts
 
-- 配置目录：`configs/`（`default.yaml`、`satnav_task.yaml`、`vln_task.yaml`、`configs/baselines/`）
+- 配置目录：`configs/`（`default.yaml`、`satnav_task.yaml`、`configs/baselines/`）
 - 脚本目录：`scripts/`
 - 应用工具：`applications/`
   - 轨迹生成：`applications/trajectory_generation/generate.py`（串行）、`generate_parallel.py`（并行）
   - 地图下载：`applications/map_downloader/`，Google provider 支持 `--scene-config` 批量下载 scene GeoTIFF
-- 实验分析：`experiments/`
 - 使用示例：`examples/`
 - 测试：`tests/`（pytest，配置见 `pytest.ini`）
 - 主入口：`run.py`
@@ -113,7 +112,7 @@ conda activate satnav
 ## Execution Rules
 
 - 优先使用 `configs/` 下现有配置文件，通过 `run.py` 启动任务，避免硬编码参数。
-- 修改仿真器或任务参数时，优先编辑 `configs/satnav_task.yaml` 或 `configs/vln_task.yaml`。
+- 修改仿真器或任务参数时，优先编辑 `configs/satnav_task.yaml`。
 - 新增 baseline 配置请放入 `configs/baselines/` 目录。
 - 测试用例放入 `tests/`，并通过 `pytest` 运行。
 

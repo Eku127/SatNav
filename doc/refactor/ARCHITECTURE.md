@@ -48,7 +48,7 @@ satnav/
 │       ├── maps.py              # 地图相关工具
 │       └── examples.py          # 示例工具
 ├── configs/                     # 配置文件
-│   └── vln_task.yaml           # VLN任务配置
+│   └── satnav_task.yaml           # VLN任务配置
 ├── examples/                    # 示例代码
 │   └── satnav_path_follower_example.py
 └── README.md                    # 项目说明
@@ -418,7 +418,7 @@ from satnav.core.config import load_config
 from satnav.dataset.satnav_dataset import SatNavDataset
 
 # 1. 加载配置
-config = load_config("configs/vln_task.yaml")
+config = load_config("configs/satnav_task.yaml")
 
 # 2. 创建数据集
 dataset = SatNavDataset(config.DATASET)

@@ -329,7 +329,7 @@ Results saved to `output/seq2seq_offline/results/<EXP_NAME>/`.
 
 | Error | Fix |
 |---|---|
-| `Loading task config: configs/debug_vln_task.yaml` | `BASE_TASK_CONFIG_PATH` 必须在 YAML 里设置，不能通过 CLI |
+| Task config path is wrong | `BASE_TASK_CONFIG_PATH` 必须在 YAML 里设置，不能通过 CLI；当前主线应为 `configs/satnav_task.yaml` |
 | `Vocabulary file not found` | 运行 Step 2 构建 vocab |
 | `embedding_file not found` | 运行 Step 4 构建 embeddings |
 | `CUDA OOM` | 减小 `PER_GPU_BATCH_SIZE`，例如 `8 -> 4` |

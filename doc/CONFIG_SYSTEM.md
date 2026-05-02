@@ -23,7 +23,7 @@ SatNav 采用 VLN-CE 风格的统一配置系统，提供：
 │  (configs/baselines/seq2seq.yaml)   │
 ├─────────────────────────────────────┤
 │     Task Config                     │
-│  (configs/debug_vln_task.yaml)      │
+│  (configs/satnav_task.yaml)         │
 └─────────────────────────────────────┘
        ↓ 合并 (OmegaConf.merge)
 ┌─────────────────────────────────────┐
@@ -63,7 +63,7 @@ trainer = trainer_class(config)
 
 ```yaml
 # 基础设置
-BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml
 TRAINER_NAME: recollect_trainer
 CHECKPOINT_FOLDER: data/checkpoints/seq2seq
 RESULTS_DIR: data/results/seq2seq
@@ -112,7 +112,7 @@ WANDB:
 
 ### 2. Task Config (任务配置)
 
-位置: `configs/debug_vln_task.yaml`
+位置: `configs/satnav_task.yaml`
 
 包含环境、任务、数据集配置：
 
@@ -382,7 +382,7 @@ configs/
 │   ├── seq2seq_large.yaml        # 大模型变体
 │   └── seq2seq_finetune.yaml     # 微调配置
 ├── default.yaml                  # 默认配置参考
-└── debug_vln_task.yaml           # 调试任务配置
+└── satnav_task.yaml              # 主线 VLN 任务配置
 ```
 
 ### 2. 使用命令行覆盖进行快速实验
@@ -472,4 +472,3 @@ IL.lr=1e-4 IL.batch_size=8
 - [Default Config](../configs/default.yaml) - 默认配置模板
 - [VLN-CE Config](https://github.com/jacobkrantz/VLN-CE) - VLN-CE 参考
 - [OmegaConf Docs](https://omegaconf.readthedocs.io/) - OmegaConf 文档
-

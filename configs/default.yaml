@@ -19,7 +19,7 @@
 # ============================================================================
 
 # Path to task configuration file (will be auto-loaded and merged)
-BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml
 
 # Name of the trainer to use (must be registered in registry)
 # Available: recollect_trainer
