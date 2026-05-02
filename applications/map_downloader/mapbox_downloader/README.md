@@ -72,6 +72,6 @@ python -m applications.map_downloader mapbox \
 
 ## Batch Scenes
 
-Mapbox currently supports single-scene downloads only. Use the Google provider's `--scene-config` mode for batch downloading SatNav `scenes_list.yaml`.
+Mapbox currently supports single-scene downloads only. Use the Google provider's `--scene-config` mode for batch downloading a SatNav scene-list YAML.
 
 By default, the final TIFF includes a bottom-left Mapbox attribution panel and writes an attribution sidecar file.

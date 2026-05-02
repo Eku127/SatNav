@@ -104,7 +104,7 @@ You can also use `--type center` with `--center-lat`, `--center-lon`, `--height-
 Batch mode downloads all scenes listed in a YAML/JSON config. It is currently implemented for the Google provider.
 Batch options are read from the scene config first; explicit CLI flags override them.
 
-Note: use this mode with the dataset `scenes_list.yaml` when generating SatNav scenes.
+Note: use this mode with a dataset scene-list YAML when generating SatNav scenes.
 
 Minimal config:
 
@@ -168,10 +168,11 @@ Useful batch options:
 
 If Google `createSession` fails because `tile.googleapis.com` is unreachable, retry with `--use-env-proxy`.
 
-Full scene list:
+For a full dataset build, pass your own scene list YAML:
 
 ```bash
-applications/map_downloader/test_config/scenes_list.yaml
+python -m applications.map_downloader google \
+  --scene-config <scene-list.yaml>
 ```
 
 ## Notes

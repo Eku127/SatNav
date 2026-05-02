@@ -63,7 +63,7 @@ python -m applications.map_downloader google \
 
 Google supports `--scene-config` batch mode. Batch options are read from the YAML first; explicit CLI flags override them.
 
-Use this mode with the dataset `scenes_list.yaml` when generating SatNav scenes.
+Use this mode with a dataset scene-list YAML when generating SatNav scenes.
 
 Test config:
 
@@ -86,10 +86,11 @@ python -m applications.map_downloader google \
   --scene-config applications/map_downloader/test_config/test_scenes_list.yaml
 ```
 
-Full scene list:
+For a full dataset build, pass your own scene list YAML:
 
 ```bash
-applications/map_downloader/test_config/scenes_list.yaml
+python -m applications.map_downloader google \
+  --scene-config <scene-list.yaml>
 ```
 
 ## Config Fields
