@@ -142,6 +142,11 @@ wandb/
 configs/local_*.yaml
 *.local.yaml
 
+# Local agent / assistant metadata
+.codex/
+.agents/
+AGENTS.md
+
 # Temporary files
 *.tmp
 *.bak
