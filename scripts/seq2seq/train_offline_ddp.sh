@@ -4,10 +4,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-source /mnt/data1/home/jiangjiajun/miniconda3/etc/profile.d/conda.sh
-conda activate satnav
+CONDA_INIT="${CONDA_INIT:-${HOME}/miniconda3/etc/profile.d/conda.sh}"
+CONDA_ENV="${CONDA_ENV:-satnav}"
+if [ -f "${CONDA_INIT}" ]; then
+    source "${CONDA_INIT}"
+    conda activate "${CONDA_ENV}"
+else
+    echo "[WARN] Conda init not found at ${CONDA_INIT}. Assuming the environment is already active."
+fi
 
-CONFIG_PATH="${CONFIG_PATH:-configs/baselines/seq2seq_offline.yaml}"
+CONFIG_PATH="${CONFIG_PATH:-configs/baselines/seq2seq_offline_train.yaml}"
 CUDA_DEVICES="${CUDA_DEVICES:-0,1,2,3,4,5,6,7}"
 MASTER_ADDR="${MASTER_ADDR:-localhost}"
 MASTER_PORT="${MASTER_PORT:-29500}"
@@ -53,8 +59,6 @@ resolve_path() {
 
 OUTPUT_ROOT_ABS="$(resolve_path "${OUTPUT_ROOT}")"
 CHECKPOINT_DIR="${OUTPUT_ROOT_ABS}/checkpoints/${EXP_NAME}"
-RESULTS_DIR="${OUTPUT_ROOT_ABS}/results/${EXP_NAME}"
-VIDEO_DIR="${OUTPUT_ROOT_ABS}/videos/${EXP_NAME}"
 LOG_DIR="${OUTPUT_ROOT_ABS}/logs"
 LATEST_LINK="${OUTPUT_ROOT_ABS}/checkpoints/latest"
 
@@ -86,8 +90,6 @@ OVERRIDES=(
     IL.epochs "${NUM_EPOCHS}"
     IL.OFFLINE.num_workers "${NUM_WORKERS}"
     CHECKPOINT_FOLDER "${CHECKPOINT_DIR}"
-    RESULTS_DIR "${RESULTS_DIR}"
-    VIDEO_DIR "${VIDEO_DIR}"
     SWANLAB.project "${SWANLAB_PROJECT}"
     SWANLAB.experiment_name "${EXP_NAME}"
     SWANLAB.mode "${SWANLAB_MODE_OVERRIDE}"
@@ -107,6 +109,10 @@ if [ -n "${SWANLAB_SECRET}" ]; then
     OVERRIDES+=(SWANLAB.secret "${SWANLAB_SECRET}")
 fi
 
+if [ "$#" -gt 0 ]; then
+    OVERRIDES+=("$@")
+fi
+
 export CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}"
 
 echo "=========================================="
@@ -124,6 +130,9 @@ echo "WXWork Notice : ${USE_WXWORK_NOTIFICATION}"
 echo "Experiment    : ${EXP_NAME}"
 echo "Checkpoint    : ${CHECKPOINT_DIR}"
 echo "Log File      : ${TRAIN_LOG_FILE}"
+if [ "$#" -gt 0 ]; then
+    echo "Extra opts    : $*"
+fi
 echo "=========================================="
 
 if [ "${USE_WXWORK_NOTIFICATION}" = "true" ]; then

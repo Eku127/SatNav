@@ -1,92 +1,68 @@
-# Seq2Seq Eval Config — ver_260317 在线仿真器评测
-#
-# 使用 offline_trainer 的 eval() 入口：
-#   1. 用 OfflineTrajectoryDataset 初始化 policy 的 observation/action space
-#   2. 用 SatNavDataset + 仿真器 Env 运行完整 episode rollout
-#
-# 通常由脚本驱动（不直接调用 python run.py），脚本会注入：
-#   EVAL.CKPT_PATH     - checkpoint 路径
-#   EVAL.SPLIT         - 评测 split（val_seen / val_unseen / test）
-#   RESULTS_DIR        - 结果输出目录
-#
-# 单独使用（快速调试）：
-#   python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval \
-#       EVAL.CKPT_PATH output/seq2seq_offline/checkpoints/latest/best.pth \
-#       EVAL.SPLIT val_seen \
-#       RESULTS_DIR output/seq2seq_offline/results/debug/val_seen
+# Seq2Seq online evaluation config.
+# Defaults evaluate the checkpoint produced by seq2seq_offline_train.yaml on
+# the repository-local example episodes.
 
 _base_: configs/default.yaml
 
-BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml
+BASE_TASK_CONFIG_PATH: applications/resources/satnav_example_task.yaml
 
 TRAINER_NAME: offline_trainer
 
-# ============================================================================
-# DIRECTORIES
-# ============================================================================
-CHECKPOINT_FOLDER: output/seq2seq_offline/checkpoints/latest
-RESULTS_DIR: output/seq2seq_offline/results/latest
-VIDEO_DIR: output/seq2seq_offline/videos/latest
+CHECKPOINT_FOLDER: output/quickstart_baselines/seq2seq/checkpoints/latest
+RESULTS_DIR: output/quickstart_baselines/seq2seq/results/latest
+VIDEO_DIR: output/quickstart_baselines/seq2seq/videos/latest
 GENERATE_VIDEOS: false
 
-# ============================================================================
-# DATASET
-# DATA_PATH 使用 {split} 占位符，由 SatNavDataset 在运行时展开。
-# eval split 路径约定（与 CODEX_CONTEXT 一致）：
-#   val_seen   -> episodes/eval/val_seen/all_episodes.json
-#   val_unseen -> episodes/eval/val_unseen/all_episodes.json（当前暂无，引入新城市后生成）
-# ============================================================================
 DATASET:
-  SPLIT: val_seen
-  DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/episodes/eval/{split}/all_episodes.json
-  SCENES_DIR: /mnt/data3/jiangjiajun/dataset/satnav_datasets/scenes
-  vocab_file: output/seq2seq_offline/artifacts/vocab/train_vocab_260317.json
+  SPLIT: test
+  DATA_PATH: applications/resources/satnav_example_episodes.json
+  SCENES_DIR: applications/resources/
+  vocab_file: output/quickstart_baselines/artifacts/vocab/satnav_example_vocab.json
 
-# ============================================================================
-# EVALUATION
-# ============================================================================
 EVAL:
-  SPLIT: val_seen
-  EPISODE_COUNT: -1       # -1 = 评测全部 episode
+  SPLIT: test
+  EPISODE_COUNT: -1
   SAVE_RESULTS: true
-  CKPT_PATH: output/seq2seq_offline/checkpoints/latest/best.pth
+  CKPT_PATH: output/quickstart_baselines/seq2seq/checkpoints/latest/best.pth
 
-# ============================================================================
-# IL.OFFLINE
-# 评测阶段仅用于初始化 policy 的 observation/action space，不实际加载图片。
-# ============================================================================
 IL:
+  lr: 3e-4
+  batch_size: 8
   load_from_ckpt: false
-  ckpt_to_load: output/seq2seq_offline/checkpoints/latest/best.pth
+  ckpt_to_load: output/quickstart_baselines/seq2seq/checkpoints/latest/best.pth
   OFFLINE:
-    annotations_path: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/annotations.json
-    images_root: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/images
+    annotations_path: output/quickstart_baselines/trajectory_data/annotations.json
+    images_root: output/quickstart_baselines/trajectory_data/images
     num_workers: 0
     pin_memory: false
     max_traj_len: 500
     max_instruction_len: 200
     rgb_size: 224
 
-# ============================================================================
-# MODEL — 与训练保持一致
-# ============================================================================
 MODEL:
   policy_name: seq2seq
 
+  RGB_ENCODER:
+    cnn_type: TorchVisionResNet50
+    output_size: 256
+    trainable: false
+    pretrained: true
+
   INSTRUCTION_ENCODER:
     use_pretrained_embeddings: true
-    embedding_file: output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.gz
+    embedding_file: output/quickstart_baselines/artifacts/embeddings/satnav_example_glove50d.json.gz
     fine_tune_embeddings: false
     embedding_size: 50
-    vocab_size: 5395
+    hidden_size: 128
+    rnn_type: LSTM
+    bidirectional: false
+    final_state_only: true
+    vocab_size: 15
 
   SEQ2SEQ:
     hidden_size: 512
     rnn_type: GRU
     use_prev_action: true
 
-# ============================================================================
-# SwanLab — 评测不启用
-# ============================================================================
 SWANLAB:
   mode: disabled
