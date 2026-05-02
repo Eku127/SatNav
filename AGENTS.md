@@ -44,4 +44,4 @@ SatNav 是一个连续状态 VLN（视觉语言导航）评测平台，使用卫
 - 修改仿真器参数时，优先编辑 `configs/satnav_task.yaml`，避免硬编码。
 - 新增 baseline 配置请放入 `configs/baselines/` 目录。
 - 数据集 episode 相关逻辑位于 `satnav/dataset/`，导航逻辑位于 `satnav/navigation/`。
-- 测试用例放入 `tests/`，并通过 `pytest` 运行（配置见 `pytest.ini`）。
+- 当前仓库不保留自动化测试目录；验证优先使用 quickstart 和模型训练/评测脚本。

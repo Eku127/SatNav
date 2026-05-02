@@ -16,10 +16,6 @@ pyproj>=3.4.0  # Coordinate transformations (WGS84 <-> EPSG:3857)
 opencv-python>=4.5.0  # Image processing
 scipy>=1.7.0  # Agent sprite rotation (used by VLN-CE agent visualization)
 
-# Testing dependencies
-pytest>=7.0.0
-pytest-cov>=4.0.0
-
 # Map downloader dependencies
 tqdm>=4.60.0  # Progress bar for downloads
 requests>=2.25.0  # HTTP requests

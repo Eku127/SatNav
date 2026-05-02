@@ -34,7 +34,6 @@ SatNav 是一个独立的 Python 包，核心结构如下：
   - 地图下载：`applications/map_downloader/`，Google provider 支持 `--scene-config` 批量下载 scene GeoTIFF
   - 共享示例资源：`applications/resources/`（example episodes、task config、sample GeoTIFF）
 - 使用示例：`examples/`，默认读取 `applications/resources/satnav_example_task.yaml`
-- 测试：`tests/`（pytest，配置见 `pytest.ini`）
 - 主入口：`run.py`
 
 ## Open-Source Example Dataset Defaults
@@ -116,7 +115,7 @@ conda activate satnav
 - 优先使用 `configs/` 下现有配置文件，通过 `run.py` 启动任务，避免硬编码参数。
 - 修改仿真器或任务参数时，优先编辑 `configs/satnav_task.yaml`。
 - 新增 baseline 配置请放入 `configs/baselines/` 目录。
-- 测试用例放入 `tests/`，并通过 `pytest` 运行。
+- 当前仓库不保留自动化测试目录；验证优先使用 quickstart 和模型训练/评测脚本。
 
 ## Seq2Seq Eval Infrastructure (Updated: 2026-05-02)
 

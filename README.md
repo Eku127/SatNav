@@ -273,58 +273,7 @@ data/
 
 ---
 
-## 5. 测试命令行
-
-### 5.1 运行所有测试
-
-```bash
-# 确保在 conda 环境中
-conda activate satnav
-
-# 运行所有测试
-pytest
-
-# 运行所有测试（详细输出）
-pytest -v
-
-# 运行所有测试（显示覆盖率）
-pytest --cov=satnav --cov-report=term-missing
-
-# 运行所有测试（生成 HTML 覆盖率报告）
-pytest --cov=satnav --cov-report=html
-```
-
-### 5.2 运行特定测试文件
-
-```bash
-# 配置加载测试
-pytest tests/test_config.py -v
-
-# 数据集加载测试
-pytest tests/test_dataset.py -v
-
-# 环境测试（包含集成测试）
-pytest tests/test_env.py -v
-
-# VLN 任务测试
-pytest tests/test_vln_task.py -v
-
-# SatSim 核心引擎测试
-pytest tests/test_satsim.py -v
-
-# 相机渲染测试
-pytest tests/test_camera.py -v
-
-# 坐标转换工具测试
-pytest tests/test_geoutils.py -v
-
-# 工具函数测试（测地距离）
-pytest tests/test_utils.py -v
-```
-
----
-
-## 6. 快速开始示例
+## 5. 快速开始示例
 
 SatNav 提供了两个完整的示例脚本，演示如何使用不同的路径跟随策略进行导航。
 
@@ -404,7 +353,7 @@ python examples/reference_follower_example.py
 
 ---
 
-## 7. Training and Evaluation（训练和评估）
+## 6. Training and Evaluation（训练和评估）
 
 ### 7.1 Quick Start
 
@@ -443,8 +392,6 @@ python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval
 - `configs/baselines/random_agent.yaml` / `configs/baselines/greedy_agent.yaml` - 保留的非学习基线配置
 - `configs/satnav_task.yaml` - 主线 VLN 任务配置
 
-详细文档: [配置系统文档](doc/CONFIG_SYSTEM.md)
-
 ### 7.3 Evaluation Features
 
 完整的评估功能包括：
@@ -467,7 +414,7 @@ SwiftVLN 的 OpenFly、NaVILA、StreamVLN、Uni-NaVid SatNav 评测脚本直接�
 
 ---
 
-## 8. Baseline Models（基线模型）
+## 7. Baseline Models（基线模型）
 
 SatNav 提供了 VLN 基线模型实现，用于训练和评估导航智能体。
 
@@ -560,15 +507,6 @@ action, rnn_states = model.act(observations, rnn_states, prev_actions, masks)
 **Documentation**:
 - 📖 **Architecture Design**: `doc/models/SEQ2SEQ_IMPLEMENTATION.md`
 - 🚀 **Quick Start Guide**: `doc/models/QUICKSTART.md`
-- 🎓 **Training Guide**: `doc/training/TRAINING_GUIDE.md`
-- ⚙️ **Config System**: `doc/CONFIG_SYSTEM.md`
-- 📝 **Embedding Guide**: `doc/EMBEDDING_GUIDE.md`
-- ✅ **Implementation Summary**: `doc/models/IMPLEMENTATION_SUMMARY.md`
-
-**Tests**:
-```bash
-pytest tests/test_seq2seq_model.py -v
-```
 
 **Key Features**:
 - ✅ VLN-CE compatible architecture
@@ -726,19 +664,6 @@ SatNav/
 ├── examples/                  # 示例代码
 │   ├── satnav_path_follower_example.py  # SatNavPathFollower 示例（批量运行）
 │   └── reference_follower_example.py    # ReferencePathFollower 示例（单 episode）
-├── tests/                     # 测试文件
-│   ├── test_data/            # 测试数据
-│   │   ├── map.tif           # 测试用卫星地图
-│   │   ├── satnav_dataset_example.json
-│   │   └── satnav_config_example.yaml
-│   ├── test_config.py
-│   ├── test_dataset.py
-│   ├── test_env.py
-│   ├── test_satsim.py
-│   ├── test_camera.py
-│   ├── test_seq2seq_model.py  # 模型测试
-│   ├── test_training.py       # 训练测试
-│   └── test_geoutils.py
 ├── applications/             # 应用工具
 │   ├── trajectory_generation/       # 轨迹生成
 │   ├── satsim_viewer/       # 交互式查看器
@@ -746,18 +671,10 @@ SatNav/
 │   │   └── task_viewer.py   # 任务查看器
 │   └── map_downloader/      # 地图下载器
 ├── doc/                      # 文档目录 ⭐
-│   ├── CONFIG_SYSTEM.md      # 配置系统文档
-│   ├── EMBEDDING_GUIDE.md    # Embedding 指南
 │   ├── models/               # 模型文档
 │   │   ├── SEQ2SEQ_IMPLEMENTATION.md
 │   │   ├── CMA_IMPLEMENTATION.md
-│   │   ├── QUICKSTART.md
-│   │   └── IMPLEMENTATION_SUMMARY.md
-│   ├── training/             # 训练文档
-│   │   ├── TRAINING_GUIDE.md
-│   │   └── SEQ2SEQ_SHAPE.md
-│   └── refactor/             # 设计文档
-│       └── ARCHITECTURE.md
+│   │   └── QUICKSTART.md
 ├── setup.py                  # 安装脚本
 ├── requirements.txt          # 依赖列表
 └── README.md                 # 本文件
