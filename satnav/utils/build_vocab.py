@@ -10,6 +10,7 @@ Reference:
 """
 
 import json
+import os
 import re
 from collections import Counter
 from typing import List, Dict, Optional, Union, Any
@@ -180,6 +181,10 @@ def build_vocab(
         "idx2word": idx2word,
         "vocab_size": len(word2idx),
     }
+
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     
     with open(output_path, "w") as f:
         json.dump(vocab_data, f, indent=2)
@@ -392,4 +397,3 @@ if __name__ == "__main__":
         min_count=args.min_count,
         use_dataset_vocab=not args.no_dataset_vocab,
     )
-

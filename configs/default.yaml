@@ -1,7 +1,7 @@
 # SatNav Default Configuration Template
 #
 # This file serves as a reference for all available configuration options.
-# Experiment configs (e.g., configs/baselines/seq2seq.yaml) should override
+# Experiment configs (e.g., configs/baselines/seq2seq_offline_train.yaml) should override
 # these defaults as needed.
 #
 # Configuration Structure:
@@ -179,6 +179,10 @@ MODEL:
     
     # Whether to fine-tune the CNN
     trainable: false
+
+    # Whether to load ImageNet weights from TorchVision.
+    # Set false for fully local smoke tests with no network/cache dependency.
+    pretrained: true
     
     # Whether to normalize visual inputs
     normalize_visual_inputs: false
@@ -213,7 +217,7 @@ SWANLAB:
 # ============================================================================
 #
 # Usage Example:
-#   python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+#   python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train
 #
 # Override from command line:
 #   python run.py --exp-config CONFIG.yaml --run-type eval \

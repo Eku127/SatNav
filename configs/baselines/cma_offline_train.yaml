@@ -1,0 +1,82 @@
+# CMA offline training config.
+# Defaults use the repository example dataset so the config is runnable after
+# the quickstart preparation steps. Replace DATASET/IL.OFFLINE paths for real
+# SatNav training data.
+
+_base_: configs/default.yaml
+
+BASE_TASK_CONFIG_PATH: applications/resources/satnav_example_task.yaml
+
+TRAINER_NAME: offline_trainer
+
+CHECKPOINT_FOLDER: output/quickstart_baselines/cma/checkpoints/latest
+
+DATASET:
+  SPLIT: train
+  DATA_PATH: applications/resources/satnav_example_episodes.json
+  SCENES_DIR: applications/resources/
+  vocab_file: output/quickstart_baselines/artifacts/vocab/satnav_example_vocab.json
+
+IL:
+  lr: 1e-4
+  batch_size: 4
+  epochs: 10
+  load_from_ckpt: false
+  ckpt_to_load: output/quickstart_baselines/cma/checkpoints/latest/best.pth
+
+  OFFLINE:
+    annotations_path: output/quickstart_baselines/trajectory_data/annotations.json
+    images_root: output/quickstart_baselines/trajectory_data/images
+    num_workers: 4
+    pin_memory: true
+    max_traj_len: 500
+    max_instruction_len: 200
+    rgb_size: 224
+
+  use_inflection_weighting: true
+  inflection_weight_coef: 2.0
+
+  use_class_weighting: true
+  class_weights:
+    STOP: 0.3
+    MOVE_FORWARD: 1.0
+    TURN_LEFT: 1.5
+    TURN_RIGHT: 1.5
+
+DISTRIBUTED:
+  enabled: false
+  backend: nccl
+
+MODEL:
+  policy_name: cma
+
+  RGB_ENCODER:
+    cnn_type: TorchVisionResNet50
+    output_size: 256
+    trainable: false
+    pretrained: true
+
+  INSTRUCTION_ENCODER:
+    use_pretrained_embeddings: true
+    embedding_file: output/quickstart_baselines/artifacts/embeddings/satnav_example_glove50d.json.gz
+    fine_tune_embeddings: false
+    embedding_size: 50
+    hidden_size: 128
+    rnn_type: LSTM
+    vocab_size: 15
+    bidirectional: true
+    final_state_only: false
+
+  CMA:
+    hidden_size: 512
+    rnn_type: GRU
+    use_prev_action: true
+
+SWANLAB:
+  project: SatNav
+  experiment_name: cma-offline
+  logdir: output/quickstart_baselines/cma/swanlab
+  mode: disabled
+  use_wxwork_notification: false
+  webhook_url: null
+  secret: null

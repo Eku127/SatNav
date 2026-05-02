@@ -177,6 +177,7 @@ class Seq2SeqNet(Net):
             normalize_visual_inputs=model_config.normalize_rgb,
             trainable=model_config.RGB_ENCODER.trainable,
             spatial_output=False,
+            pretrained=model_config.RGB_ENCODER.get("pretrained", True),
         )
         
         # Initialize previous action embedding (optional)
@@ -277,4 +278,3 @@ class Seq2SeqNet(Net):
         x, rnn_states_out = self.state_encoder(x, rnn_states, masks)
         
         return x, rnn_states_out
-

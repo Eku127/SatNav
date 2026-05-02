@@ -189,15 +189,15 @@ class TestSaveConfig:
 def test_cma_config_defaults_to_offline_trainer():
     """Test CMA baseline defaults to offline trainer and offline dataset paths."""
     repo_root = Path(__file__).resolve().parent.parent
-    cfg_path = repo_root / "configs" / "baselines" / "cma.yaml"
+    cfg_path = repo_root / "configs" / "baselines" / "cma_offline_train.yaml"
 
     config = OmegaConf.load(cfg_path)
     base_cfg = OmegaConf.load(repo_root / "configs" / "default.yaml")
-    task_cfg = OmegaConf.load(repo_root / "configs" / "satnav_task.yaml")
+    task_cfg = OmegaConf.load(repo_root / config.BASE_TASK_CONFIG_PATH)
     merged = OmegaConf.merge(base_cfg, config)
     merged = OmegaConf.merge(task_cfg, merged)
 
     assert merged.TRAINER_NAME == "offline_trainer"
     assert merged.IL.OFFLINE.annotations_path.endswith("trajectory_data/annotations.json")
     assert merged.IL.OFFLINE.images_root.endswith("trajectory_data/images")
-    assert merged.CHECKPOINT_FOLDER == "output/cma/checkpoints/latest"
+    assert merged.CHECKPOINT_FOLDER == "output/quickstart_baselines/cma/checkpoints/latest"
