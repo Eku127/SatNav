@@ -16,6 +16,7 @@ Reference:
 
 import gzip
 import json
+import os
 import numpy as np
 from typing import Dict
 
@@ -148,6 +149,9 @@ def build_embeddings(
     
     # Save embeddings in VLN-CE compatible format (gzipped JSON)
     print(f"\nSaving embeddings to {output_path}...")
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     embeddings_list = embeddings.tolist()
     
     with gzip.open(output_path, "wt") as f:
@@ -200,4 +204,3 @@ if __name__ == "__main__":
         output_path=args.output,
         embedding_dim=args.embedding_dim,
     )
-

@@ -116,11 +116,13 @@ data/scene_datasets/
 *.json
 # Keep example dataset for tests
 !tests/test_data/*.json
+!applications/trajectory_generation/config/traj_gen_example.json
 
 # Scene files (GeoTIFF)
 *.tif
 # Exception: allow test data map.tif
 !tests/test_data/map.tif
+!applications/resources/map.tif
 # Ignore large embedding test file
 tests/test_data/glove.6B.50d.txt
 
@@ -139,6 +141,11 @@ wandb/
 # Local configuration overrides
 configs/local_*.yaml
 *.local.yaml
+
+# Local agent / assistant metadata
+.codex/
+.agents/
+AGENTS.md
 
 # Temporary files
 *.tmp

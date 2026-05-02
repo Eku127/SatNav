@@ -1,0 +1,35 @@
+# Minimal SatNav task config for example applications.
+# Points to the example episodes and GeoTIFF scene in applications/resources/.
+
+ENVIRONMENT:
+  MAX_EPISODE_STEPS: 500
+
+SIMULATOR:
+  TYPE: satsim
+  FORWARD_STEP_SIZE: 10
+  TURN_ANGLE: 15
+  RGB_SENSOR:
+    WIDTH: 224
+    HEIGHT: 224
+    HFOV: 90
+
+TASK:
+  TYPE: VLN
+  SUCCESS_DISTANCE:
+    DEFAULT: 10.0
+    Boundary: 10.0
+    LandmarkSet: 30.0
+    Road: 10.0
+  POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
+  TOP_DOWN_MAP:
+    MAP_RESOLUTION: 1024
+    PADDING_METERS: 50.0
+    DRAW_REFERENCE_PATH: True
+    DRAW_SOURCE_AND_TARGET: True
+
+DATASET:
+  TYPE: SatNav
+  SPLIT: test
+  DATA_PATH: applications/resources/satnav_example_episodes.json
+  SCENES_DIR: applications/resources/

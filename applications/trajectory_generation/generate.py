@@ -17,7 +17,6 @@ Example:
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -43,10 +42,6 @@ def _load_episode_indices(path: Path):
             payload = payload["episode_indices"]
         elif "episodes" in payload:
             payload = payload["episodes"]
-        elif "selected" in payload:
-            payload = payload["selected"]
-        elif "ranked" in payload:
-            payload = payload["ranked"]
         elif "items" in payload:
             payload = payload["items"]
 
@@ -56,8 +51,6 @@ def _load_episode_indices(path: Path):
             if isinstance(item, dict):
                 if "episode_index" in item:
                     indices.append(int(item["episode_index"]))
-                elif "representative_episode_index" in item:
-                    indices.append(int(item["representative_episode_index"]))
                 elif "id" in item:
                     indices.append(int(item["id"]))
                 elif "episode_indices" in item:
@@ -125,59 +118,6 @@ Examples:
         help="Optional file containing episode indices to generate (JSON array/object or newline/comma-separated text)"
     )
 
-    parser.add_argument(
-        "--preselect_aerial",
-        action="store_true",
-        help="Preselect 3D-rich AerialSim episodes before trajectory generation"
-    )
-    parser.add_argument(
-        "--preselect_candidates",
-        type=int,
-        default=200,
-        help="Number of candidate episodes to preselect from (default: 200)"
-    )
-    parser.add_argument(
-        "--preselect_samples",
-        type=int,
-        default=4,
-        help="Number of sampled frames per episode during preselection (default: 4)"
-    )
-    parser.add_argument(
-        "--preselect_topk",
-        type=int,
-        default=50,
-        help="Keep top-K episodes after thresholding (default: 50)"
-    )
-    parser.add_argument(
-        "--preselect_min_score",
-        type=float,
-        default=None,
-        help="Optional minimum preselection score"
-    )
-    parser.add_argument(
-        "--preselect_min_avg_std",
-        type=float,
-        default=35.0,
-        help="Minimum average frame std for preselection (default: 35.0)"
-    )
-    parser.add_argument(
-        "--preselect_max_black_frac",
-        type=float,
-        default=0.01,
-        help="Maximum average black pixel fraction for preselection (default: 0.01)"
-    )
-    parser.add_argument(
-        "--preselect_min_height_range",
-        type=float,
-        default=3.0,
-        help="Minimum average local height range for preselection (default: 3.0)"
-    )
-    parser.add_argument(
-        "--preselect_only",
-        action="store_true",
-        help="Run preselection only and skip trajectory generation"
-    )
-    
     args = parser.parse_args()
     
     # Validate config file exists
@@ -210,28 +150,6 @@ Examples:
             output_path=args.output_dir,
             landmark_success=args.landmark_success
         )
-        if args.preselect_aerial:
-            os.makedirs(args.output_dir, exist_ok=True)
-            report_path = os.path.join(args.output_dir, "preselect_ranking.json")
-            selected = runner.preselect_aerial_episodes(
-                max_candidates=args.preselect_candidates,
-                samples_per_episode=args.preselect_samples,
-                top_k=args.preselect_topk,
-                min_score=args.preselect_min_score,
-                min_avg_std=args.preselect_min_avg_std,
-                max_avg_black_frac=args.preselect_max_black_frac,
-                min_avg_height_range=args.preselect_min_height_range,
-                save_path=report_path,
-            )
-            selected_indices = [item["episode_index"] for item in selected]
-            print(f"Preselected episodes: {len(selected_indices)}")
-            if args.preselect_only:
-                print("\n✓ Preselection completed successfully!")
-                return
-            if len(selected_indices) == 0:
-                print("\nNo episodes passed preselection thresholds; skip generation.")
-                return
-
         runner.generate(episode_indices=selected_indices)
         print("\n✓ Trajectory generation completed successfully!")
         

@@ -60,8 +60,8 @@ class SatelliteCamera:
         
         The ground coverage is calculated in TRUE ground meters, then converted
         to Mercator coordinates by applying the Mercator scale factor at the
-        current latitude. This ensures consistent coverage with other systems
-        that use geodetic coordinates (like CesiumJS/Google 3D Tiles).
+        current latitude. This keeps image coverage consistent in geodetic
+        coordinates.
         
         Args:
             position_mercator: Agent position as (x, y) in meters (Web Mercator).
@@ -275,4 +275,3 @@ class SatelliteCamera:
         cropped = np.clip(cropped, 0, 255).astype(np.uint8)
         
         return cropped
-

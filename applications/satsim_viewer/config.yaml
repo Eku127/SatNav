@@ -1,10 +1,8 @@
 # Interactive Viewer Configuration
 # Configuration for the interactive satellite map viewer
 
-# Path to the TIF file to visualize
-# TIF_PATH: data/scene_datasets/map_center_40.712800_-74.006000_h1000w1000_z20.tif
-# map.tf
-TIF_PATH: tests/test_data/map.tif
+# Path to the TIF file to visualize.
+TIF_PATH: applications/resources/map.tif
 
 
 # Simulator configuration
@@ -39,4 +37,3 @@ DISPLAY:
   WINDOW_NAME: "SatNav Interactive Viewer"
   # Note: Viewer now uses event-driven rendering (no FPS needed)
   # Rendering happens only when agent state changes (on keyboard input)
-

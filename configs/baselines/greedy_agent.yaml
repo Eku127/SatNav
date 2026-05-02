@@ -12,7 +12,7 @@
 _base_: configs/default.yaml
 
 # Base task configuration
-BASE_TASK_CONFIG_PATH: configs/debug_vln_task.yaml
+BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml
 TRAINER_NAME: recollect_trainer
 
 # ============================================================================

@@ -1,374 +1,158 @@
-# CMA Model Implementation in SatNav
+# CMA Model Structure
 
-## Overview
+This document summarizes the current Cross-Modal Attention model implemented in
+`satnav/models/baselines/cma_policy.py`.
 
-This document describes the implementation of the Cross-Modal Attention (CMA) model in SatNav, based on the paper "Improving Vision-and-Language Navigation with Image-Text Pairs from the Web" by Zhu et al. (2020).
+CMA extends the recurrent VLN baseline with instruction-conditioned attention
+over spatial RGB features. It uses two recurrent state encoders: the first
+builds a visual navigation state, and the second integrates the attended text
+and attended visual features before action prediction.
 
-**Paper:** https://arxiv.org/abs/2004.02857
+## Inputs
+
+- `instruction`: tokenized instruction, shape `[B, T]`
+- `rgb`: RGB observation, shape `[B, H, W, 3]`
+- `prev_actions`: previous discrete action, shape `[B, 1]`
+- `masks`: episode-continuation mask, shape `[B, 1]`
+
+The action space is:
+
+```text
+STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT
+```
 
 ## Architecture
 
-### High-Level Overview
+```text
+instruction tokens
+  -> bidirectional InstructionEncoder
+  -> instruction tokens [B, 256, T]
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CMA Architecture                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Instruction → Bidirectional LSTM → instruction_tokens (256)    │
-│  RGB Image   → ResNet50 (spatial)  → rgb_spatial (2112, 4, 4)   │
-│  Previous Action → Embedding(32)                                 │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────┐    │
-│  │ First State Encoder                                     │    │
-│  │   RGB pooled + prev_action → GRU (512) → state         │    │
-│  └────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────┐    │
-│  │ Cross-Modal Attention                                   │    │
-│  │   1. Text-State: state queries instruction → text_emb   │    │
-│  │   2. Text-RGB: text queries RGB spatial → rgb_attended  │    │
-│  └────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────┐    │
-│  │ Second State Encoder                                    │    │
-│  │   [state, text_emb, rgb_attended, prev_action]          │    │
-│  │   → Compress → GRU (512) → output                       │    │
-│  └────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  Output → Action Distribution (4 actions)                       │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+rgb image
+  -> TorchVisionResNet50 spatial encoder
+  -> RGB spatial features [B, 2112, 4, 4]
+  -> flatten spatial grid [B, 2112, 16]
 
-### Detailed Components
+previous action
+  -> Embedding(num_actions + 1, 32)
+  -> previous-action embedding [B, 32]
 
-#### 1. Instruction Encoder
-- **Type:** Bidirectional LSTM
-- **Input:** Tokenized instruction [batch, seq_len]
-- **Output:** All timestep features [batch, 256, seq_len]
-- **Key Setting:** `final_state_only=False` (CMA needs all timesteps)
+RGB spatial features
+  -> average pool + linear
+  -> RGB pooled feature [B, 256]
 
-#### 2. RGB Visual Encoder
-- **Type:** ResNet-50 (pretrained on ImageNet)
-- **Input:** RGB image [batch, 224, 224, 3]
-- **Output:** Spatial features [batch, 2112, 4, 4]
-- **Key Setting:** `spatial_output=True` (CMA needs spatial features)
-- **Note:** Includes spatial position embeddings (64-dim)
+[RGB pooled, previous action]
+  -> first GRU state encoder
+  -> state [B, 512]
 
-#### 3. Previous Action Embedding
-- **Type:** nn.Embedding
-- **Size:** (num_actions + 1) × 32
-- **Purpose:** Encode previous action as context
+state queries instruction tokens
+  -> text-state attention
+  -> attended text [B, 256]
 
-#### 4. First State Encoder (GRU)
-- **Input:** RGB pooled features + previous action
-- **Hidden Size:** 512
-- **Purpose:** Extract initial state representation
+attended text queries RGB spatial features
+  -> text-RGB attention
+  -> attended RGB [B, 256]
 
-#### 5. Cross-Modal Attention Mechanisms
-
-##### a) Text-State Attention
-- **Query:** State features (from first GRU)
-- **Key/Value:** Instruction tokens
-- **Purpose:** Find relevant instruction parts given current state
-- **Output:** Text embedding [batch, 256]
-
-##### b) Text-RGB Attention
-- **Query:** Text embedding (from text-state attention)
-- **Key/Value:** RGB spatial features
-- **Purpose:** Find relevant visual regions given instruction context
-- **Output:** RGB attended features [batch, 256]
-
-#### 6. Second State Encoder (GRU)
-- **Input:** Concatenation of [state, text_emb, rgb_attended, prev_action]
-- **Hidden Size:** 512
-- **Purpose:** Integrate all information for final decision
-- **Output:** Final features [batch, 512]
-
-## Differences from VLN-CE CMA
-
-| Component | VLN-CE CMA | SatNav CMA | Reason |
-|-----------|-----------|-----------|--------|
-| **Depth Encoder** | ✅ Included | ❌ Removed | SatNav uses satellite imagery (no depth) |
-| **Progress Monitor** | ✅ Included | ❌ Removed | Simplified implementation |
-| **RGB Encoder** | ResNet-50 | ResNet-50 | Same |
-| **Instruction Encoder** | Bidirectional LSTM | Bidirectional LSTM | Same |
-| **Attention Mechanisms** | Text-State, Text-RGB, Text-Depth | Text-State, Text-RGB | Depth removed |
-| **State Encoders** | 2 GRU layers | 2 GRU layers | Same |
-
-## Implementation Details
-
-### File Structure
-
-```
-satnav/models/baselines/
-├── cma_policy.py           # CMA implementation
-├── seq2seq_policy.py       # Seq2Seq baseline
-└── README.md               # Documentation
-
-configs/baselines/
-└── cma.yaml                # CMA configuration
-
-tests/
-├── test_cma_policy.py                  # Unit tests
-└── test_cma_trainer_integration.py     # Integration tests
+[state, attended text, attended RGB, previous action]
+  -> linear compression [B, 512]
+  -> second GRU state encoder [B, 512]
+  -> categorical action head
+  -> action logits [B, 4]
 ```
 
-### Key Classes
+## Components
 
-#### CMAPolicy
-- **Inherits:** `ILPolicy` (from `satnav.models.base`)
-- **Purpose:** Policy wrapper for CMA network
-- **Methods:**
-  - `from_config()`: Create policy from configuration
-  - `act()`: Select action given observations
-  - `build_distribution()`: Build action distribution
+### Instruction Encoder
 
-#### CMANet
-- **Inherits:** `Net` (from `satnav.models.base`)
-- **Purpose:** CMA neural network backbone
-- **Properties:**
-  - `output_size`: 512
-  - `is_blind`: False
-- **Methods:**
-  - `forward()`: Forward pass through network
-  - `get_initial_state()`: Create initial hidden states (for both encoders)
-  - `_attn()`: Scaled dot-product attention
+- Class: `satnav.models.encoders.instruction_encoder.InstructionEncoder`
+- Default type: LSTM
+- Direction: bidirectional
+- Embedding size: `50`
+- Hidden size: `128` per direction
+- Output mode: all timesteps
+- Output shape: `[B, 256, T]`
 
-### State Management
+CMA requires all instruction timesteps because attention is computed over the
+instruction sequence.
 
-CMA has **two RNN encoders**, so its `get_initial_state()` creates states for both:
+### RGB Encoder
 
-```python
-# Model creates its own initial state (for both encoders)
-rnn_states = model.net.get_initial_state(batch_size, device)
-# Shape: [2, batch_size, 512] for CMA (2 encoders, each 1 layer)
+- Class: `satnav.models.encoders.visual_encoder.TorchVisionResNet50`
+- Backbone: ImageNet-pretrained ResNet-50
+- Spatial output: enabled
+- Spatial grid: `4 x 4`
+- Feature channels: `2048 + 64` positional channels
+- Output shape: `[B, 2112, 4, 4]`
 
-# CMA internally splits states for two encoders
-first_encoder_layers = self.state_encoder.num_recurrent_layers  # 1
-second_encoder_layers = self.second_state_encoder.num_recurrent_layers  # 1
+The `64` extra channels come from learned spatial embeddings over the `4 x 4`
+grid.
 
-# Forward through first encoder
-state, rnn_states_out[0:1] = self.state_encoder(
-    state_in,
-    rnn_states[0:1],
-    masks
-)
+### Previous Action Embedding
 
-# Forward through second encoder
-output, rnn_states_out[1:2] = self.second_state_encoder(
-    x,
-    rnn_states[1:2],
-    masks
-)
+- Embedding size: `32`
+- The current CMA implementation always creates and uses this embedding.
+- Previous actions are shifted by `+1` and combined with `masks` so that reset
+  timesteps use the zero embedding slot.
+
+### First State Encoder
+
+- Input: pooled RGB feature `[B, 256]` plus previous-action embedding `[B, 32]`
+- Default type: GRU
+- Hidden size: `512`
+- Number of recurrent layers: `1`
+- Output shape: `[B, 512]`
+
+This stage creates the state used to query the instruction.
+
+### Cross-Modal Attention
+
+CMA uses two attention steps:
+
+1. Text-state attention:
+   - Query: first state encoder output `[B, 512]`
+   - Key/value: instruction tokens `[B, 256, T]`
+   - Output: attended text feature `[B, 256]`
+
+2. Text-RGB attention:
+   - Query: attended text feature `[B, 256]`
+   - Key/value: spatial RGB features projected from `[B, 2112, 16]`
+   - Output: attended RGB feature `[B, 256]`
+
+Both attention operations use scaled dot-product attention.
+
+### Second State Encoder
+
+- Input: `[state, attended text, attended RGB, previous action]`
+- Raw input size: `512 + 256 + 256 + 32 = 1056`
+- Compression: linear layer to `512`
+- Default type: GRU
+- Hidden size: `512`
+- Number of recurrent layers: `1`
+- Output shape: `[B, 512]`
+
+### Action Head
+
+- Class: `satnav.models.base.CategoricalNet`
+- Input size: `512`
+- Output size: `4`
+- Produces a categorical distribution over the four SatNav actions.
+
+## Recurrent State
+
+CMA has two recurrent encoders, so its initial state has two layers:
+
+```text
+[2, B, 512]
 ```
 
-### Trainer Compatibility
+Layer `0` is used by the first state encoder. Layer `1` is used by the second
+state encoder.
 
-The trainer is now model-agnostic and doesn't need to know about model internals:
+## Notes
 
-```python
-# New approach - model creates its own states
-states = self.policy.net.get_initial_state(N, self.device)
-
-# Model handles its own state structure (single or multiple RNNs)
-distribution = self.policy.build_distribution(
-    observations, states, prev_actions, masks
-)
-```
-
-## Model Parameters
-
-### Parameter Count
-- **Total:** ~29M parameters
-- **Trainable:** ~5.5M parameters
-- **Frozen:** ~23.5M parameters (ResNet-50 backbone)
-
-### Breakdown
-```
-Component                    Parameters
-─────────────────────────────────────────
-Instruction Encoder          ~200K
-RGB Encoder (ResNet-50)      ~23.5M (frozen)
-Previous Action Embedding    ~160
-First State Encoder (GRU)    ~1.3M
-Attention Mechanisms         ~500K
-Second State Encoder (GRU)   ~1.3M
-Action Distribution Head     ~2K
-Spatial Embeddings           ~1K
-─────────────────────────────────────────
-Total                        ~29M
-Trainable                    ~5.5M
-```
-
-## Configuration
-
-### Default Configuration (`configs/baselines/cma.yaml`)
-
-```yaml
-MODEL:
-  policy_name: cma
-  
-  INSTRUCTION_ENCODER:
-    embedding_size: 50
-    hidden_size: 128
-    rnn_type: LSTM
-    bidirectional: true        # Important!
-    final_state_only: false    # Important!
-  
-  RGB_ENCODER:
-    cnn_type: TorchVisionResNet50
-    output_size: 256
-    trainable: false
-    # spatial_output: true is set in code
-  
-  CMA:
-    hidden_size: 512
-    rnn_type: GRU
-    use_prev_action: true
-
-IL:
-  lr: 2.5e-4
-  batch_size: 5
-  epochs: 50
-```
-
-## Usage
-
-### Training
-
-```bash
-# Train CMA model
-python run.py --exp-config configs/baselines/cma.yaml --run-type train
-
-# Train with custom settings
-python run.py --exp-config configs/baselines/cma.yaml --run-type train \
-    IL.lr 1e-4 IL.batch_size 8
-```
-
-### Evaluation
-
-```bash
-# Evaluate on val_seen
-python run.py --exp-config configs/baselines/cma.yaml --run-type eval
-
-# Evaluate on val_unseen
-python run.py --exp-config configs/baselines/cma.yaml --run-type eval \
-    EVAL.SPLIT val_unseen
-```
-
-### Programmatic Usage
-
-```python
-from satnav.models import ModelRegistry
-
-# Get model class
-CMAPolicy = ModelRegistry.get_model('cma')
-
-# Create policy
-policy = CMAPolicy.from_config(
-    config=config,
-    observation_space=obs_space,
-    action_space=act_space
-)
-
-# Initialize RNN states (2 layers for CMA)
-rnn_states = torch.zeros(2, batch_size, 512)
-
-# Forward pass
-action, rnn_states = policy.act(
-    observations,
-    rnn_states,
-    prev_actions,
-    masks,
-    deterministic=True
-)
-```
-
-## Testing
-
-### Unit Tests
-
-```bash
-# Run all CMA tests
-pytest tests/test_cma_policy.py -v
-
-# Run specific test
-pytest tests/test_cma_policy.py::test_cma_forward_pass -v
-```
-
-### Integration Tests
-
-```bash
-# Test CMA with trainer
-pytest tests/test_cma_trainer_integration.py -v
-```
-
-## Performance Expectations
-
-### Compared to Seq2Seq
-
-| Metric | Seq2Seq | CMA | Notes |
-|--------|---------|-----|-------|
-| **Parameters** | ~28M | ~29M | Slightly more due to attention |
-| **Training Time** | Baseline | +20-30% | Attention adds overhead |
-| **Memory Usage** | Baseline | +15-20% | Spatial features require more memory |
-| **SR (Success Rate)** | Baseline | +5-10% | Better instruction grounding |
-| **SPL** | Baseline | +5-10% | More efficient paths |
-
-### Training Tips
-
-1. **Batch Size:** CMA works well with batch_size=5 (VLN-CE default)
-2. **Learning Rate:** Start with 2.5e-4, reduce if unstable
-3. **Epochs:** 50 epochs is usually sufficient for convergence
-4. **Attention:** Monitor attention weights to debug grounding issues
-
-## Known Issues and Limitations
-
-### 1. Memory Usage
-- Spatial features (4×4) require more memory than global pooling
-- Reduce batch size if OOM errors occur
-
-### 2. Training Time
-- ~20-30% slower than Seq2Seq due to attention mechanisms
-- Consider using mixed precision training (fp16) to speed up
-
-### 3. Instruction Length
-- Very long instructions (>80 tokens) may cause memory issues
-- Consider truncating or using gradient checkpointing
-
-## Future Improvements
-
-### Potential Enhancements
-
-1. **Add Progress Monitor**
-   - Auxiliary task to predict navigation progress
-   - Helps with early stopping decisions
-
-2. **Multi-Head Attention**
-   - Replace single attention with multi-head
-   - May improve instruction grounding
-
-3. **Depth Simulation**
-   - Generate pseudo-depth from satellite imagery
-   - Use height maps or elevation data
-
-4. **Spatial Attention Visualization**
-   - Visualize which image regions are attended
-   - Useful for debugging and interpretability
-
-## References
-
-### Papers
-- Zhu et al. (2020). "Improving Vision-and-Language Navigation with Image-Text Pairs from the Web". ECCV 2020. [arXiv:2004.02857](https://arxiv.org/abs/2004.02857)
-- Krantz et al. (2020). "Beyond the Nav-Graph: Vision-and-Language Navigation in Continuous Environments". ECCV 2020.
-
-### Code
-- VLN-CE CMA Implementation: [vlnce_baselines/models/cma_policy.py](https://github.com/jacobkrantz/VLN-CE/blob/main/vlnce_baselines/models/cma_policy.py)
-- Habitat-Lab: [habitat_baselines/rl/ppo/policy.py](https://github.com/facebookresearch/habitat-lab)
-
-### Related Documentation
-- [Seq2Seq Implementation](SEQ2SEQ_IMPLEMENTATION.md)
-- [Model Comparison](../training/MODEL_COMPARISON.md)
-- [Baselines README](../../satnav/models/baselines/README.md)
+- CMA has no depth encoder.
+- CMA has no progress monitor.
+- The current main training path uses `offline_trainer` with pre-rendered
+  trajectory images; model structure is independent of that trainer choice.
+- The current default training config is `configs/baselines/cma_offline_train.yaml`.
+- The current eval config is `configs/baselines/cma_eval.yaml`.

@@ -33,7 +33,7 @@ def load_config(
         OmegaConfException: If the YAML file is invalid or cannot be parsed.
     
     Example:
-        >>> config = load_config("configs/vln_task.yaml")
+        >>> config = load_config("configs/satnav_task.yaml")
         >>> print(config.ENVIRONMENT.MAX_EPISODE_STEPS)
         500
     """
@@ -119,4 +119,3 @@ def get_success_distance_default(config: Union[DictConfig, dict], default: float
         return float(sd_config.DEFAULT)
     
     return default
-

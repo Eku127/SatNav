@@ -35,7 +35,7 @@ def setup_example(
         FileNotFoundError: If config file not found.
         Exception: If dataset or environment creation fails.
     """
-    output_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     # Load configuration
     config = load_config(str(config_path))
@@ -285,4 +285,3 @@ def print_metrics(
         print(f"✗ Error getting metrics: {e}")
         import traceback
         traceback.print_exc()
-

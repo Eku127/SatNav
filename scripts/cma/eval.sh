@@ -51,13 +51,13 @@ if [ -z "$INPUT" ]; then
     echo ""
     echo "Examples:"
     echo "  # Eval by exp name (recommended)"
-    echo "  bash scripts/cma/eval.sh cma-ddp-g8-bs8-lr1e-4-20260320-164653"
+    echo "  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260413-125610-260404vocab"
     echo ""
     echo "  # Eval specific split"
-    echo "  bash scripts/cma/eval.sh cma-ddp-g8-bs8-lr1e-4-20260320-164653 val_seen"
+    echo "  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260413-125610-260404vocab val_seen"
     echo ""
     echo "  # Quick debug with limited episodes"
-    echo "  bash scripts/cma/eval.sh cma-ddp-g8-bs8-lr1e-4-20260320-164653 val_seen 20"
+    echo "  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260413-125610-260404vocab val_seen 20"
     echo ""
     echo "  # Eval by checkpoint path"
     echo "  bash scripts/cma/eval.sh /path/to/best.pth val_seen"
@@ -102,10 +102,11 @@ RESULTS_DIR="${OUTPUT_BASE}/${SPLIT}"
 mkdir -p "${RESULTS_DIR}"
 
 # ---- Conda activation ----
-CONDA_INIT="/mnt/data1/home/jiangjiajun/miniconda3/etc/profile.d/conda.sh"
+CONDA_INIT="${CONDA_INIT:-${HOME}/miniconda3/etc/profile.d/conda.sh}"
+CONDA_ENV="${CONDA_ENV:-satnav}"
 if [ -f "${CONDA_INIT}" ]; then
     source "${CONDA_INIT}"
-    conda activate satnav
+    conda activate "${CONDA_ENV}"
 else
     print_warning "Conda init not found at ${CONDA_INIT}. Assuming satnav env is already active."
 fi

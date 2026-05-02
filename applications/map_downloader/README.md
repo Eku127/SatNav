@@ -1,126 +1,183 @@
-# Map Downloader
+# SatNav Map Downloader
 
-`applications/map_downloader/` 统一管理 SatNav 的卫星图下载工具，当前包含两个 provider：
+Download satellite GeoTIFF scenes required by SatNav episodes for training and evaluation.
+SatNav episode data uses scenes downloaded at zoom level `19`.
 
-- `google_downloader/`：Google Map Tiles API XYZ。
-- `mapbox_downloader/`：Mapbox Raster Tiles API。
+Supported providers:
 
-顶层入口和其它 `applications/*` 工具保持一致：
+- Google Map Tiles API
+- Mapbox Raster Tiles API
+
+The output files are standard GeoTIFFs named by scene id, for example `Geneva-1.tif`.
+
+## Install
+
+From the repository root:
+
+```bash
+pip install -r requirements.txt
+pip install -r applications/map_downloader/requirements.txt
+```
+
+If the SatNav conda environment is already configured, activate it directly:
+
+```bash
+conda activate satnav
+```
+
+Run the CLI:
 
 ```bash
 python -m applications.map_downloader google --help
 python -m applications.map_downloader mapbox --help
 ```
 
-为了兼容旧用法，不传 provider 时默认使用 `google`：
+## Get API Keys
+
+Google:
+
+1. Create or select a Google Cloud project with billing enabled.
+2. Enable the Map Tiles API: https://console.cloud.google.com/apis/library/tile.googleapis.com
+3. Create an API key: https://console.cloud.google.com/google/maps-apis/credentials
+4. Restrict the key to the Map Tiles API and, when possible, to trusted IPs.
+
+Official guide: https://developers.google.com/maps/documentation/tile/get-api-key
+
+Mapbox:
+
+1. Create a Mapbox account.
+2. Create an access token: https://console.mapbox.com/account/access-tokens/
+3. Use a token with only the scopes needed for reading map tiles, such as `styles:tiles`.
+
+Official token docs: https://docs.mapbox.com/accounts/guides/tokens/
+
+## Configure Keys
+
+Use environment variables. Do not commit real keys.
 
 ```bash
-python -m applications.map_downloader --help
+export GOOGLE_MAPS_API_KEY="your-google-key"
+export MAPBOX_ACCESS_TOKEN="your-mapbox-token"
 ```
 
-Provider 也可以直接运行：
+You can also pass keys explicitly:
 
 ```bash
-python -m applications.map_downloader.google_downloader --help
-python -m applications.map_downloader.mapbox_downloader --help
+python -m applications.map_downloader google --api-key "$GOOGLE_MAPS_API_KEY" ...
+python -m applications.map_downloader mapbox --access-token "$MAPBOX_ACCESS_TOKEN" ...
 ```
 
-## 目录结构
+## Single Image Download
 
-```text
-applications/map_downloader/
-  __init__.py
-  __main__.py
-  main.py
-  config.yaml
-  google_downloader/
-    __init__.py
-    __main__.py
-    config.yaml
-    downloader.py
-    generate_geotiff.py
-    assets/
-  mapbox_downloader/
-    __init__.py
-    __main__.py
-    config.yaml
-    downloader.py
-    generate_geotiff.py
-    assets/
-```
+Use `--type corners` when you already know the lower-left and upper-right WGS84 coordinates.
 
-生成的 GeoTIFF 不应放在 `applications/map_downloader/data/`。建议输出到仓库根目录已忽略的 `output/`，或外部数据目录，例如：
-
-```bash
---output-dir output/map_downloader/google
-```
-
-## Key 配置
-
-优先使用环境变量，不要把真实 key 写进仓库配置：
-
-```bash
-export GOOGLE_MAPS_API_KEY="..."
-export MAPBOX_ACCESS_TOKEN="..."
-```
-
-也可以写入 provider 配置文件的本地副本：
-
-- `google_downloader/config.yaml` -> `GOOGLE.API_KEY`
-- `mapbox_downloader/config.yaml` -> `MAPBOX.ACCESS_TOKEN`
-
-## Google 示例
-
-中心点 + 宽高：
-
-```bash
-python -m applications.map_downloader google \
-  --type center \
-  --center-lat 41.939165 \
-  --center-lon 12.483188 \
-  --height-m 500 \
-  --width-m 500 \
-  --zoom 19 \
-  --output-dir output/map_downloader/google
-```
-
-两个角点：
+Google:
 
 ```bash
 python -m applications.map_downloader google \
   --type corners \
-  --lat1 41.936900 \
-  --lon1 12.480200 \
-  --lat2 41.941400 \
-  --lon2 12.486100 \
+  --lat1 46.161791698085 \
+  --lon1 6.082932204008 \
+  --lat2 46.179030896969 \
+  --lon2 6.116151362658 \
   --zoom 19 \
-  --output output/map_downloader/google/google_corners.tif
+  --output output/map_downloader/Geneva-1.tif
 ```
 
-## Mapbox 示例
-
-中心点 + 宽高：
-
-```bash
-python -m applications.map_downloader mapbox \
-  --type center \
-  --center-lat 41.939165 \
-  --center-lon 12.483188 \
-  --height-m 500 \
-  --width-m 500 \
-  --zoom 19 \
-  --output-dir output/map_downloader/mapbox
-```
-
-两个角点：
+Mapbox:
 
 ```bash
 python -m applications.map_downloader mapbox \
   --type corners \
-  --lat1 41.936900 \
-  --lon1 12.480200 \
-  --lat2 41.941400 \
-  --lon2 12.486100 \
+  --lat1 46.161791698085 \
+  --lon1 6.082932204008 \
+  --lat2 46.179030896969 \
+  --lon2 6.116151362658 \
   --zoom 19 \
-  --output output/map_downloader/mapbox/mapbox_corners.tif
+  --output output/map_downloader/Geneva-1.tif
 ```
+
+You can also use `--type center` with `--center-lat`, `--center-lon`, `--height-m`, and `--width-m`.
+
+## Batch Scene Download
+
+Batch mode downloads all scenes listed in a YAML/JSON config. It is currently implemented for the Google provider.
+Batch options are read from the scene config first; explicit CLI flags override them.
+
+Note: use this mode with a dataset scene-list YAML when generating SatNav scenes.
+
+Minimal config:
+
+```yaml
+download:
+  zoom: 19
+  mode: parallel
+  max_workers: 12
+
+output:
+  output_dir: output/map_downloader/scenes
+  filename_template: "{scene_id}.tif"
+  skip_existing: true
+
+network:
+  use_env_proxy: false
+
+scenes:
+- scene_id: Geneva-1
+  corners:
+    lat1: 46.161791698085
+    lon1: 6.082932204008
+    lat2: 46.179030896969
+    lon2: 6.116151362658
+```
+
+Test config:
+
+```bash
+applications/map_downloader/test_config/test_scenes_list.yaml
+```
+
+Dry run:
+
+```bash
+python -m applications.map_downloader google \
+  --scene-config applications/map_downloader/test_config/test_scenes_list.yaml \
+  --dry-run
+```
+
+Download:
+
+```bash
+python -m applications.map_downloader google \
+  --scene-config applications/map_downloader/test_config/test_scenes_list.yaml
+```
+
+Useful batch options:
+
+- `download.zoom`: tile zoom level, default `19`.
+- `download.mode`: `parallel` or `sequential`.
+- `download.max_workers`: parallel worker count.
+- `output.output_dir`: directory for generated `.tif` scenes.
+- `output.filename_template`: default `{scene_id}.tif`.
+- `output.skip_existing`: skip existing outputs when `true`.
+- `--scene-id Geneva-1`: download only selected scenes. Can be repeated.
+- `--limit 2`: download the first N scenes.
+- `--overwrite`: replace existing `.tif` files.
+- `--dry-run`: validate config and print planned outputs without downloading.
+- `--use-env-proxy`: use environment proxy settings.
+
+If Google `createSession` fails because `tile.googleapis.com` is unreachable, retry with `--use-env-proxy`.
+
+For a full dataset build, pass your own scene list YAML:
+
+```bash
+python -m applications.map_downloader google \
+  --scene-config <scene-list.yaml>
+```
+
+## Notes
+
+- Default zoom is `19`.
+- Coordinates are WGS84 latitude/longitude.
+- Put generated scenes outside source-controlled directories, for example `output/map_downloader/scenes` or your dataset `scenes/` directory.
+- Keep provider attribution and follow Google/Mapbox terms for any redistributed outputs.

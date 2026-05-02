@@ -1,6 +1,7 @@
-# CMA online evaluation config.
-# Defaults evaluate the checkpoint produced by cma_offline_train.yaml on the
-# repository-local example episodes.
+# CMA offline training config.
+# Defaults use the repository example dataset so the config is runnable after
+# the quickstart preparation steps. Replace DATASET/IL.OFFLINE paths for real
+# SatNav training data.
 
 _base_: configs/default.yaml
 
@@ -9,35 +10,42 @@ BASE_TASK_CONFIG_PATH: applications/resources/satnav_example_task.yaml
 TRAINER_NAME: offline_trainer
 
 CHECKPOINT_FOLDER: output/quickstart_baselines/cma/checkpoints/latest
-RESULTS_DIR: output/quickstart_baselines/cma/results/latest
-VIDEO_DIR: output/quickstart_baselines/cma/videos/latest
-GENERATE_VIDEOS: false
 
 DATASET:
-  SPLIT: test
+  SPLIT: train
   DATA_PATH: applications/resources/satnav_example_episodes.json
   SCENES_DIR: applications/resources/
   vocab_file: output/quickstart_baselines/artifacts/vocab/satnav_example_vocab.json
 
-EVAL:
-  SPLIT: test
-  EPISODE_COUNT: -1
-  SAVE_RESULTS: true
-  CKPT_PATH: output/quickstart_baselines/cma/checkpoints/latest/best.pth
-
 IL:
   lr: 1e-4
   batch_size: 4
+  epochs: 10
   load_from_ckpt: false
   ckpt_to_load: output/quickstart_baselines/cma/checkpoints/latest/best.pth
+
   OFFLINE:
     annotations_path: output/quickstart_baselines/trajectory_data/annotations.json
     images_root: output/quickstart_baselines/trajectory_data/images
-    num_workers: 0
-    pin_memory: false
+    num_workers: 4
+    pin_memory: true
     max_traj_len: 500
     max_instruction_len: 200
     rgb_size: 224
+
+  use_inflection_weighting: true
+  inflection_weight_coef: 2.0
+
+  use_class_weighting: true
+  class_weights:
+    STOP: 0.3
+    MOVE_FORWARD: 1.0
+    TURN_LEFT: 1.5
+    TURN_RIGHT: 1.5
+
+DISTRIBUTED:
+  enabled: false
+  backend: nccl
 
 MODEL:
   policy_name: cma
@@ -65,4 +73,10 @@ MODEL:
     use_prev_action: true
 
 SWANLAB:
+  project: SatNav
+  experiment_name: cma-offline
+  logdir: output/quickstart_baselines/cma/swanlab
   mode: disabled
+  use_wxwork_notification: false
+  webhook_url: null
+  secret: null

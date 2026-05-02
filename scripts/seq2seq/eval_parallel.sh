@@ -66,10 +66,11 @@ fi
 RESULTS_DIR="${OUTPUT_BASE}/${SPLIT}"
 mkdir -p "${RESULTS_DIR}"
 
-CONDA_INIT="/mnt/data1/home/jiangjiajun/miniconda3/etc/profile.d/conda.sh"
+CONDA_INIT="${CONDA_INIT:-${HOME}/miniconda3/etc/profile.d/conda.sh}"
+CONDA_ENV="${CONDA_ENV:-satnav}"
 if [ -f "${CONDA_INIT}" ]; then
     source "${CONDA_INIT}"
-    conda activate satnav
+    conda activate "${CONDA_ENV}"
 else
     print_warning "Conda init not found at ${CONDA_INIT}. Assuming satnav env is already active."
 fi

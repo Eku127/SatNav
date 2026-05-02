@@ -64,6 +64,7 @@ class TorchVisionResNet50(nn.Module):
         trainable: bool = False,
         spatial_output: bool = False,
         single_spatial_filter: bool = True,
+        pretrained: bool = True,
     ):
         """Initialize the ResNet-50 encoder.
         
@@ -73,18 +74,20 @@ class TorchVisionResNet50(nn.Module):
             trainable: Whether the backbone is trainable
             spatial_output: Whether to return spatial feature maps
             single_spatial_filter: Whether to use single spatial filter
+            pretrained: Whether to load ImageNet weights from TorchVision cache
         """
         super().__init__()
         
         self.normalize_visual_inputs = normalize_visual_inputs
         self.spatial_output = spatial_output
         
-        # Load pretrained ResNet-50 from torchvision
-        # Use new weights API if available, fallback to pretrained for older versions
+        # Load ResNet-50 from torchvision. Quickstart configs can disable
+        # pretrained weights to avoid network downloads in fresh environments.
         if TORCHVISION_HAS_WEIGHTS:
-            resnet = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+            weights = ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
+            resnet = models.resnet50(weights=weights)
         else:
-            resnet = models.resnet50(pretrained=True)
+            resnet = models.resnet50(pretrained=pretrained)
         
         # Remove the final classification layer
         modules = list(resnet.children())
@@ -239,13 +242,14 @@ class TorchVisionResNet18(TorchVisionResNet50):
         output_size = args[0] if args else kwargs.get("output_size", 256)
         trainable = kwargs.get("trainable", False)
         single_spatial_filter = kwargs.get("single_spatial_filter", True)
+        pretrained = kwargs.get("pretrained", True)
         
-        # Load pretrained ResNet-18 (not ResNet-50)
-        # Use new weights API if available, fallback to pretrained for older versions
+        # Load ResNet-18 (not ResNet-50).
         if TORCHVISION_HAS_WEIGHTS:
-            resnet = models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+            weights = ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
+            resnet = models.resnet18(weights=weights)
         else:
-            resnet = models.resnet18(pretrained=True)
+            resnet = models.resnet18(pretrained=pretrained)
         
         modules = list(resnet.children())
         self.resnet_layer_size = modules[-1].in_features
@@ -278,4 +282,3 @@ class TorchVisionResNet18(TorchVisionResNet50):
                 4,
                 4,
             )
-

@@ -9,7 +9,7 @@ Usage:
     python -m applications.satsim_viewer task
     
     # Run task viewer with custom config
-    python -m applications.satsim_viewer task --config /path/to/vln_task.yaml
+    python -m applications.satsim_viewer task --config /path/to/satnav_task.yaml
 """
 
 import sys
@@ -35,4 +35,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

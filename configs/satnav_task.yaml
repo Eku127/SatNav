@@ -7,7 +7,7 @@ ENVIRONMENT:
   MAX_EPISODE_STEPS: 500
 
 SIMULATOR:
-  # Simulator type: "satsim" (2D satellite imagery) or "aerialsim" (3D aerial view)
+  # Simulator type: "satsim" (2D satellite imagery)
   TYPE: satsim
   
   # Forward movement step size in meters
@@ -24,51 +24,6 @@ SIMULATOR:
     HEIGHT: 448
     # Horizontal field of view in degrees
     HFOV: 90
-  
-  # AerialSim-specific configuration (used when TYPE: aerialsim)
-  # Requires Google 3D Tiles API key
-  AERIAL:
-    # Google 3D Tiles API key (required for aerialsim)
-    API_KEY: "YOUR_GOOGLE_API_KEY"
-    # Browser to use for rendering: chrome, edge, firefox
-    BROWSER: chrome
-    # Run in headless mode (default: true for server environments)
-    HEADLESS: true
-    # Fail fast when the API key, quota, or network cannot reach Google 3D Tiles
-    ENABLE_API_PREFLIGHT: true
-    API_PREFLIGHT_TIMEOUT_SEC: 10.0
-    # Rendering must reach a stable tileset state before screenshots are accepted
-    STARTUP_READY_TIMEOUT_SEC: 20.0
-    TILESET_READY_TIMEOUT_SEC: 30.0
-    GROUND_QUERY_TIMEOUT_SEC: 12.0
-    GROUND_QUERY_GRID_SCALE: 3.0
-    GROUND_QUERY_FOOTPRINT_SCALE: 1.5
-    GROUND_QUERY_SAMPLES: 5
-    GROUND_QUERY_SAFETY_MARGIN_METERS: 5.0
-    HEIGHT_RANGE_CLEARANCE_SCALE: 1.0
-    RENDER_STABLE_TIMEOUT_SEC: 8.0
-    STABLE_POLLS_REQUIRED: 3
-    STATUS_POLL_INTERVAL_SEC: 0.5
-    # Retry invalid frames and rebuild the browser session after repeated failures
-    CAPTURE_ATTEMPTS: 4
-    RETRY_SLEEP_SEC: 1.0
-    RESTART_AFTER_FAILURES: 2
-    MAX_BROWSER_RESTARTS: 2
-    STRICT_VALIDATION: true
-    # Require enough loaded tiles before accepting a frame
-    MIN_TILES_LOADED: 8
-    GROUND_QUERY_MIN_TILES_LOADED: 1
-    # Allow capture when the image is already visually ready but a few tile
-    # requests are still streaming; the image-quality gate still applies.
-    ALLOW_SALVAGE_CAPTURE: false
-    SALVAGE_MAX_PENDING_REQUESTS: 24
-    SALVAGE_MAX_TILES_PROCESSING: 4
-    # Reject obviously broken renders (black/blue blanks, incomplete tiles)
-    QUALITY_MIN_MEAN: 15.0
-    QUALITY_MIN_STD: 20.0
-    QUALITY_MAX_BLACK_FRAC: 0.60
-    QUALITY_MAX_DARK_FRAC: 0.85
-    QUALITY_MIN_UNIQUE_COLORS: 2000
 
 TASK:
   # Task type identifier
@@ -81,6 +36,7 @@ TASK:
   SUCCESS_DISTANCE:
     DEFAULT: 10.0
     Boundary: 10.0
+    # Here we set 3 for precise trajectory generation!
     LandmarkSet: 3.0
     Road: 10.0
   
@@ -128,14 +84,9 @@ DATASET:
   # Path to the dataset JSON file
   # Supports both .json and .json.gz formats
   # Use {split} placeholder to be replaced with the SPLIT value
-  # For example testing, use: tests/test_data/satnav_dataset_complex.json
-  # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260202/episodes/train/all_episodes.json
-  # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260126/episodes/B_VLN_Episodes.json
-  # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260123/episodes/episodes_landmarkSet.json
-  # DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/tests/test_data/satnav_success_distance_test.json
-  # DATA_PATH: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260211/episodes/train/all_episodes.json
-  DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/output/VLN_episodes(1).json
+  # For example testing, use the repository-local sample episodes.
+  DATA_PATH: applications/resources/satnav_example_episodes.json
   
   # Directory containing scene datasets (satellite maps)
-  # For example testing, use: tests/test_data/
-  SCENES_DIR: /mnt/data3/jiangjiajun/dataset/satnav_datasets/scenes/
+  # For example testing, use the repository-local sample GeoTIFF.
+  SCENES_DIR: applications/resources/

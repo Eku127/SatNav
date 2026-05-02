@@ -181,6 +181,7 @@ class CMANet(Net):
             normalize_visual_inputs=model_config.get('normalize_rgb', False),
             trainable=model_config.RGB_ENCODER.get('trainable', False),
             spatial_output=True,  # CMA requires spatial features
+            pretrained=model_config.RGB_ENCODER.get("pretrained", True),
         )
         
         # Previous action embedding
@@ -440,4 +441,3 @@ class CMANet(Net):
         )
         
         return x, rnn_states_out
-
