@@ -2,8 +2,8 @@
 """Example script for running VLN episodes using SatNav with SatNavPathFollower.
 
 This script demonstrates how to:
-1. Load configuration from vln_task.yaml
-2. Create a dataset from test data
+1. Load the shared example task config
+2. Create a dataset from example resources
 3. Create an environment
 4. Run all episodes with SatNavPathFollower (direct goal navigation)
 5. Generate videos for each episode (optional)
@@ -16,6 +16,7 @@ The key difference from ReferencePathFollower:
 
 Usage:
     python examples/satnav_path_follower_example.py [--no-video]
+    python examples/satnav_path_follower_example.py --config path/to/task.yaml --no-video
 """
 
 import argparse
@@ -170,7 +171,7 @@ def run_single_episode(
         if save_video and rgb_frames and topdown_frames:
             video_filename = f"episode_{episode.episode_id}_video.mp4"
             video_path = output_dir / video_filename
-            generate_video(
+            video_saved = generate_video(
                 rgb_frames=rgb_frames,
                 topdown_frames=topdown_frames,
                 instruction_text=episode.instruction.instruction_text,
@@ -178,7 +179,12 @@ def run_single_episode(
                 fps=5,
                 frame_width=2048
             )
-            print(f"  ✓ Video saved: {video_filename}")
+            if video_saved:
+                print(f"  ✓ Video saved: {video_filename}")
+            else:
+                print(f"  ✗ Video generation failed: {video_filename}")
+        elif save_video:
+            print("  ✗ Video not generated: TOP_DOWN_MAP frames are unavailable")
         
         # Get final metrics
         metrics = env.get_metrics()
@@ -235,7 +241,22 @@ def run_single_episode(
 
 def main():
     """Run all VLN episodes with SatNavPathFollower."""
+    project_root = Path(__file__).parent.parent
+    default_config = project_root / "applications" / "resources" / "satnav_example_task.yaml"
+
     parser = argparse.ArgumentParser(description='Run SatNavPathFollower on all episodes')
+    parser.add_argument(
+        '--config',
+        type=Path,
+        default=default_config,
+        help='Path to a SatNav task YAML config'
+    )
+    parser.add_argument(
+        '--output-dir',
+        type=Path,
+        default=Path('output/examples/satnav_path_follower'),
+        help='Directory for generated results and videos'
+    )
     parser.add_argument('--no-video', action='store_true', help='Skip video generation')
     args = parser.parse_args()
     
@@ -244,9 +265,8 @@ def main():
     print("=" * 60)
     
     # Paths
-    project_root = Path(__file__).parent.parent
-    config_path = project_root / "configs" / "satnav_task.yaml"
-    output_dir = project_root / "output"
+    config_path = args.config if args.config.is_absolute() else project_root / args.config
+    output_dir = args.output_dir if args.output_dir.is_absolute() else project_root / args.output_dir
     
     # Setup: load config, create dataset and environment
     try:
@@ -345,4 +365,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

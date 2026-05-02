@@ -2,8 +2,8 @@
 """Example script for running a VLN episode using SatNav with ReferencePathFollower.
 
 This script demonstrates how to:
-1. Load configuration from vln_task.yaml
-2. Create a dataset from test data
+1. Load the shared example task config
+2. Create a dataset from example resources
 3. Create an environment
 4. Run an episode with ReferencePathFollower (follows reference path waypoints)
 5. Save visualization and print evaluation metrics
@@ -15,8 +15,10 @@ The key difference from SatNavPathFollower:
 
 Usage:
     python examples/reference_follower_example.py
+    python examples/reference_follower_example.py --config path/to/task.yaml
 """
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -47,14 +49,31 @@ def get_success_distance(config, trajectory_type: str) -> float:
 
 def main():
     """Run a VLN episode example with path follower."""
+    project_root = Path(__file__).parent.parent
+    default_config = project_root / "applications" / "resources" / "satnav_example_task.yaml"
+
+    parser = argparse.ArgumentParser(description="Run ReferencePathFollower on a SatNav episode")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=default_config,
+        help="Path to a SatNav task YAML config",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("output/examples/reference_follower"),
+        help="Directory for generated images",
+    )
+    args = parser.parse_args()
+
     print("=" * 60)
     print("SatNav VLN Example with Path Follower")
     print("=" * 60)
     
     # Paths
-    project_root = Path(__file__).parent.parent
-    config_path = project_root / "configs" / "satnav_task.yaml"
-    output_dir = project_root / "output"
+    config_path = args.config if args.config.is_absolute() else project_root / args.config
+    output_dir = args.output_dir if args.output_dir.is_absolute() else project_root / args.output_dir
     
     # Setup: load config, create dataset and environment
     try:
