@@ -62,11 +62,11 @@ CHECKPOINT_DIR="${OUTPUT_ROOT_ABS}/checkpoints/${EXP_NAME}"
 LOG_DIR="${OUTPUT_ROOT_ABS}/logs"
 LATEST_LINK="${OUTPUT_ROOT_ABS}/checkpoints/latest"
 
-# 只预先创建训练本身需要的目录；results/videos 由 eval/video 步骤自己建
+# Only create directories needed by training. Eval/video steps create their own outputs.
 mkdir -p "${CHECKPOINT_DIR}" "${LOG_DIR}"
 TRAIN_LOG_FILE="${LOG_DIR}/${EXP_NAME}.log"
 
-# swanlab 本地目录仅在非 cloud 模式下需要预先创建
+# SwanLab local directories are only needed outside cloud mode.
 SWANLAB_LOGDIR_ABS="$(resolve_path "${SWANLAB_LOGDIR}")"
 if [ "${SWANLAB_MODE}" != "cloud" ]; then
     mkdir -p "${SWANLAB_LOGDIR_ABS}"
@@ -154,7 +154,7 @@ cd "${REPO_ROOT}"
     "${OVERRIDES[@]}" \
     2>&1 | tee "${TRAIN_LOG_FILE}"
 
-# 训练成功后更新 latest 软链，指向本次 checkpoint 目录
-# 使用相对目标（basename）确保可移植性
+# Update latest after successful training.
+# Use a relative target (basename) so the symlink remains portable.
 ln -sfn "$(basename "${CHECKPOINT_DIR}")" "${LATEST_LINK}"
 echo "Updated latest -> $(basename "${CHECKPOINT_DIR}")"
