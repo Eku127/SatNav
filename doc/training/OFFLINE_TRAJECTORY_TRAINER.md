@@ -136,8 +136,7 @@ frames  = [f0, f1, f2, ..., fk, f_stop]
 satnav/dataset/offline_trajectory_dataset.py
 satnav/training/offline_trainer.py
 satnav/training/distributed.py
-configs/baselines/seq2seq_offline.yaml
-configs/baselines/seq2seq_offline_smoke.yaml
+configs/baselines/seq2seq_offline_train.yaml
 scripts/seq2seq/train_offline_ddp.sh
 ```
 
@@ -207,7 +206,7 @@ IL:
 
 ## 9. 冒烟测试建议
 
-使用独立 smoke 配置 `configs/baselines/seq2seq_offline_smoke.yaml`。
+使用 `configs/baselines/seq2seq_offline_train.yaml`，并通过 CLI override 指向 smoke annotations。
 
 步骤：
 
@@ -220,8 +219,13 @@ IL:
 
 ```bash
 python run.py \
-  --exp-config configs/baselines/seq2seq_offline_smoke.yaml \
-  --run-type train
+  --exp-config configs/baselines/seq2seq_offline_train.yaml \
+  --run-type train \
+  IL.epochs 1 \
+  IL.batch_size 1 \
+  IL.OFFLINE.annotations_path output/seq2seq_offline/artifacts/smoke/offline_annotations_128_260404.json \
+  IL.OFFLINE.num_workers 0 \
+  CHECKPOINT_FOLDER output/seq2seq_offline/checkpoints/seq2seq_offline_smoke
 ```
 
 通过标准：
@@ -230,7 +234,7 @@ python run.py \
 - `Creating offline dataset...`
 - `Initializing policy...`
 - `Epoch 1/1` 正常结束
-- `output/seq2seq_offline/checkpoints/seq2seq_offline_smoke_260317/best.pth` 写出
+- `output/seq2seq_offline/checkpoints/seq2seq_offline_smoke/best.pth` 写出
 
 ---
 

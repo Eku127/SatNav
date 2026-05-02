@@ -36,6 +36,7 @@ TASK:
   SUCCESS_DISTANCE:
     DEFAULT: 10.0
     Boundary: 10.0
+    # Here we set 3 for precise trajectory generation!
     LandmarkSet: 3.0
     Road: 10.0
   
@@ -83,9 +84,9 @@ DATASET:
   # Path to the dataset JSON file
   # Supports both .json and .json.gz formats
   # Use {split} placeholder to be replaced with the SPLIT value
-  # For example testing, use: tests/test_data/satnav_dataset_complex.json
-  DATA_PATH: /mnt/data1/home/jiangjiajun/workspace/SatNav/output/VLN_episodes(1).json
+  # For example testing, use the repository-local sample episodes.
+  DATA_PATH: applications/resources/satnav_example_episodes.json
   
   # Directory containing scene datasets (satellite maps)
-  # For example testing, use: tests/test_data/
-  SCENES_DIR: /mnt/data3/jiangjiajun/dataset/satnav_datasets/scenes/
+  # For example testing, use the repository-local sample GeoTIFF.
+  SCENES_DIR: applications/resources/

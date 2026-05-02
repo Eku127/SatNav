@@ -86,7 +86,7 @@ The script creates `embeddings.json.gz` (gzipped JSON) with a 2D array of shape 
 Update your model config to use the embeddings:
 
 ```yaml
-# configs/baselines/seq2seq.yaml
+# configs/baselines/seq2seq_offline_train.yaml
 MODEL:
   INSTRUCTION_ENCODER:
     use_pretrained_embeddings: true

@@ -7,7 +7,7 @@
 SatNav 采用 VLN-CE 风格的统一配置系统，提供：
 
 - **单一入口点**: `run.py` 处理 train/eval/inference 所有模式
-- **统一配置**: 一个 YAML 文件包含训练、评估、推理的所有配置
+- **按用途拆分配置**: train YAML 描述训练，eval YAML 描述在线 rollout 评测
 - **灵活覆盖**: 支持通过命令行参数覆盖任何配置项
 - **Trainer Registry**: 基于注册表的 trainer 管理系统
 
@@ -20,7 +20,7 @@ SatNav 采用 VLN-CE 风格的统一配置系统，提供：
 │     Command Line Overrides          │  ← 最高优先级
 ├─────────────────────────────────────┤
 │     Experiment Config               │
-│  (configs/baselines/seq2seq.yaml)   │
+│  (configs/baselines/seq2seq_offline_train.yaml)   │
 ├─────────────────────────────────────┤
 │     Task Config                     │
 │  (configs/satnav_task.yaml)         │
@@ -57,7 +57,7 @@ trainer = trainer_class(config)
 
 ### 1. Experiment Config (实验配置)
 
-位置: `configs/baselines/seq2seq.yaml`
+位置: `configs/baselines/seq2seq_offline_train.yaml`
 
 包含所有模式的完整配置：
 
@@ -153,18 +153,14 @@ DATASET:
 ```bash
 # 训练
 python run.py \
-    --exp-config configs/baselines/seq2seq.yaml \
+    --exp-config configs/baselines/seq2seq_offline_train.yaml \
     --run-type train
 
 # 评估
 python run.py \
-    --exp-config configs/baselines/seq2seq.yaml \
+    --exp-config configs/baselines/seq2seq_eval.yaml \
     --run-type eval
 
-# 推理
-python run.py \
-    --exp-config configs/baselines/seq2seq.yaml \
-    --run-type inference
 ```
 
 ### 命令行覆盖
@@ -173,7 +169,7 @@ python run.py \
 
 ```bash
 python run.py \
-    --exp-config configs/baselines/seq2seq.yaml \
+    --exp-config configs/baselines/seq2seq_offline_train.yaml \
     --run-type train \
     IL.lr 1e-4 \
     IL.batch_size 10 \
@@ -378,7 +374,7 @@ model = model_class.from_config(config, obs_space, act_space)
 ```
 configs/
 ├── baselines/
-│   ├── seq2seq.yaml              # 基本 Seq2Seq
+│   ├── seq2seq_offline_train.yaml # Seq2Seq 离线训练
 │   ├── seq2seq_large.yaml        # 大模型变体
 │   └── seq2seq_finetune.yaml     # 微调配置
 ├── default.yaml                  # 默认配置参考
@@ -390,7 +386,7 @@ configs/
 ```bash
 # 快速测试不同学习率
 for lr in 1e-4 5e-4 1e-3; do
-    python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+    python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train \
         IL.lr $lr \
         WANDB.run_name seq2seq-lr-$lr
 done
@@ -410,7 +406,7 @@ done
 # 查看最终合并的配置
 python -c "
 from omegaconf import OmegaConf
-config = OmegaConf.load('configs/baselines/seq2seq.yaml')
+config = OmegaConf.load('configs/baselines/seq2seq_offline_train.yaml')
 task = OmegaConf.load(config.BASE_TASK_CONFIG_PATH)
 final = OmegaConf.merge(task, config)
 print(OmegaConf.to_yaml(final))
@@ -424,7 +420,7 @@ print(OmegaConf.to_yaml(final))
 | 入口点 | `run.py` | `run.py` |
 | 配置格式 | YAML + OmegaConf | YAML + yacs CN |
 | Registry | ✅ Trainer + Model | ✅ baseline_registry |
-| 配置块 | IL/EVAL/INFERENCE | IL/EVAL/INFERENCE |
+| 配置块 | 按用途拆分 train/eval YAML | IL/EVAL/INFERENCE |
 | 命令行覆盖 | ✅ `KEY VALUE` | ✅ `opts` list |
 | Task Config | ✅ 自动加载 | ✅ 自动加载 |
 

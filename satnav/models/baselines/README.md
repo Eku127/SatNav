@@ -25,7 +25,7 @@ Concatenate → GRU State Encoder (512) → action logits
 
 **Parameters:** ~28M total, ~5M trainable (ResNet frozen)
 
-**Configuration:** `configs/baselines/seq2seq.yaml`
+**Configuration:** `configs/baselines/seq2seq_offline_train.yaml`
 
 **Usage:**
 ```python
@@ -80,7 +80,7 @@ Cross-Modal Attention:
 
 **Parameters:** ~29M total, ~5.5M trainable (ResNet frozen)
 
-**Configuration:** `configs/baselines/cma.yaml`
+**Configuration:** `configs/baselines/cma_offline_train.yaml`
 
 **Usage:**
 ```python
@@ -102,13 +102,13 @@ action, rnn_states = model.act(observations, rnn_states, prev_actions, masks)
 **Training:**
 ```bash
 # Train CMA model (offline trajectory_data by default)
-python run.py --exp-config configs/baselines/cma.yaml --run-type train
+python run.py --exp-config configs/baselines/cma_offline_train.yaml --run-type train
 
 # Evaluate CMA model
-python run.py --exp-config configs/baselines/cma.yaml --run-type eval
+python run.py --exp-config configs/baselines/cma_eval.yaml --run-type eval
 ```
 
-`configs/baselines/cma.yaml` now defaults to `offline_trainer`, reading pre-rendered
+`configs/baselines/cma_offline_train.yaml` is the offline training config. It reads pre-rendered
 trajectory images from `trajectory_data` instead of collecting data online with
 `RecollectTrainer`.
 

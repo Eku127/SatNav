@@ -50,10 +50,10 @@ python -m satnav.utils.build_glove_embeddings \
 
 ```bash
 # 基本训练
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train
 
 # 自定义参数训练
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train \
     IL.epochs 20 \
     IL.batch_size 8 \
     IL.lr 1e-4 \
@@ -64,14 +64,14 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
 
 ```bash
 # 评估最佳模型
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval
 
 # 评估特定 split
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval \
     EVAL.SPLIT val_unseen
 
 # 评估特定 checkpoint
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval \
     EVAL.CKPT_PATH data/checkpoints/seq2seq/ckpt.5.pth
 ```
 
@@ -88,7 +88,7 @@ SatNav 采用 VLN-CE 风格的统一配置系统：
 
 ### 配置文件结构
 
-实验配置文件（如 `configs/baselines/seq2seq.yaml`）包含以下部分：
+实验配置文件（如 `configs/baselines/seq2seq_offline_train.yaml`）包含以下部分：
 
 ```yaml
 # ===== 基础配置 =====
@@ -147,7 +147,7 @@ WANDB:
 ### 参考配置文件
 
 - **默认配置模板**: `configs/default.yaml`（参考文档）
-- **实验配置**: `configs/baselines/seq2seq.yaml`
+- **实验配置**: `configs/baselines/seq2seq_offline_train.yaml`
 - **任务配置**: `configs/satnav_task.yaml`
 
 ## 训练流程
@@ -170,7 +170,7 @@ RecollectTrainer 实时从环境收集训练数据：
 ================================================================================
 SatNav VLN - TRAIN Mode
 ================================================================================
-Experiment config: configs/baselines/seq2seq.yaml
+Experiment config: configs/baselines/seq2seq_offline_train.yaml
 Loading task config: configs/satnav_task.yaml
 Trainer: recollect_trainer
 ================================================================================
@@ -207,7 +207,7 @@ Epoch 1 completed:
 
 ```bash
 # 使用默认配置评估
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval
 ```
 
 输出示例：
@@ -237,11 +237,11 @@ Checkpoint loaded successfully:
 
 ```bash
 # 评估 val_unseen
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval \
     EVAL.SPLIT val_unseen
 
 # 评估特定数量的 episodes
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval \
     EVAL.SPLIT val_unseen \
     EVAL.EPISODE_COUNT 100
 ```
@@ -259,7 +259,7 @@ Synchronizing EVAL.SPLIT (val_unseen) to DATASET.SPLIT
 ### 评估特定 Checkpoint
 
 ```bash
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval \
     EVAL.CKPT_PATH data/checkpoints/seq2seq/ckpt.5.pth
 ```
 
@@ -298,7 +298,7 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
 启用视频生成：
 
 ```bash
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
+python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval \
     'VIDEO_OPTION' '["disk"]'
 ```
 
@@ -331,7 +331,7 @@ WANDB:
 或通过命令行覆盖：
 
 ```bash
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train \
     WANDB.run_name my-experiment \
     WANDB.mode online
 ```
@@ -376,7 +376,7 @@ WANDB:
 或通过命令行：
 
 ```bash
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train \
     WANDB.mode disabled
 ```
 
@@ -387,7 +387,7 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
 可以通过命令行覆盖配置文件中的任何参数：
 
 ```bash
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train \
     IL.lr 1e-4 \
     IL.batch_size 10 \
     IL.epochs 20 \
@@ -402,7 +402,7 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
 ### 从 Checkpoint 继续训练
 
 ```bash
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train \
     IL.load_from_ckpt true \
     IL.ckpt_to_load data/checkpoints/seq2seq/best.pth
 ```
@@ -410,7 +410,7 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
 ### 使用不同的 Task Config
 
 ```bash
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train \
     BASE_TASK_CONFIG_PATH configs/satnav_task.yaml
 ```
 
@@ -419,7 +419,7 @@ python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
 快速测试训练流程：
 
 ```bash
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train \
     IL.epochs 1 \
     IL.batch_size 2 \
     IL.RECOLLECT_TRAINER.preload_size 2
@@ -452,7 +452,7 @@ class MyTrainer(BaseILTrainer):
 **解决方案**: 减小 batch size 或 preload_size
 
 ```bash
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
+python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train \
     IL.batch_size 2 \
     IL.RECOLLECT_TRAINER.preload_size 3
 ```
@@ -526,7 +526,7 @@ python run.py ... TORCH_GPU_ID -1  # 使用 CPU
 # ❌ 旧方式（已弃用）
 python -m satnav.training.recollect_trainer \
     --config configs/training/recollect_trainer.yaml \
-    --model-config configs/baselines/seq2seq.yaml
+    --model-config configs/baselines/seq2seq_offline_train.yaml
 ```
 
 迁移到新系统：
@@ -534,7 +534,7 @@ python -m satnav.training.recollect_trainer \
 ```bash
 # ✅ 新方式
 python run.py \
-    --exp-config configs/baselines/seq2seq.yaml \
+    --exp-config configs/baselines/seq2seq_offline_train.yaml \
     --run-type train
 ```
 
@@ -544,7 +544,7 @@ python run.py \
 2. **添加配置块**: 确保有 IL、EVAL、INFERENCE 配置块
 3. **更新路径**: 使用 `BASE_TASK_CONFIG_PATH` 指定 task config
 
-参考 `configs/baselines/seq2seq.yaml` 和 `configs/default.yaml`。
+参考 `configs/baselines/seq2seq_offline_train.yaml` 和 `configs/default.yaml`。
 
 ## 参考资料
 

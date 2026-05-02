@@ -1,384 +1,104 @@
-# Seq2Seq Model Implementation in SatNav
+# Seq2Seq Model Structure
 
-## Overview
+This document summarizes the current Seq2Seq baseline implemented in
+`satnav/models/baselines/seq2seq_policy.py`.
 
-This document describes the implementation of the Sequence-to-Sequence (Seq2Seq) baseline model in SatNav for Vision-and-Language Navigation (VLN) tasks in continuous environments using satellite imagery.
+Seq2Seq is the simpler recurrent VLN baseline. It encodes the instruction and
+current RGB observation, optionally adds the previous action embedding, and uses
+one recurrent state encoder to produce an action distribution.
 
-**Reference:** VLN-CE vlnce_baselines/models/seq2seq_policy.py
+## Inputs
+
+- `instruction`: tokenized instruction, shape `[B, T]`
+- `rgb`: RGB observation, shape `[B, H, W, 3]`
+- `prev_actions`: previous discrete action, shape `[B, 1]`
+- `masks`: episode-continuation mask, shape `[B, 1]`
+
+The action space is:
+
+```text
+STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT
+```
 
 ## Architecture
 
-### High-Level Overview
+```text
+instruction tokens
+  -> InstructionEncoder
+  -> instruction embedding [B, 128]
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Seq2Seq Architecture                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Instruction → LSTM Encoder → instruction_embedding (128)       │
-│  RGB Image   → ResNet50     → rgb_embedding (256)               │
-│  Previous Action → Embedding(32)                                 │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────┐    │
-│  │ State Encoder                                           │    │
-│  │   [instruction_emb, rgb_emb, prev_action]               │    │
-│  │   → GRU (512) → hidden_state                            │    │
-│  └────────────────────────────────────────────────────────┘    │
-│                                                                  │
-│  Output → Action Distribution (4 actions)                       │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+rgb image
+  -> TorchVisionResNet50
+  -> RGB embedding [B, 256]
+
+previous action
+  -> Embedding(num_actions + 1, 32)
+  -> previous-action embedding [B, 32]
+
+[instruction, rgb, previous action]
+  -> concat
+  -> GRU state encoder [B, 512]
+  -> categorical action head
+  -> action logits [B, 4]
 ```
 
-### Detailed Components
+## Components
 
-#### 1. Instruction Encoder
-- **Type:** Uni-directional LSTM
-- **Input:** Tokenized instruction [batch, seq_len]
-- **Output:** Final hidden state [batch, 128]
-- **Key Setting:** `final_state_only=True` (only returns final state)
-- **Embedding:** GloVe 50d or random initialization
-  - Index 0: PAD (all zeros)
-  - Index 1: UNK (mean of all word embeddings)
-  - Index 2+: Vocabulary words
+### Instruction Encoder
 
-#### 2. RGB Visual Encoder
-- **Type:** ResNet-50 (pretrained on ImageNet)
-- **Input:** RGB image [batch, 224, 224, 3]
-- **Output:** Global features [batch, 256]
-- **Key Setting:** `spatial_output=False` (global pooling)
-- **Trainable:** False (frozen by default)
-- **Preprocessing:** Scale to [0, 1], optional ImageNet normalization
+- Class: `satnav.models.encoders.instruction_encoder.InstructionEncoder`
+- Default type: LSTM
+- Direction: unidirectional
+- Embedding size: `50`
+- Hidden size: `128`
+- Output mode: final state only
+- Output shape: `[B, 128]`
 
-#### 3. Previous Action Embedding
-- **Type:** nn.Embedding
-- **Size:** (num_actions + 1) × 32
-- **Purpose:** Encode action history as context
-- **Optional:** Can be disabled via `SEQ2SEQ.use_prev_action`
+The encoder supports pretrained GloVe-style embeddings or random
+initialization. Current training configs use pretrained embeddings generated
+for the SatNav vocabulary.
 
-#### 4. State Encoder (GRU)
-- **Input:** Concatenation of [instruction_emb, rgb_emb, prev_action_emb]
-- **Input Size:** 128 + 256 + 32 = 416 (with prev_action) or 384 (without)
-- **Hidden Size:** 512
-- **Purpose:** Maintain temporal context across navigation steps
-- **Output:** Final features [batch, 512]
+### RGB Encoder
 
-## Differences from VLN-CE Seq2Seq
+- Class: `satnav.models.encoders.visual_encoder.TorchVisionResNet50`
+- Backbone: ImageNet-pretrained ResNet-50
+- Spatial output: disabled
+- Output size: `256`
+- Default training mode: frozen backbone
+- Output shape: `[B, 256]`
 
-| Component | VLN-CE Seq2Seq | SatNav Seq2Seq | Reason |
-|-----------|----------------|----------------|--------|
-| **Depth Encoder** | ✅ Included | ❌ Removed | SatNav uses satellite imagery (no depth) |
-| **RGB Encoder** | ResNet-50 | ResNet-50 | Same |
-| **Instruction Encoder** | LSTM | LSTM | Same |
-| **State Encoder** | GRU | GRU | Same |
-| **Previous Action** | Embedding (32) | Embedding (32) | Same |
-| **Progress Monitor** | ✅ Included | ❌ Removed | Simplified implementation |
+Seq2Seq uses global visual features, so it does not perform spatial attention.
 
-## Implementation Details
+### Previous Action Embedding
 
-### File Structure
+- Enabled by `MODEL.SEQ2SEQ.use_prev_action`
+- Embedding size: `32`
+- The implementation shifts previous actions by `+1` and uses `masks` so that
+  reset timesteps use the zero embedding slot.
 
-```
-satnav/models/baselines/
-├── seq2seq_policy.py       # Seq2Seq implementation
-├── cma_policy.py           # CMA implementation
-└── README.md               # Documentation
+### State Encoder
 
-configs/baselines/
-└── seq2seq.yaml            # Seq2Seq configuration
+- Class: `satnav.models.encoders.rnn_state_encoder.build_rnn_state_encoder`
+- Default type: GRU
+- Hidden size: `512`
+- Number of recurrent layers: `1`
+- Initial state shape: `[1, B, 512]`
 
-tests/
-└── test_seq2seq.py         # Unit tests (if exists)
+The state encoder receives the concatenated instruction, RGB, and optional
+previous-action features.
 
-examples/
-└── seq2seq_demo.py         # Demo script (if exists)
-```
+### Action Head
 
-### Key Classes
+- Class: `satnav.models.base.CategoricalNet`
+- Input size: `512`
+- Output size: `4`
+- Produces a categorical distribution over the four SatNav actions.
 
-#### Seq2SeqPolicy
-- **Inherits:** `ILPolicy` (from `satnav.models.base`)
-- **Purpose:** Policy wrapper for Seq2Seq network
-- **Methods:**
-  - `from_config()`: Create policy from configuration
-  - `act()`: Select action given observations
-  - `build_distribution()`: Build action distribution
+## Notes
 
-#### Seq2SeqNet
-- **Inherits:** `Net` (from `satnav.models.base`)
-- **Purpose:** Seq2Seq neural network backbone
-- **Properties:**
-  - `output_size`: 512
-  - `is_blind`: False
-- **Methods:**
-  - `forward()`: Forward pass through network
-  - `get_initial_state()`: Create initial hidden states
-
-### State Management
-
-Seq2Seq uses **one RNN encoder**. The model is responsible for creating its own initial states:
-
-```python
-# Model creates its own initial state
-rnn_states = model.net.get_initial_state(batch_size, device)
-# Shape: [1, batch_size, 512] for Seq2Seq
-
-# Forward pass
-features, rnn_states_out = model.net(
-    observations,
-    rnn_states,
-    prev_actions,
-    masks
-)
-```
-
-### Trainer Compatibility
-
-Seq2Seq works seamlessly with `RecollectTrainer` and other trainers. The trainer no longer needs to know about model internals:
-
-```python
-# Trainer simply calls get_initial_state
-states = self.policy.net.get_initial_state(N, self.device)
-
-# Model handles its own state structure
-distribution = self.policy.build_distribution(
-    observations, states, prev_actions, masks
-)
-```
-
-## Model Parameters
-
-### Parameter Count
-- **Total:** ~28M parameters
-- **Trainable:** ~5M parameters
-- **Frozen:** ~23M parameters (ResNet-50 backbone)
-
-### Breakdown
-```
-Component                    Parameters
-─────────────────────────────────────────
-Instruction Encoder          ~200K
-  - Embedding (2504 × 50)    ~125K
-  - LSTM                     ~75K
-RGB Encoder (ResNet-50)      ~23.5M (frozen)
-Previous Action Embedding    ~160
-State Encoder (GRU)          ~1.3M
-  - Input projection         ~800K
-  - Recurrent weights        ~500K
-Action Distribution Head     ~2K
-─────────────────────────────────────────
-Total                        ~28M
-Trainable                    ~5M
-```
-
-## Configuration
-
-### Default Configuration (`configs/baselines/seq2seq.yaml`)
-
-```yaml
-MODEL:
-  policy_name: seq2seq
-  
-  INSTRUCTION_ENCODER:
-    embedding_size: 50
-    hidden_size: 128
-    rnn_type: LSTM
-    bidirectional: false       # Uni-directional
-    final_state_only: true     # Only final state
-    use_pretrained_embeddings: true
-    embedding_file: data/debug_data/embeddings.json.gz
-  
-  RGB_ENCODER:
-    cnn_type: TorchVisionResNet50
-    output_size: 256
-    trainable: false
-    # spatial_output: false (default)
-  
-  SEQ2SEQ:
-    hidden_size: 512
-    rnn_type: GRU
-    use_prev_action: true
-
-IL:
-  lr: 1e-4
-  batch_size: 1
-  epochs: 20
-```
-
-## Usage
-
-### Training
-
-```bash
-# Train Seq2Seq model
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
-
-# Train with custom settings
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train \
-    IL.lr 2.5e-4 IL.batch_size 5
-```
-
-### Evaluation
-
-```bash
-# Evaluate on val_seen
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
-
-# Evaluate on val_unseen
-python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \
-    EVAL.SPLIT val_unseen
-```
-
-### Programmatic Usage
-
-```python
-from satnav.models import ModelRegistry
-
-# Get model class
-Seq2SeqPolicy = ModelRegistry.get_model('seq2seq')
-
-# Create policy
-policy = Seq2SeqPolicy.from_config(
-    config=config,
-    observation_space=obs_space,
-    action_space=act_space
-)
-
-# Initialize RNN states (1 layer for Seq2Seq)
-rnn_states = torch.zeros(1, batch_size, 512)
-
-# Forward pass
-action, rnn_states = policy.act(
-    observations,
-    rnn_states,
-    prev_actions,
-    masks,
-    deterministic=True
-)
-```
-
-## Testing
-
-### Unit Tests
-
-```bash
-# Run model instantiation tests
-pytest tests/test_models.py::test_seq2seq_policy -v
-
-# Run forward pass tests
-pytest tests/test_models.py::test_seq2seq_forward -v
-```
-
-### Quick Validation
-
-```python
-import torch
-from satnav.models import ModelRegistry
-
-# Create model
-model = ModelRegistry.get_model('seq2seq').from_config(config, obs_space, act_space)
-
-# Check properties
-print(f"Output size: {model.net.output_size}")
-print(f"Num recurrent layers: {model.net.num_recurrent_layers}")
-print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
-```
-
-## Performance Expectations
-
-### Training Characteristics
-
-| Metric | Value | Notes |
-|--------|-------|-------|
-| **Parameters** | ~28M | Includes frozen ResNet |
-| **Trainable Parameters** | ~5M | Instruction + State encoders |
-| **Training Time** | Baseline | Reference for other models |
-| **Memory Usage** | ~2GB | On GPU with batch_size=5 |
-| **Convergence** | 15-20 epochs | Depends on dataset size |
-
-### Typical Performance
-
-Baseline Seq2Seq typically achieves:
-- **Success Rate (SR):** 30-40% on val_seen
-- **SPL:** 25-35% on val_seen
-- **Oracle SR:** 50-60% (indicates grounding capability)
-
-### Training Tips
-
-1. **Learning Rate:** Start with 1e-4, can increase to 2.5e-4 if stable
-2. **Batch Size:** 1-5, depending on GPU memory
-3. **Gradient Clipping:** Use max_norm=5.0 to prevent exploding gradients
-4. **Epochs:** 15-20 epochs usually sufficient for small datasets
-5. **Previous Action:** Enabling `use_prev_action` usually helps performance
-
-## Known Issues and Limitations
-
-### 1. No Visual Attention
-- Seq2Seq uses global pooled visual features
-- Cannot focus on specific image regions
-- Consider using CMA for attention mechanisms
-
-### 2. Limited Instruction Grounding
-- No explicit grounding of instruction phrases to visual features
-- May struggle with complex spatial reasoning
-- Use attention-based models for better grounding
-
-### 3. Fixed Context Window
-- GRU has limited memory capacity
-- May forget information from long instructions
-- Consider LSTM or Transformer for longer contexts
-
-## Model Comparison
-
-### Seq2Seq vs CMA
-
-| Feature | Seq2Seq | CMA |
-|---------|---------|-----|
-| **Architecture** | Simple concatenation | Cross-modal attention |
-| **Parameters** | ~28M | ~29M |
-| **Training Time** | Baseline | +20-30% |
-| **Memory** | Baseline | +15-20% |
-| **Performance** | Baseline | +5-10% SR |
-| **Complexity** | Low | Medium |
-| **Use Case** | Baseline/Fast training | Better performance |
-
-## Future Improvements
-
-### Potential Enhancements
-
-1. **Add Attention Mechanisms**
-   - Implement cross-modal attention between instruction and visual features
-   - See CMA implementation for reference
-
-2. **Spatial Visual Features**
-   - Use spatial features instead of global pooling
-   - Enables finer-grained visual reasoning
-
-3. **Progress Monitoring**
-   - Add auxiliary task to predict navigation progress
-   - Helps with early stopping and path efficiency
-
-4. **Multi-Scale Visual Features**
-   - Extract features from multiple ResNet layers
-   - Captures both fine details and semantic information
-
-5. **Bidirectional Instruction Encoding**
-   - Use bidirectional LSTM for instruction encoding
-   - Better captures instruction semantics
-
-## References
-
-### Papers
-- Anderson et al. (2018). "Vision-and-Language Navigation: Interpreting visually-grounded navigation instructions in real environments". CVPR 2018.
-- Krantz et al. (2020). "Beyond the Nav-Graph: Vision-and-Language Navigation in Continuous Environments". ECCV 2020.
-
-### Code
-- VLN-CE Seq2Seq Implementation: [vlnce_baselines/models/seq2seq_policy.py](https://github.com/jacobkrantz/VLN-CE/blob/main/vlnce_baselines/models/seq2seq_policy.py)
-- Habitat-Lab: [habitat_baselines/rl/ppo/policy.py](https://github.com/facebookresearch/habitat-lab)
-
-### Related Documentation
-- [CMA Implementation](CMA_IMPLEMENTATION.md)
-- [Model Comparison](../training/MODEL_COMPARISON.md)
-- [Baselines README](../../satnav/models/baselines/README.md)
-- [Configuration System](../CONFIG_SYSTEM.md)
-
+- Seq2Seq has no depth encoder.
+- Seq2Seq has no explicit cross-modal or spatial attention.
+- The current main training path uses `offline_trainer` with pre-rendered
+  trajectory images; model structure is independent of that trainer choice.
+- The current default training config is `configs/baselines/seq2seq_offline_train.yaml`.
+- The current eval config is `configs/baselines/seq2seq_eval.yaml`.

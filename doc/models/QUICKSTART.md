@@ -1,190 +1,140 @@
-# Seq2Seq Model Quick Start Guide
+# Baseline Model Quickstart
 
-This guide helps you get started with the Seq2Seq baseline model in SatNav.
+This guide runs the Seq2Seq and CMA baselines with the same default model
+settings used for normal SatNav training: GloVe 50d instruction embeddings and
+TorchVision ResNet50 ImageNet weights.
 
-## Prerequisites
+The bundled example data is intentionally tiny. It is only for checking that the
+pipeline works end to end.
 
-1. **Install Dependencies**
+## Install
+
+From the repository root:
 
 ```bash
-# Activate your conda environment
 conda activate satnav
-
-# Install PyTorch and torchvision
-pip install torch torchvision
-
-# Or using conda
-conda install pytorch torchvision -c pytorch
+pip install -r requirements.txt
 ```
 
-2. **Download GloVe Embeddings** (if using pretrained embeddings)
+`curl` or `wget` and `unzip` are needed to download and extract GloVe.
+If you already have `glove.6B.50d.txt`, you can set `LOCAL_GLOVE_TXT` when
+running the script to reuse that local file.
+
+## One-Command Run
 
 ```bash
-# Download GloVe 6B
-wget http://nlp.stanford.edu/data/glove.6B.zip
-unzip glove.6B.zip -d data/glove/
+bash scripts/quickstart_models.sh
 ```
 
-## Step-by-Step Usage
+This script:
 
-### Step 1: Prepare Vocabulary and Embeddings
+1. Builds a vocabulary from `applications/resources/satnav_example_episodes.json`.
+2. Downloads GloVe 6B and builds `satnav_example_glove50d.json.gz`.
+3. Downloads TorchVision ResNet50 weights if they are not cached.
+4. Generates offline trajectory data from `applications/resources/map.tif`.
+5. Trains and evaluates Seq2Seq and CMA.
+
+All generated files are under:
 
 ```bash
-# Create necessary directories
-mkdir -p data/vocab data/embeddings
+output/quickstart_baselines/
+```
 
-# Build vocabulary from your dataset
+Expected checkpoints:
+
+```bash
+output/quickstart_baselines/seq2seq/checkpoints/latest/best.pth
+output/quickstart_baselines/cma/checkpoints/latest/best.pth
+```
+
+## Step-by-Step
+
+Build the vocabulary:
+
+```bash
 python -m satnav.utils.build_vocab \
-    --dataset tests/test_data/satnav_dataset_complex.json \
-    --output data/vocab/vocab.json
+  --dataset applications/resources/satnav_example_episodes.json \
+  --output output/quickstart_baselines/artifacts/vocab/satnav_example_vocab.json
+```
 
-# Generate GloVe embeddings
+Download GloVe and build embeddings:
+
+```bash
+mkdir -p output/quickstart_baselines/artifacts/glove
+curl -L http://nlp.stanford.edu/data/glove.6B.zip \
+  -o output/quickstart_baselines/artifacts/glove/glove.6B.zip
+unzip -o output/quickstart_baselines/artifacts/glove/glove.6B.zip \
+  glove.6B.50d.txt \
+  -d output/quickstart_baselines/artifacts/glove
+
 python -m satnav.utils.build_glove_embeddings \
-    --vocab data/vocab/vocab.json \
-    --glove data/glove/glove.6B.50d.txt \
-    --output data/embeddings/glove_embeddings.json.gz
+  --vocab output/quickstart_baselines/artifacts/vocab/satnav_example_vocab.json \
+  --glove output/quickstart_baselines/artifacts/glove/glove.6B.50d.txt \
+  --output output/quickstart_baselines/artifacts/embeddings/satnav_example_glove50d.json.gz \
+  --embedding-dim 50
 ```
 
-### Step 2: Test the Model
+Download ResNet50 weights:
 
 ```bash
-# Run unit tests to verify installation
-pytest tests/test_seq2seq_model.py -v
-
-# If pytest not installed:
-pip install pytest
+python -c "from torchvision.models import ResNet50_Weights, resnet50; resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)"
 ```
 
-### Step 3: Use the Model
+Generate offline trajectory data:
 
-```python
-import torch
-from omegaconf import OmegaConf
-from satnav.models import ModelRegistry
-
-# Load configuration
-config = OmegaConf.load("configs/baselines/seq2seq.yaml")
-
-# Update config with vocab info
-vocab_data = json.load(open("data/vocab/vocab.json"))
-config.MODEL.INSTRUCTION_ENCODER.vocab_size = vocab_data["vocab_size"]
-
-# Get model from registry
-model_class = ModelRegistry.get_model("seq2seq")
-
-# Create mock spaces (replace with actual spaces from your environment)
-class MockSpace:
-    n = 4  # Number of actions
-
-obs_space = MockSpace()
-act_space = MockSpace()
-
-# Instantiate model
-model = model_class.from_config(config, obs_space, act_space)
-
-# Initialize model states
-batch_size = 1
-device = torch.device('cpu')
-rnn_states = model.net.get_initial_state(batch_size, device)
-
-# Prepare observations
-observations = {
-    "instruction": torch.tensor([[2, 3, 4, 5, 0]]),  # Tokenized instruction
-    "rgb": torch.randint(0, 256, (1, 224, 224, 3)).float(),  # RGB image
-}
-prev_actions = torch.zeros(1, 1).long()
-masks = torch.ones(1, 1)
-
-# Get action
-with torch.no_grad():
-    action, rnn_states = model.act(
-        observations, rnn_states, prev_actions, masks,
-        deterministic=True  # Use argmax for evaluation
-    )
-
-print(f"Predicted action: {action.item()}")
-```
-
-## Common Workflows
-
-### Without GloVe (Random Initialization)
-
-If you don't want to use GloVe embeddings:
-
-```yaml
-# In configs/baselines/seq2seq.yaml
-MODEL:
-  INSTRUCTION_ENCODER:
-    use_pretrained_embeddings: false  # Disable GloVe
-    vocab_size: 150  # Set your vocabulary size
-```
-
-### Fine-tuning Visual Encoder
-
-To fine-tune the ResNet backbone:
-
-```yaml
-MODEL:
-  RGB_ENCODER:
-    trainable: true  # Enable gradients for ResNet
-```
-
-### Using ResNet-18 Instead of ResNet-50
-
-For faster inference:
-
-```yaml
-MODEL:
-  RGB_ENCODER:
-    cnn_type: TorchVisionResNet18  # Lighter model
-```
-
-## Troubleshooting
-
-**Issue**: `ImportError: No module named 'torch'`
 ```bash
-pip install torch torchvision
+python -m applications.trajectory_generation.generate \
+  --config applications/resources/satnav_example_task.yaml \
+  --output_dir output/quickstart_baselines/trajectory_data
 ```
 
-**Issue**: `FileNotFoundError: embeddings.json.gz`
+See [trajectory_generation/README.md](../../applications/trajectory_generation/README.md)
+for production trajectory generation.
+
+Train and evaluate Seq2Seq:
+
 ```bash
-# Make sure you ran Step 1 to generate embeddings
-# Or disable pretrained embeddings in config
+python run.py \
+  --exp-config configs/baselines/seq2seq_offline_train.yaml \
+  --run-type train
+
+python run.py \
+  --exp-config configs/baselines/seq2seq_eval.yaml \
+  --run-type eval
 ```
 
-**Issue**: Tests fail with CUDA errors
+Train and evaluate CMA:
+
 ```bash
-# Run tests on CPU
-pytest tests/test_seq2seq_model.py -v --tb=short
+python run.py \
+  --exp-config configs/baselines/cma_offline_train.yaml \
+  --run-type train
+
+python run.py \
+  --exp-config configs/baselines/cma_eval.yaml \
+  --run-type eval
 ```
 
-## Next Steps
+## Default Paths
 
-- **Training**: See [Training Guide](../training/TRAINING_GUIDE.md) for training the model
-  ```bash
-  python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
-  ```
-- **Evaluation**: Run model on validation set
-  ```bash
-  python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
-  ```
-- **Custom Models**: Extend Seq2Seq to create attention-based models
-- **Documentation**: See `doc/models/SEQ2SEQ_IMPLEMENTATION.md` for architecture details
+The default baseline YAMLs are runnable without path edits after the preparation
+steps above:
 
-## Quick Reference
+| File | Purpose |
+| --- | --- |
+| `applications/resources/satnav_example_episodes.json` | Example episodes |
+| `applications/resources/satnav_example_task.yaml` | Example task and scene config |
+| `applications/resources/map.tif` | Example GeoTIFF scene |
+| `output/quickstart_baselines/artifacts/vocab/satnav_example_vocab.json` | Generated vocab |
+| `output/quickstart_baselines/artifacts/embeddings/satnav_example_glove50d.json.gz` | Generated GloVe embeddings |
+| `output/quickstart_baselines/trajectory_data/` | Generated offline data |
 
-| Task | Command |
-|------|---------|
-| Build vocab | `python -m satnav.utils.build_vocab --dataset DATA --output OUT` |
-| Build embeddings | `python -m satnav.utils.build_glove_embeddings --vocab VOCAB --glove GLOVE --output OUT` |
-| Run tests | `pytest tests/test_seq2seq_model.py -v` |
-| List models | `python -c "from satnav.models import ModelRegistry; print(ModelRegistry.list_models())"` |
+For real experiments, keep the model settings and replace only the dataset,
+scene, trajectory, vocab, checkpoint, and result paths.
 
-## Resources
+For local development, you can skip the GloVe download if the file already
+exists:
 
-- **Seq2Seq Documentation**: `doc/models/SEQ2SEQ_IMPLEMENTATION.md`
-- **CMA Documentation**: `doc/models/CMA_IMPLEMENTATION.md`
-- **Embedding Guide**: `doc/EMBEDDING_GUIDE.md`
-- **Baseline README**: `satnav/models/baselines/README.md`
-- **VLN-CE Repository**: https://github.com/jacobkrantz/VLN-CE
-
+```bash
+LOCAL_GLOVE_TXT=/path/to/glove.6B.50d.txt bash scripts/quickstart_models.sh
+```

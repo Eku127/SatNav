@@ -9,7 +9,7 @@ description: Full CMA training pipeline on SatNav ver_260317 data. Uses the same
 
 CMA 模型实现来自 [Zhu et al., 2020](https://arxiv.org/abs/2004.02857)（VLN-CE CMA 简化版，去掉深度编码器和进度监控器，核心 RGB-instruction 跨模态注意力保留）。
 
-- 训练配置：`configs/baselines/cma.yaml`
+- 训练配置：`configs/baselines/cma_offline_train.yaml`
 - 多卡脚本：`scripts/cma/train_ddp.sh`
 - 监控：**SwanLab**（默认 `cloud` 模式；可切 `local`）
 - 推荐起点（8xH100）：
@@ -29,7 +29,7 @@ SWANLAB_LOGDIR: output/cma/swanlab     (仅 local/offline 模式写入)
 LATEST_LINK:    output/cma/checkpoints/latest    (训练完成后自动更新)
 VOCAB:          output/seq2seq_offline/artifacts/vocab/train_vocab_260317.json
 EMBEDDING:      output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.gz
-TRAIN_CONFIG:   configs/baselines/cma.yaml
+TRAIN_CONFIG:   configs/baselines/cma_offline_train.yaml
 DDP_SCRIPT:     scripts/cma/train_ddp.sh
 ```
 
@@ -71,20 +71,20 @@ ls output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.g
 
 ### Step 2 — 验证训练配置
 
-`configs/baselines/cma.yaml` 核心字段应满足：
+`configs/baselines/cma_offline_train.yaml` 核心字段应满足：
 
 ```yaml
 TRAINER_NAME: offline_trainer
 
 IL:
   lr: 1e-4
-  batch_size: 1     # 默认；推荐实际使用时覆盖为 4
+  batch_size: 4
   OFFLINE:
     annotations_path: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/annotations.json
     images_root: /mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/images
   use_class_weighting: true
   class_weights:
-    STOP: 2.0
+    STOP: 0.3
     MOVE_FORWARD: 1.0
     TURN_LEFT: 1.5
     TURN_RIGHT: 1.5

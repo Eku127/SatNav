@@ -11,13 +11,13 @@ Usage:
 
 Examples:
     # Training
-    python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+    python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train
     
     # Evaluation
-    python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+    python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval
     
     # Evaluation with config overrides
-    python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \\
+    python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval \\
         EVAL.SPLIT val_unseen EVAL.CKPT_PATH data/checkpoints/seq2seq/ckpt.5.pth
 """
 
@@ -44,13 +44,13 @@ def main():
         epilog="""
 Examples:
   # Training
-  python run.py --exp-config configs/baselines/seq2seq.yaml --run-type train
+  python run.py --exp-config configs/baselines/seq2seq_offline_train.yaml --run-type train
   
   # Evaluation
-  python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval
+  python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval
   
   # Override config from command line
-  python run.py --exp-config configs/baselines/seq2seq.yaml --run-type eval \\
+  python run.py --exp-config configs/baselines/seq2seq_eval.yaml --run-type eval \\
       EVAL.SPLIT val_unseen
         """
     )

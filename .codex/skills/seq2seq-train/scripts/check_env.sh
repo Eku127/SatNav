@@ -112,7 +112,7 @@ fi
 # --- Config ---
 echo ""
 echo "[ Config ]"
-OFFLINE_CONFIG="$REPO/configs/baselines/seq2seq_offline.yaml"
+OFFLINE_CONFIG="$REPO/configs/baselines/seq2seq_offline_train.yaml"
 if [ -f "$OFFLINE_CONFIG" ]; then
     if grep -q "BASE_TASK_CONFIG_PATH: configs/satnav_task.yaml" "$OFFLINE_CONFIG"; then
         ok "offline BASE_TASK_CONFIG_PATH = configs/satnav_task.yaml"

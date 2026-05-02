@@ -7,8 +7,8 @@ description: Full seq2seq training pipeline on SatNav ver_260317 data including 
 
 唯一推荐路径：**离线 `offline_trainer`**，不启动仿真器，直接读取预渲染轨迹数据。
 
-- 训练配置：`configs/baselines/seq2seq_offline.yaml`
-- Smoke 配置：`configs/baselines/seq2seq_offline_smoke.yaml`
+- 训练配置：`configs/baselines/seq2seq_offline_train.yaml`
+- Smoke 训练通过 `seq2seq_offline_train.yaml` 加 CLI override 完成
 - 多卡脚本：`scripts/seq2seq/train_offline_ddp.sh`
 - 监控：**SwanLab**（默认 `cloud` 模式；可切 `local`）
 - 8xH100 推荐起点：
@@ -30,8 +30,7 @@ LATEST_LINK:    output/seq2seq_offline/checkpoints/latest    (训练完成后自
 VOCAB:          output/seq2seq_offline/artifacts/vocab/train_vocab_260317.json
 EMBEDDING:      output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.gz
 SMOKE_SUBSET:   output/seq2seq_offline/artifacts/smoke/offline_annotations_128_260317.json
-OFFLINE_CONFIG: configs/baselines/seq2seq_offline.yaml
-SMOKE_CONFIG:   configs/baselines/seq2seq_offline_smoke.yaml
+OFFLINE_CONFIG: configs/baselines/seq2seq_offline_train.yaml
 DDP_SCRIPT:     scripts/seq2seq/train_offline_ddp.sh
 SMOKE_SCRIPT:   scripts/seq2seq/make_offline_smoke_subset.py
 ORGANIZE_SCRIPT:scripts/seq2seq/organize_output.sh
@@ -149,7 +148,7 @@ Expected coverage: `60-70%`.
 
 ### Step 5 — Verify Offline Config
 
-`configs/baselines/seq2seq_offline.yaml` 应满足：
+`configs/baselines/seq2seq_offline_train.yaml` 应满足：
 
 ```yaml
 TRAINER_NAME: offline_trainer
@@ -199,8 +198,10 @@ NUM_WORKERS=0 \
 USE_SWANLAB=true \
 SWANLAB_MODE=local \
 SWANLAB_EXP_NAME=seq2seq-offline-smoke-2gpu \
-CONFIG_PATH=configs/baselines/seq2seq_offline_smoke.yaml \
-bash scripts/seq2seq/train_offline_ddp.sh
+CONFIG_PATH=configs/baselines/seq2seq_offline_train.yaml \
+bash scripts/seq2seq/train_offline_ddp.sh \
+  IL.OFFLINE.annotations_path output/seq2seq_offline/artifacts/smoke/offline_annotations_128_260317.json \
+  IL.epochs 1
 ```
 
 期望结果：
@@ -306,7 +307,7 @@ nvidia-smi --query-gpu=index,utilization.gpu,memory.used --format=csv,noheader
 
 ```bash
 python run.py \
-  --exp-config configs/baselines/seq2seq_offline.yaml \
+  --exp-config configs/baselines/seq2seq_eval.yaml \
   --run-type eval \
   EVAL.SPLIT val_seen
 ```
@@ -315,7 +316,7 @@ python run.py \
 
 ```bash
 python run.py \
-  --exp-config configs/baselines/seq2seq_offline.yaml \
+  --exp-config configs/baselines/seq2seq_eval.yaml \
   --run-type eval \
   EVAL.SPLIT val_seen \
   EVAL.CKPT_PATH output/seq2seq_offline/checkpoints/<EXP_NAME>/best.pth

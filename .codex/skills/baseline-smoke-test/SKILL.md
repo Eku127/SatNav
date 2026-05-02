@@ -16,7 +16,7 @@ Use this skill when the user asks to:
 ## Validated Findings
 
 - `run.py` loads `BASE_TASK_CONFIG_PATH` before applying command-line `opts`. Do not rely on `BASE_TASK_CONFIG_PATH configs/satnav_task.yaml` as a CLI override; it is too late.
-- `run.py` only resolves one `_base_` layer. A smoke config cannot inherit `configs/baselines/seq2seq.yaml` and expect `configs/default.yaml` to be merged automatically.
+- `run.py` only resolves one `_base_` layer. A smoke config cannot inherit `configs/baselines/seq2seq_offline_train.yaml` and expect `configs/default.yaml` to be merged automatically.
 - The first validated smoke run with a `32`-episode subset only extracted `2` usable trajectories. That still trained, but it is too small to be a reliable smoke baseline.
 - The validated repo-local smoke run with a `128`-episode subset extracted `26` usable trajectories and completed successfully.
 - In the validated `128`-episode run, `2` episodes were skipped because the start position was too close to the map edge. This warning is acceptable for smoke testing.
@@ -137,5 +137,5 @@ When filling this section later:
 
 - reuse the same full-train vocab
 - reuse the same smoke subset creation flow
-- switch `--exp-config` to `configs/baselines/cma.yaml`
+- switch `--exp-config` to `configs/baselines/cma_offline_train.yaml`
 - write outputs to `output/cma/checkpoints/cma_smoke_260317` and related directories

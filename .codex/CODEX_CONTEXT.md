@@ -32,26 +32,28 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 - 应用工具：`applications/`
   - 轨迹生成：`applications/trajectory_generation/generate.py`（串行）、`generate_parallel.py`（并行）
   - 地图下载：`applications/map_downloader/`，Google provider 支持 `--scene-config` 批量下载 scene GeoTIFF
-- 使用示例：`examples/`
+  - 共享示例资源：`applications/resources/`（example episodes、task config、sample GeoTIFF）
+- 使用示例：`examples/`，默认读取 `applications/resources/satnav_example_task.yaml`
 - 测试：`tests/`（pytest，配置见 `pytest.ini`）
 - 主入口：`run.py`
 
-## Current SatNav Dataset Defaults
+## Open-Source Example Dataset Defaults
 
-- Dataset root: `/mnt/data3/jiangjiajun/dataset/satnav_datasets`
-- 当前常用版本：`ver_260317`
-- Eval episodes (val_seen):
-  `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/episodes/eval/val_seen/all_episodes.json`
-- Eval episodes (val_unseen):
-  `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/episodes/eval/val_unseen/all_episodes.json`（当前无城市，目录暂不存在，后续引入新城市后生成）
-- **注意**：`episodes/eval/` 下只有 `val_seen/` 和 `val_unseen/` 子目录，不再有顶层扁平文件
-- QA JSONL:
-  `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/data/qa_swift.jsonl`
-- Trajectory data:
-  `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data`
-- Scene maps:
-  - active: `/mnt/data3/jiangjiajun/dataset/satnav_datasets/scenes`
-  - backup(old): `/mnt/data3/jiangjiajun/dataset/satnav_datasets/old_scenes`
+- Baseline quickstart defaults must use repository-local resources only.
+- Example episodes: `applications/resources/satnav_example_episodes.json`
+- Example task config: `applications/resources/satnav_example_task.yaml`
+- Example scene map: `applications/resources/map.tif`
+- Generated quickstart root: `output/quickstart_baselines`
+- Generated vocab: `output/quickstart_baselines/artifacts/vocab/satnav_example_vocab.json`
+- Generated GloVe embeddings: `output/quickstart_baselines/artifacts/embeddings/satnav_example_glove50d.json.gz`
+- Quickstart GloVe source: public docs/scripts download GloVe by default.
+  Local runs may set `LOCAL_GLOVE_TXT` to reuse an existing `glove.6B.50d.txt`.
+- Generated offline trajectory data: `output/quickstart_baselines/trajectory_data`
+- Seq2Seq quickstart checkpoint: `output/quickstart_baselines/seq2seq/checkpoints/latest/best.pth`
+- CMA quickstart checkpoint: `output/quickstart_baselines/cma/checkpoints/latest/best.pth`
+- Baseline model defaults use GloVe 50d embeddings and TorchVision ResNet50
+  ImageNet weights. `scripts/quickstart_models.sh` downloads/builds those
+  artifacts before training, unless `LOCAL_GLOVE_TXT` is explicitly set.
 
 ### SatNav Data Processing Convention (Updated: 2026-03-14)
 
@@ -88,7 +90,7 @@ SatNav 是一个独立的 Python 包，核心结构如下：
 
 - `applications/trajectory_generation/generate.py` 现支持 `--episode_indices_file`，可只生成指定 episode 子集
 - `applications/trajectory_generation/generate_parallel.py` 是当前推荐的大规模轨迹生成入口
-- trajectory generation 的小规模测试配置位于 `applications/trajectory_generation/test_config/`
+- trajectory generation 的小规模测试配置位于 `applications/resources/satnav_example_task.yaml`
 
 ### Map Downloader Notes
 
@@ -116,7 +118,7 @@ conda activate satnav
 - 新增 baseline 配置请放入 `configs/baselines/` 目录。
 - 测试用例放入 `tests/`，并通过 `pytest` 运行。
 
-## Seq2Seq Eval Infrastructure (Updated: 2026-03-24)
+## Seq2Seq Eval Infrastructure (Updated: 2026-05-02)
 
 - 评测入口脚本：`scripts/seq2seq/eval.sh`
 - 并行评测脚本：`scripts/seq2seq/eval_parallel.sh`
@@ -126,8 +128,8 @@ conda activate satnav
   # 按实验名评测（推荐）
   bash scripts/seq2seq/eval.sh <exp_name> [split] [max_episodes]
   # 例：
-  bash scripts/seq2seq/eval.sh seq2seq-offline-ddp-g8-bs64-lr3e-4-20260320-164653 val_seen
-  bash scripts/seq2seq/eval.sh seq2seq-offline-ddp-g8-bs64-lr3e-4-20260320-164653 val_seen 20
+  bash scripts/seq2seq/eval.sh seq2seq-offline-ddp-g8-bs64-lr3e-4-20260412-234752-260404vocab val_seen
+  bash scripts/seq2seq/eval.sh seq2seq-offline-ddp-g8-bs64-lr3e-4-20260412-234752-260404vocab val_seen 20
 
   # 直接指定 checkpoint 路径
   bash scripts/seq2seq/eval.sh /path/to/best.pth val_seen
@@ -150,7 +152,7 @@ conda activate satnav
 - `Evaluator` 已支持 `EVAL.EPISODE_OFFSET`，可供多卡脚本做静态 episode 分片
 - 评测需要 SCENES_DIR（卫星 TIF 图）；不支持无仿真器的离线评测
 
-## Offline Training (Updated: 2026-03-24)
+## Offline Training (Updated: 2026-05-02)
 
 - 已新增离线训练入口：`TRAINER_NAME=offline_trainer`
 - baseline 脚本已按模型拆分：
@@ -160,39 +162,37 @@ conda activate satnav
 - 核心文件：
   - `satnav/dataset/offline_trajectory_dataset.py`
   - `satnav/training/offline_trainer.py`
-  - `configs/baselines/seq2seq_offline.yaml`
-  - `configs/baselines/seq2seq_offline_smoke.yaml`
+  - `configs/baselines/seq2seq_offline_train.yaml`
+  - `configs/baselines/cma_offline_train.yaml`
   - `scripts/seq2seq/train_offline_ddp.sh`
   - `scripts/cma/train.sh`
   - `scripts/cma/train_ddp.sh`
-- 离线训练默认数据源：
-  - annotations: `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/annotations.json`
-  - images: `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/images`
-  - vocab: `/mnt/data1/home/jiangjiajun/workspace/SatNav/output/seq2seq_offline/artifacts/vocab_260317/train_vocab.json`
-  - embeddings: `/mnt/data1/home/jiangjiajun/workspace/SatNav/output/seq2seq_offline/artifacts/embeddings_260317/embeddings_glove50d.json.gz`
+- 离线训练默认数据源（open-source quickstart）：
+  - annotations: `output/quickstart_baselines/trajectory_data/annotations.json`
+  - images: `output/quickstart_baselines/trajectory_data/images`
+  - vocab: `output/quickstart_baselines/artifacts/vocab/satnav_example_vocab.json`
+  - instruction embeddings: `output/quickstart_baselines/artifacts/embeddings/satnav_example_glove50d.json.gz`
 - 关键语义约定：
   - 训练对齐 `RecollectTrainer`，**不训练最终 STOP**
   - 轨迹末尾 post-STOP 帧与前一帧重复，离线训练时丢弃
   - 离线图像默认 resize 到 `224x224`
   - `instruction` 在离线 dataset 中按时间维重复，保持 `collate_fn` 兼容
-- 冒烟测试默认输出：
-  - subset: `output/seq2seq_offline/artifacts/smoke_260317/offline_annotations_128.json`
-  - checkpoint: `output/seq2seq_offline/checkpoints/seq2seq_offline_smoke_260317/best.pth`
+- Quickstart 输出：
+  - one-command script: `scripts/quickstart_models.sh`
+  - Seq2Seq checkpoint: `output/quickstart_baselines/seq2seq/checkpoints/latest/best.pth`
+  - CMA checkpoint: `output/quickstart_baselines/cma/checkpoints/latest/best.pth`
 - 8xH100 当前离线 seq2seq 推荐起点：
   - `IL.batch_size=8`（per GPU，global batch 64）
   - `IL.lr=3e-4`
   - `IL.OFFLINE.num_workers=8`
+- 8xH100 当前离线 CMA 推荐起点：
+  - `IL.batch_size=4`（per GPU，global batch 32）
+  - `IL.lr=1e-4`
+  - `IL.OFFLINE.num_workers=4`
 - 训练监控：
-  - 默认推荐脚本：`scripts/seq2seq/train_offline_ddp.sh`
-  - 默认输出根目录：`output/seq2seq_offline`
-  - 运行产物统一写入：
-    - logs: `output/seq2seq_offline/logs`
-    - checkpoints: `output/seq2seq_offline/checkpoints/<EXP_NAME>`
-    - results: `output/seq2seq_offline/results/<EXP_NAME>`
-    - videos: `output/seq2seq_offline/videos/<EXP_NAME>`
-    - swanlab: `output/seq2seq_offline/swanlab`
-    - legacy: `output/seq2seq_offline/legacy`
-    - artifacts: `output/seq2seq_offline/artifacts/{vocab_260317, embeddings_260317, smoke_260317}`
+  - quickstart 脚本：`scripts/quickstart_models.sh`
+  - 大规模 Seq2Seq DDP 脚本：`scripts/seq2seq/train_offline_ddp.sh`
+  - 大规模 CMA DDP 脚本：`scripts/cma/train_ddp.sh`
 
 ## SatNav Mainline Cleanup (Updated: 2026-05-01)
 
@@ -214,39 +214,34 @@ conda activate satnav
 
 ## CMA Baseline (Updated: 2026-03-24)
 
-- 默认配置：`configs/baselines/cma.yaml`
+- 默认训练配置：`configs/baselines/cma_offline_train.yaml`
 - 评测配置：`configs/baselines/cma_eval.yaml`
 - 默认脚本：
   - `scripts/cma/train.sh`
   - `scripts/cma/train_ddp.sh`
   - `scripts/cma/eval.sh`
 - 默认训练入口：`TRAINER_NAME=offline_trainer`
-- 默认输出根目录：`output/cma`
+- quickstart 默认输出根目录：`output/quickstart_baselines/cma`
 - 运行产物默认写入：
   - checkpoints: `output/cma/checkpoints/<EXP_NAME>`（脚本模式）
-  - results: `output/cma/results/<EXP_NAME>`（脚本模式）
-  - videos: `output/cma/videos/<EXP_NAME>`（脚本模式）
   - logs: `output/cma/logs/<EXP_NAME>.log`
   - swanlab: `output/cma/swanlab`
-- 直接用 `run.py` 时，`configs/baselines/cma.yaml` 的默认路径为：
-  - checkpoint: `output/cma/checkpoints/latest`
-  - results: `output/cma/results/latest`
-  - videos: `output/cma/videos/latest`
+- 直接用 `run.py` 训练时，`configs/baselines/cma_offline_train.yaml` 的默认 checkpoint 为：
+  - checkpoint: `output/quickstart_baselines/cma/checkpoints/latest`
   - 默认离线数据源：
-    - annotations: `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/annotations.json`
-    - images: `/mnt/data3/jiangjiajun/dataset/satnav_datasets/ver_260317/trajectory_data/images`
-    - vocab: `output/seq2seq_offline/artifacts/vocab/train_vocab_260317.json`（与 seq2seq 共用）
-    - embeddings: `output/seq2seq_offline/artifacts/embeddings/embeddings_glove50d_260317.json.gz`（与 seq2seq 共用）
+    - annotations: `output/quickstart_baselines/trajectory_data/annotations.json`
+    - images: `output/quickstart_baselines/trajectory_data/images`
+    - vocab: `output/quickstart_baselines/artifacts/vocab/satnav_example_vocab.json`
   - 已支持 `SWANLAB.*` 与 `OUTPUT_ROOT` 配置；`scripts/cma/train_ddp.sh` 默认启用 SwanLab `cloud`
   - `offline_trainer` 记录的 SwanLab 口径：
     - step 级：`train/loss`, `train/epoch`, `train/learning_rate`
     - epoch 级：`train/epoch_loss`, `train/epoch_time`
   - 训练完成后脚本会更新 `output/cma/checkpoints/latest -> <EXP_NAME>`
   - Python 3.8 + `swanlab==0.7.13` 下，`WxWebhookCallback` 在当前环境有兼容性问题，基础监控可用，企业微信通知暂不默认开启
-- class_weights（与 seq2seq 对齐，2026-03-24）：STOP=2.0, MOVE_FORWARD=1.0, TURN_LEFT=1.5, TURN_RIGHT=1.5
+- class_weights（CMA 0404 baseline）：STOP=0.3, MOVE_FORWARD=1.0, TURN_LEFT=1.5, TURN_RIGHT=1.5
 - `INSTRUCTION_ENCODER.final_state_only: false`（CMA 架构需要所有时间步隐藏状态做 cross-attention）
 
-## CMA Eval Infrastructure (Updated: 2026-03-24)
+## CMA Eval Infrastructure (Updated: 2026-05-02)
 
 - 评测入口脚本：`scripts/cma/eval.sh`
 - 并行评测脚本：`scripts/cma/eval_parallel.sh`
@@ -256,8 +251,8 @@ conda activate satnav
   # 按实验名评测（推荐）
   bash scripts/cma/eval.sh <exp_name> [split] [max_episodes]
   # 例：
-  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260320-164653 val_seen
-  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260320-164653 val_seen 20
+  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260413-125610-260404vocab val_seen
+  bash scripts/cma/eval.sh cma-ddp-g8-bs32-lr1e-4-20260413-125610-260404vocab val_seen 20
 
   # 直接指定 checkpoint 路径
   bash scripts/cma/eval.sh /path/to/best.pth val_seen
