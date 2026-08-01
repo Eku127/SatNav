@@ -75,6 +75,18 @@ bash scripts/quickstart_models.sh
 
 This script prepares the vocabulary, GloVe embeddings, offline trajectory data, and then trains and evaluates both Seq2Seq and CMA. For detailed steps and default output paths, see [Baseline Model Quickstart](doc/models/QUICKSTART.md).
 
+## 6. Regression Tests
+
+Run the lightweight navigation and trajectory-generator regression suite in
+the `satnav` environment:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The suite uses fake simulators and temporary output directories, so it does
+not require external maps, checkpoints, or persistent test artifacts.
+
 ## Acknowledgements
 
 SatNav is inspired by [VLN-CE](https://github.com/jacobkrantz/VLN-CE) and [Habitat-Lab](https://github.com/facebookresearch/habitat-lab). We sincerely thank these projects and their developers for their contributions to embodied AI and the Vision-and-Language Navigation community.
