@@ -132,6 +132,16 @@ class SatNavPathFollower:
     
         # State for oscillation prevention
         self._last_action: Optional[str] = None
+
+    def reset(self) -> None:
+        """Reset episode-local action history.
+
+        ``SatNavPathFollower`` keeps the previous action to suppress rapid
+        forward/turn oscillation.  Call this method before starting a new
+        episode or an otherwise independent goal sequence so that history
+        from the previous rollout cannot affect its first action.
+        """
+        self._last_action = None
     
     def get_next_action(
         self,
@@ -254,7 +264,7 @@ class SatNavPathFollower:
             for accurate sequences, or use DiscretePathPlanner for theoretical paths.
         """
         # Reset last action state for fresh start
-        self._last_action = None
+        self.reset()
         
         actions: List[str] = []
         
@@ -333,6 +343,7 @@ class ReferencePathFollower:
         """
         self._reference_path = reference_path
         self._current_waypoint_idx = 1  # Start navigating to first waypoint (skip start)
+        self._follower.reset()
     
     def get_next_action(
         self,
@@ -351,29 +362,32 @@ class ReferencePathFollower:
         """
         if self._reference_path is None:
             raise RuntimeError("reset() must be called with a reference path first")
-        
-        # Check if we've completed the path
+
         if self._current_waypoint_idx >= len(self._reference_path):
             return Action.STOP
         
-        # Get current waypoint target
-        current_waypoint = self._reference_path[self._current_waypoint_idx]
-        
-        # Check if we've reached the current waypoint
-        agent_state = simulator.get_agent_state()
-        current_position = agent_state.position
-        distance = geodesic_distance(current_position, current_waypoint)
-        
-        # Use goal_radius for all waypoints
-        if distance <= self.goal_radius:
-            # Reached current waypoint, advance to next
+        # Dense reference paths often contain several consecutive waypoints
+        # inside one goal-radius neighborhood. Skip every already-reached
+        # point before asking the goal follower for an action. Otherwise a
+        # STOP for the next nearby intermediate point would be mistaken for
+        # completion of the entire reference path.
+        current_position = simulator.get_agent_state().position
+        while self._current_waypoint_idx < len(self._reference_path):
+            current_waypoint = self._reference_path[
+                self._current_waypoint_idx
+            ]
+            distance = geodesic_distance(
+                current_position,
+                current_waypoint,
+            )
+            if distance > self.goal_radius:
+                return self._follower.get_next_action(
+                    current_waypoint,
+                    simulator,
+                )
             self._current_waypoint_idx += 1
-            if self._current_waypoint_idx >= len(self._reference_path):
-                return Action.STOP
-            current_waypoint = self._reference_path[self._current_waypoint_idx]
-        
-        # Use unified follower with goal_radius for all waypoints
-        return self._follower.get_next_action(current_waypoint, simulator)
+
+        return Action.STOP
     
     def follow_path(
         self,

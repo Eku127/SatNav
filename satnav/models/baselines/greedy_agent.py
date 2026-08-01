@@ -52,6 +52,7 @@ class GreedyAgent(ILPolicy):
         _env: Environment reference (set by evaluator via set_env())
         _waypoints: Current episode's waypoints
         _current_waypoint_idx: Index of current target waypoint
+        _current_episode: Current episode object used for lifecycle detection
         
     Example:
         >>> config.MODEL.GREEDY_AGENT.goal_radius = 10.0
@@ -96,7 +97,7 @@ class GreedyAgent(ILPolicy):
         # Waypoint tracking (initialized per episode)
         self._waypoints: List = []
         self._current_waypoint_idx: int = 0
-        self._current_episode_id: str = None  # Track episode changes
+        self._current_episode = None
     
     def set_env(self, env):
         """Set environment reference for accessing agent state and episode info.
@@ -109,6 +110,9 @@ class GreedyAgent(ILPolicy):
             env: Environment instance
         """
         self._env = env
+        self._waypoints = []
+        self._current_waypoint_idx = 0
+        self._current_episode = None
     
     def _extract_waypoints(self, episode) -> List:
         """Extract waypoints from episode's reference_path.
@@ -168,13 +172,15 @@ class GreedyAgent(ILPolicy):
         batch_size = rnn_states.size(1)
         device = rnn_states.device
         
-        # Initialize waypoints for new episode (check episode_id)
+        # Track the episode object rather than episode_id: multi-instruction
+        # datasets may legitimately contain distinct episodes with the same ID.
         episode = self._env.current_episode
-        if episode.episode_id != self._current_episode_id:
+        if episode is not self._current_episode:
             # New episode - extract waypoints
             self._waypoints = self._extract_waypoints(episode)
             self._current_waypoint_idx = 0
-            self._current_episode_id = episode.episode_id
+            self._current_episode = episode
+            self.path_follower.reset()
         
         # Check if we've reached all waypoints
         if self._current_waypoint_idx >= len(self._waypoints):
@@ -187,32 +193,36 @@ class GreedyAgent(ILPolicy):
             )
             return action, rnn_states
         
-        # Get current target waypoint
-        current_waypoint = self._waypoints[self._current_waypoint_idx]
-        
         # Get current position
         agent_state = self._env._task._sim.get_agent_state()
         current_position = agent_state.position
-        
-        # Check if we've reached the current waypoint
-        distance_to_waypoint = geodesic_distance(current_position, current_waypoint)
-        
-        if distance_to_waypoint <= self.path_follower.goal_radius:
-            # Reached current waypoint - move to next one
-            self._current_waypoint_idx += 1
-            
-            # If this was the last waypoint, return STOP
-            if self._current_waypoint_idx >= len(self._waypoints):
-                action = torch.full(
-                    (batch_size, 1),
-                    0,  # STOP action
-                    device=device,
-                    dtype=torch.long
-                )
-                return action, rnn_states
-            
-            # Update to next waypoint
+
+        # Dense reference paths can contain multiple consecutive waypoints
+        # inside one goal-radius neighborhood (including the start point).
+        # Advance across all of them before selecting an action; advancing only
+        # once can make the nested follower return STOP for the next waypoint
+        # and terminate evaluation early.
+        while self._current_waypoint_idx < len(self._waypoints):
             current_waypoint = self._waypoints[self._current_waypoint_idx]
+            distance_to_waypoint = geodesic_distance(
+                current_position,
+                current_waypoint,
+            )
+            if distance_to_waypoint > self.path_follower.goal_radius:
+                break
+            self._current_waypoint_idx += 1
+
+        # All remaining waypoints are already reached.
+        if self._current_waypoint_idx >= len(self._waypoints):
+            action = torch.full(
+                (batch_size, 1),
+                0,  # STOP action
+                device=device,
+                dtype=torch.long
+            )
+            return action, rnn_states
+
+        current_waypoint = self._waypoints[self._current_waypoint_idx]
         
         # Use SatNavPathFollower to get next action toward current waypoint
         # path_follower.get_next_action returns action index (0-3)
@@ -275,4 +285,3 @@ class GreedyAgent(ILPolicy):
             turn_angle=turn_angle,
             dim_actions=dim_actions
         )
-
