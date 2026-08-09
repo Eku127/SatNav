@@ -1,0 +1,35 @@
+SatNav Third-Party Notices
+==========================
+
+OpenStreetMap
+-------------
+
+SatNav benchmark metadata may contain information derived from OpenStreetMap
+data. OpenStreetMap data is copyright OpenStreetMap contributors and is
+available under the Open Database License.
+
+Attribution: contains information derived from OpenStreetMap data (C)
+OpenStreetMap contributors.
+
+OpenStreetMap copyright and license information:
+https://www.openstreetmap.org/copyright
+
+Google Maps and Mapbox
+----------------------
+
+This source-code repository includes downloader utilities that can request map
+or satellite tiles from Google Maps Platform or Mapbox when users provide their
+own credentials. Google Maps, Mapbox, and their associated imagery, tiles,
+logos, trademarks, and attribution requirements remain governed by their
+respective provider terms.
+
+The authors do not redistribute, sublicense, or grant rights to Google Maps or
+Mapbox imagery. Generated local GeoTIFF scene files are user-prepared assets and
+are not covered by the SatNav source-code license.
+
+Research and Safety Notice
+--------------------------
+
+SatNav is released as a research benchmark and evaluation platform. It is not
+a certified UAV autonomy stack and is not intended to authorize safety-critical,
+surveillance, military, emergency-response, or real-world flight deployment.

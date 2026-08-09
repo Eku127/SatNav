@@ -1,0 +1,9 @@
+# Base Conda environment for SatNav.
+# Install the CUDA-compatible PyTorch build and repository requirements as
+# documented in README.md after creating this environment.
+name: satnav
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pip

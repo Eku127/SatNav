@@ -16,7 +16,12 @@ setup(
     description="A testing platform for Vision-and-Language Navigation in continuous space",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/satnav",
+    url="https://github.com/Eku127/SatNav",
+    license="MIT",
+    project_urls={
+        "Source": "https://github.com/Eku127/SatNav",
+        "Issues": "https://github.com/Eku127/SatNav/issues",
+    },
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -31,4 +36,3 @@ setup(
     python_requires=">=3.8",
     install_requires=requirements,
 )
-
