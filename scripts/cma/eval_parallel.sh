@@ -34,8 +34,11 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-CONFIG_PATH="${CONFIG_PATH:-configs/baselines/cma_eval.yaml}"
-OUTPUT_ROOT="${OUTPUT_ROOT:-output/cma}"
+# shellcheck source=../lib/local_env.sh
+source "${REPO_ROOT}/scripts/lib/local_env.sh"
+satnav_load_local_env "${REPO_ROOT}/scripts/cma"
+CONFIG_PATH="${CONFIG_PATH:-${CMA_EVAL_CONFIG_PATH:-configs/baselines/cma_eval.yaml}}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-${CMA_OUTPUT_ROOT:-output/cma}}"
 
 EVAL_MODE="by_name"
 if [[ "$INPUT" = /* ]] || [[ "$INPUT" = *.pth ]]; then
@@ -73,8 +76,8 @@ fi
 mkdir -p "${RESULTS_DIR}"
 
 # ---- Conda ----
-CONDA_INIT="${CONDA_INIT:-${HOME}/miniconda3/etc/profile.d/conda.sh}"
-CONDA_ENV="${CONDA_ENV:-satnav}"
+CONDA_INIT="${CONDA_INIT:-${SATNAV_CONDA_SH:-${HOME}/miniconda3/etc/profile.d/conda.sh}}"
+CONDA_ENV="${CONDA_ENV:-${SATNAV_CONDA_ENV:-satnav}}"
 if [ -f "${CONDA_INIT}" ]; then
     source "${CONDA_INIT}"
     conda activate "${CONDA_ENV}"

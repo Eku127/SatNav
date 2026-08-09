@@ -5,6 +5,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# shellcheck source=lib/local_env.sh
+source "${REPO_ROOT}/scripts/lib/local_env.sh"
+satnav_load_local_env
 
 cd "${REPO_ROOT}"
 
@@ -19,7 +22,7 @@ VOCAB_PATH="${OUT_ROOT}/artifacts/vocab/satnav_example_vocab.json"
 GLOVE_DIR="${OUT_ROOT}/artifacts/glove"
 GLOVE_ZIP="${GLOVE_DIR}/glove.6B.zip"
 GLOVE_TXT="${GLOVE_DIR}/glove.6B.50d.txt"
-LOCAL_GLOVE_TXT="${LOCAL_GLOVE_TXT:-}"
+LOCAL_GLOVE_TXT="${LOCAL_GLOVE_TXT:-${SATNAV_GLOVE_TXT:-}}"
 EMBEDDING_PATH="${OUT_ROOT}/artifacts/embeddings/satnav_example_glove50d.json.gz"
 TRAJECTORY_DIR="${OUT_ROOT}/trajectory_data"
 

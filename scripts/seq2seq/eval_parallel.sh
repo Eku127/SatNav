@@ -36,9 +36,12 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck source=../lib/local_env.sh
+source "${REPO_ROOT}/scripts/lib/local_env.sh"
+satnav_load_local_env "${REPO_ROOT}/scripts/seq2seq"
 
-CONFIG_PATH="${CONFIG_PATH:-configs/baselines/seq2seq_eval.yaml}"
-OUTPUT_ROOT="${OUTPUT_ROOT:-output/seq2seq_offline}"
+CONFIG_PATH="${CONFIG_PATH:-${SEQ2SEQ_EVAL_CONFIG_PATH:-configs/baselines/seq2seq_eval.yaml}}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-${SEQ2SEQ_OUTPUT_ROOT:-output/seq2seq_offline}}"
 
 EVAL_MODE="by_name"
 if [[ "${INPUT}" = /* ]] || [[ "${INPUT}" = *.pth ]]; then
@@ -66,8 +69,8 @@ fi
 RESULTS_DIR="${OUTPUT_BASE}/${SPLIT}"
 mkdir -p "${RESULTS_DIR}"
 
-CONDA_INIT="${CONDA_INIT:-${HOME}/miniconda3/etc/profile.d/conda.sh}"
-CONDA_ENV="${CONDA_ENV:-satnav}"
+CONDA_INIT="${CONDA_INIT:-${SATNAV_CONDA_SH:-${HOME}/miniconda3/etc/profile.d/conda.sh}}"
+CONDA_ENV="${CONDA_ENV:-${SATNAV_CONDA_ENV:-satnav}}"
 if [ -f "${CONDA_INIT}" ]; then
     source "${CONDA_INIT}"
     conda activate "${CONDA_ENV}"
