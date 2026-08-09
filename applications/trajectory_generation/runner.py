@@ -235,6 +235,7 @@ class SatNavTrajectoryRunner:
             # Use reset_to_episode to ensure correct episode is loaded
             # (avoids sync issues with dataset iterator)
             obs = self.env.reset_to_episode(episode)
+            self.path_follower.reset()
             
             # Prepare waypoints from reference path
             waypoints = self._prepare_waypoints(episode)

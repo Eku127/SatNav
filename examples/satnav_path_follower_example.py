@@ -87,6 +87,7 @@ def run_single_episode(
         trajectory_type = getattr(episode, 'trajectory_type', None)
         goal_radius = get_success_distance(config, trajectory_type)
         path_follower.goal_radius = goal_radius
+        path_follower.reset()
         
         print(f"\n[{episode_idx+1}/{total_episodes}] Running episode: {episode.episode_id}")
         print(f"  Scene: {episode.scene_id}")

@@ -20,6 +20,8 @@ eggs/
 .eggs/
 lib/
 lib64/
+!scripts/lib/
+!scripts/lib/local_env.sh
 parts/
 sdist/
 var/
@@ -139,6 +141,7 @@ runs/
 wandb/
 
 # Local configuration overrides
+**/.local/
 configs/local_*.yaml
 *.local.yaml
 
@@ -146,6 +149,7 @@ configs/local_*.yaml
 .codex/
 .agents/
 AGENTS.md
+reports/
 
 # Temporary files
 *.tmp

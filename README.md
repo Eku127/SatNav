@@ -21,7 +21,8 @@ The core simulator is **SatSim**:
 ## 1. Installation
 
 ```bash
-conda create -n satnav python=3.8
+# Recommended: create the tracked base environment.
+conda env create -f environments/satnav/conda.yml
 conda activate satnav
 
 # Install PyTorch according to your CUDA version.
@@ -35,23 +36,86 @@ pip install -r applications/map_downloader/requirements.txt
 pip install -e .
 ```
 
-## 2. SatNav Core
+The existing manual environment command remains equivalent:
+
+```bash
+conda create -n satnav python=3.8
+```
+
+## 2. Local Configuration
+
+All public configs and scripts use repository-relative example resources by
+default. Machine paths, private dataset locations, credentials, and maintainer
+settings should stay in Git-ignored local overlays.
+
+For shared shell settings, copy the tracked template:
+
+```bash
+mkdir -p .local
+cp local.env.example .local/env.sh
+${EDITOR:-vi} .local/env.sh
+```
+
+Training, evaluation, and quickstart shell entrypoints load this file
+automatically when it exists. Seq2Seq and CMA also support component-specific
+overlays:
+
+```bash
+mkdir -p scripts/seq2seq/.local scripts/cma/.local
+cp scripts/seq2seq/local.env.example scripts/seq2seq/.local/env.sh
+cp scripts/cma/local.env.example scripts/cma/.local/env.sh
+```
+
+Existing environment variables such as `CONDA_INIT`, `CONDA_ENV`,
+`CONFIG_PATH`, `OUTPUT_ROOT`, and `CUDA_DEVICES` remain supported. Explicit
+environment variables take precedence over the new prefixed defaults.
+
+For real dataset paths, copy the relevant public baseline config to an ignored
+`configs/local_*.yaml` file, edit it locally, and select it through
+`CONFIG_PATH` or the corresponding component setting. For example:
+
+```bash
+cp configs/baselines/seq2seq_offline_train.yaml configs/local_seq2seq_train.yaml
+CONFIG_PATH=configs/local_seq2seq_train.yaml \
+  bash scripts/seq2seq/train_offline_ddp.sh
+```
+
+The `.local/` and `configs/local_*.yaml` destinations are ignored by Git and
+must not be included in release commits.
+
+## 3. Dataset Release
+
+SatNav-Episodes-v0.1 is available on Kaggle:
+
+```text
+https://www.kaggle.com/datasets/07af1ab653c3d8d0518027b41d05dfa677d6a414131b27c4b024b887d74c6a68
+```
+
+The release contains episode JSON files, train/evaluation splits,
+`scenes_list.yaml`, and dataset documentation. It does not include raw
+OpenStreetMap extracts, satellite imagery, map tiles, or simulator GeoTIFF
+scenes. Use `applications/map_downloader` with `scenes_list.yaml` to reconstruct
+local scene files, then use `applications/trajectory_generation` to generate
+offline trajectory data for training.
+
+## 4. SatNav Core
 
 SatNav is mainly built around `SatNavDataset`, `Env`, `VLNTask`, and `SatSim`. The dataset provides navigation episodes, `Env` connects the task and simulator, and `SatSim` renders RGB observations from GeoTIFF satellite maps.
 
 For more details about the module structure and runtime flow, see [SatNav Architecture Overview](doc/simulator/SATNAV_ARCHITECTURE.md).
 
-## 3. Applications
+## 5. Applications
 
 SatNav includes several utility applications for preparing maps, inspecting the simulator, and generating training trajectories:
 
 - [Map Downloader](applications/map_downloader/README.md): downloads Google or Mapbox satellite tiles and exports GeoTIFF scenes for SatNav.
+- [Episode Processing](applications/episode_processing/README.md): inspects per-city episode sources and builds canonical train/validation release files.
 - [SatSim Viewer](applications/satsim_viewer/README.md): interactively inspects satellite maps and VLN episodes.
 - [Trajectory Generation](applications/trajectory_generation/README.md): generates offline trajectory data from episode reference paths.
 
 Note: if you want to train or evaluate models with SatNav episodes, you usually need to first prepare GeoTIFF scenes with Map Downloader and then generate offline trajectory data with Trajectory Generation.
 
-## 4. Examples
+## 6. Examples
 
 `examples/` provides two minimal scripts showing how to follow reference paths and navigation waypoints in SatNav:
 
@@ -60,7 +124,7 @@ Note: if you want to train or evaluate models with SatNav episodes, you usually 
 
 For usage details, see [Examples README](examples/README.md).
 
-## 5. Baseline Models
+## 7. Baseline Models
 
 SatNav currently provides two VLN baselines:
 
@@ -74,6 +138,44 @@ bash scripts/quickstart_models.sh
 ```
 
 This script prepares the vocabulary, GloVe embeddings, offline trajectory data, and then trains and evaluates both Seq2Seq and CMA. For detailed steps and default output paths, see [Baseline Model Quickstart](doc/models/QUICKSTART.md).
+
+## 8. Regression and Release Checks
+
+Run the lightweight navigation and trajectory-generator regression suite in
+the `satnav` environment:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The suite uses fake simulators and temporary output directories, so it does
+not require external maps, checkpoints, or persistent test artifacts.
+
+Before preparing a public release tree, also run:
+
+```bash
+bash scripts/check_release_hygiene.sh
+```
+
+This checks candidate release files for tracked local-only paths, common
+machine-specific values, credential-like values, and placeholder repository
+metadata. It checks the current tree; a public release must additionally use a
+clean history that never contained private local information.
+
+## License
+
+SatNav uses separate licenses for code, documentation, episode metadata, and
+third-party map content.
+
+- Source code is released under the MIT License. See `LICENSE`.
+- Documentation is released under CC BY 4.0 unless otherwise stated.
+- SatNav episode JSON files and related benchmark metadata are released under
+  ODbL-1.0 because they may contain information derived from OpenStreetMap.
+- Google Maps, Mapbox, and other third-party satellite or map imagery are not
+  included in the SatNav-Episodes release and are not sublicensed by the
+  authors.
+
+See `DATA_LICENSE.md` and `NOTICE` for details.
 
 ## Acknowledgements
 

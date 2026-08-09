@@ -1,0 +1,14 @@
+include README.md
+include LICENSE
+include DATA_LICENSE.md
+include NOTICE
+include requirements.txt
+include run.py
+include local.env.example
+
+recursive-include configs *.yaml
+recursive-include doc *.md
+recursive-include environments *.yml
+recursive-include examples *.py *.md
+recursive-include scripts *.sh *.example
+recursive-include applications *.md *.txt *.yaml *.json *.tif

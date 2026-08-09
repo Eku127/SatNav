@@ -3,9 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck source=../lib/local_env.sh
+source "${REPO_ROOT}/scripts/lib/local_env.sh"
+satnav_load_local_env "${REPO_ROOT}/scripts/seq2seq"
 
-CONDA_INIT="${CONDA_INIT:-${HOME}/miniconda3/etc/profile.d/conda.sh}"
-CONDA_ENV="${CONDA_ENV:-satnav}"
+CONDA_INIT="${CONDA_INIT:-${SATNAV_CONDA_SH:-${HOME}/miniconda3/etc/profile.d/conda.sh}}"
+CONDA_ENV="${CONDA_ENV:-${SATNAV_CONDA_ENV:-satnav}}"
 if [ -f "${CONDA_INIT}" ]; then
     source "${CONDA_INIT}"
     conda activate "${CONDA_ENV}"
@@ -13,12 +16,12 @@ else
     echo "[WARN] Conda init not found at ${CONDA_INIT}. Assuming the environment is already active."
 fi
 
-CONFIG_PATH="${CONFIG_PATH:-configs/baselines/seq2seq_offline_train.yaml}"
-CUDA_DEVICES="${CUDA_DEVICES:-0,1,2,3,4,5,6,7}"
+CONFIG_PATH="${CONFIG_PATH:-${SEQ2SEQ_TRAIN_CONFIG_PATH:-configs/baselines/seq2seq_offline_train.yaml}}"
+CUDA_DEVICES="${CUDA_DEVICES:-${SEQ2SEQ_CUDA_DEVICES:-0,1,2,3,4,5,6,7}}"
 MASTER_ADDR="${MASTER_ADDR:-localhost}"
 MASTER_PORT="${MASTER_PORT:-29500}"
 GPUS_PER_NODE="${GPUS_PER_NODE:-$(echo "${CUDA_DEVICES}" | tr ',' '\n' | sed '/^$/d' | wc -l)}"
-OUTPUT_ROOT="${OUTPUT_ROOT:-output/seq2seq_offline}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-${SEQ2SEQ_OUTPUT_ROOT:-output/seq2seq_offline}}"
 
 PER_GPU_BATCH_SIZE="${PER_GPU_BATCH_SIZE:-8}"
 LEARNING_RATE="${LEARNING_RATE:-3e-4}"

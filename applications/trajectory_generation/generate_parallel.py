@@ -198,6 +198,7 @@ def process_single_episode(episode_idx: int) -> Optional[Dict]:
 
         env._current_episode = episode
         obs = env.reset_to_episode(episode)
+        path_follower.reset()
 
         waypoints = prepare_waypoints(episode)
         if len(waypoints) == 0:
@@ -280,6 +281,7 @@ def process_single_episode(episode_idx: int) -> Optional[Dict]:
                     shutil.rmtree(episode_dir)
                 # Re-run env from start (reset already happened; need a new reset)
                 obs = env.reset_to_episode(episode)
+                path_follower.reset()
                 os.makedirs(rgb_dir, exist_ok=True)
                 save_images = True
                 frame_count = 1
