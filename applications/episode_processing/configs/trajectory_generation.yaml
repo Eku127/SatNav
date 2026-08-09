@@ -1,0 +1,37 @@
+# SatNav production trajectory-generation config.
+# This config belongs to the SatNav data-production application; SwiftVLN only
+# consumes the resulting offline trajectories.
+
+ENVIRONMENT:
+  MAX_EPISODE_STEPS: 500
+
+SIMULATOR:
+  TYPE: satsim
+  FORWARD_STEP_SIZE: 10
+  TURN_ANGLE: 15
+  RGB_SENSOR:
+    WIDTH: 448
+    HEIGHT: 448
+    HFOV: 90
+
+TASK:
+  TYPE: VLN
+  SUCCESS_DISTANCE:
+    DEFAULT: 10.0
+    Boundary: 10.0
+    # Use the precise LandmarkSet threshold when producing offline trajectories.
+    LandmarkSet: 3.0
+    Road: 10.0
+  POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
+  TOP_DOWN_MAP:
+    MAP_RESOLUTION: 1024
+    PADDING_METERS: 50.0
+    DRAW_REFERENCE_PATH: True
+    DRAW_SOURCE_AND_TARGET: True
+
+DATASET:
+  TYPE: SatNav
+  SPLIT: train
+  DATA_PATH: ${oc.env:SATNAV_TRAIN_EPISODES_PATH,data/satnav/SatNav-v0.1/episodes/train/all_episodes.json}
+  SCENES_DIR: ${oc.env:SATNAV_SCENES_DIR,data/satnav/scenes}

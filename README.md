@@ -109,6 +109,7 @@ For more details about the module structure and runtime flow, see [SatNav Archit
 SatNav includes several utility applications for preparing maps, inspecting the simulator, and generating training trajectories:
 
 - [Map Downloader](applications/map_downloader/README.md): downloads Google or Mapbox satellite tiles and exports GeoTIFF scenes for SatNav.
+- [Episode Processing](applications/episode_processing/README.md): inspects per-city episode sources and builds canonical train/validation release files.
 - [SatSim Viewer](applications/satsim_viewer/README.md): interactively inspects satellite maps and VLN episodes.
 - [Trajectory Generation](applications/trajectory_generation/README.md): generates offline trajectory data from episode reference paths.
 
