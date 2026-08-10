@@ -1,0 +1,8 @@
+# StreamVLN remains isolated from the SatNav core environment.  Install the
+# CUDA-matched PyTorch and FlashAttention builds before requirements.txt.
+name: satnav-streamvln
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip

@@ -1,0 +1,3 @@
+# Repository-wide rules ignore generic JSON artifacts.  The ZeRO config below
+# is maintained source, not an output artifact.
+!zero2.json

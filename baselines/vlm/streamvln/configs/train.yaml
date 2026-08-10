@@ -1,0 +1,48 @@
+# Model/data hyperparameters used by trainer.py.  Model, dataset, and output
+# paths are CLI/local-env values and intentionally do not appear here.
+
+model:
+  version: qwen_1_5
+  mm_tunable_parts: mm_vision_tower,mm_mlp_adapter,mm_language_model
+  mm_projector_type: mlp2x_gelu
+  mm_vision_select_layer: -2
+  mm_use_im_start_end: false
+  mm_use_im_patch_token: false
+  image_aspect_ratio: anyres_max_9
+  image_grid_pinpoints: (1x1),...,(6x6)
+  model_max_length: 32768
+
+data:
+  num_frames: 32
+  num_history: 8
+  num_future_steps: 4
+  group_by_task: false
+  data_augmentation: true
+  lazy_preprocess: true
+
+training:
+  bf16: true
+  num_train_epochs: 1
+  per_device_train_batch_size: 3
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 2
+  learning_rate: 2.0e-5
+  mm_vision_tower_lr: 5.0e-6
+  weight_decay: 0.0
+  save_strategy: epoch
+  save_steps: 1000
+  save_total_limit: 1
+  logging_steps: 10
+  tf32: true
+  gradient_checkpointing: true
+  dataloader_num_workers: 8
+  dataloader_drop_last: true
+  torch_compile: true
+  torch_compile_backend: inductor
+  report_to: none
+
+scheduler:
+  type: cosine_with_min_lr
+  warmup_ratio: 0.075
+  kwargs:
+    min_lr: 1.85e-5
