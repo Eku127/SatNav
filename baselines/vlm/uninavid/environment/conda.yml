@@ -1,0 +1,8 @@
+name: satnav-uninavid
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pip=25.1
+  - setuptools=80.9
+  - wheel=0.45

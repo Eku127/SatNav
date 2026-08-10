@@ -1,0 +1,26 @@
+# Install Torch 2.5.1/cu121 and a matching CPython 3.9 FlashAttention wheel first.
+# These pins form one pip-check-clean Transformers compatibility set.
+transformers==4.34.1
+tokenizers==0.14.1
+huggingface-hub==0.17.3
+accelerate==0.21.0
+peft==0.6.0
+
+deepspeed==0.18.7
+sentencepiece==0.2.1
+fairscale==0.4.13
+timm==1.0.25
+einops==0.8.2
+einops-exts==0.0.4
+scikit-learn==1.6.1
+shortuuid==1.0.13
+opencv-python==4.13.0.92
+omegaconf==2.3.0
+PyYAML==6.0.3
+safetensors==0.7.0
+wandb==0.25.0
+ninja==1.13.0
+packaging==26.0
+regex==2026.1.15
+pytest==8.4.2
+ruff==0.14.10
