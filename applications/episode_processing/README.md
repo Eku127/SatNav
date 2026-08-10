@@ -15,8 +15,14 @@ python -m applications.episode_processing.run_all SatNav-v0.1
 ```
 
 The expected source layout is
-`$SATNAV_DATA_ROOT/<version>/data/<city>/VLN_episodes.json`; generated splits
-are written below `$SATNAV_DATA_ROOT/<version>/episodes/`.
+`$SATNAV_DATA_ROOT/<version>/data/<city>/VLN_episodes.json`. Generated files
+use the canonical layout:
+
+```text
+episodes/train/all_episodes.json
+episodes/eval/val_seen/all_episodes.json
+episodes/eval/val_unseen/all_episodes.json
+```
 
 The production trajectory config is
 `applications/episode_processing/configs/trajectory_generation.yaml`. Set
@@ -29,7 +35,3 @@ python -m applications.trajectory_generation.generate_parallel \
   --output_dir /path/to/trajectory_data \
   --num_workers 64
 ```
-
-`SWIFTVLN_SATNAV_DATA_ROOT` remains accepted as a temporary compatibility
-fallback for the dataset root; new SatNav workflows should use
-`SATNAV_DATA_ROOT`.

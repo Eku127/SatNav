@@ -21,22 +21,30 @@ The core simulator is **SatSim**:
 ## 1. Installation
 
 ```bash
-# Recommended: create the tracked base environment.
+# Create the tracked base environment.
 conda env create -f environments/satnav/conda.yml
 conda activate satnav
 
-# Install PyTorch according to your CUDA version.
-# The following CUDA 12.1 combination has been tested:
+# Core simulator, dataset, and framework-independent evaluator.
+pip install -e .
+
+# Optional classic baselines. Install the PyTorch build for your CUDA first;
+# this CUDA 12.1 combination has been tested:
 pip install torch==2.4.1 torchvision==0.19.1 \
   --index-url https://download.pytorch.org/whl/cu121
+pip install -e '.[classic]'
 
-cd /path/to/SatNav
-pip install -r requirements.txt
-pip install -r applications/map_downloader/requirements.txt
-pip install -e .
+# Optional map, trajectory, and video applications.
+pip install -e '.[applications]'
 ```
 
-The existing manual environment command remains equivalent:
+The standalone wheel contract covers core Python imports and packaged example
+resources. Repository-level classic/VLM launchers, benchmark manifests, and
+shell workflows require a SatNav source checkout installed in editable mode,
+as shown above; they are not standalone-wheel entrypoints.
+
+For a manually managed environment, use Python 3.8 or newer and run the same
+editable-install commands from the repository root.
 
 ```bash
 conda create -n satnav python=3.8
@@ -66,9 +74,29 @@ cp scripts/seq2seq/local.env.example scripts/seq2seq/.local/env.sh
 cp scripts/cma/local.env.example scripts/cma/.local/env.sh
 ```
 
+Canonical classic evaluation has its own template:
+
+```bash
+mkdir -p baselines/classic/.local
+cp baselines/classic/local.env.example baselines/classic/.local/env.sh
+```
+
+Each external VLM has a separate environment and ignored overlay. Follow the
+baseline README rather than trying to share the core or classic environment:
+
+```text
+baselines/vlm/streamvln/.local/env.sh
+baselines/vlm/navila/.local/env.sh
+baselines/vlm/uninavid/.local/env.sh
+baselines/vlm/openfly/.local/env.sh
+```
+
 Existing environment variables such as `CONDA_INIT`, `CONDA_ENV`,
 `CONFIG_PATH`, `OUTPUT_ROOT`, and `CUDA_DEVICES` remain supported. Explicit
-environment variables take precedence over the new prefixed defaults.
+shell environment variables take precedence over values loaded from `.local`;
+`.local` values take precedence over public repository-relative defaults. Use
+an environment variable for a one-off override and an ignored `.local/env.sh`
+for persistent machine paths.
 
 For real dataset paths, copy the relevant public baseline config to an ignored
 `configs/local_*.yaml` file, edit it locally, and select it through
@@ -80,8 +108,10 @@ CONFIG_PATH=configs/local_seq2seq_train.yaml \
   bash scripts/seq2seq/train_offline_ddp.sh
 ```
 
-The `.local/` and `configs/local_*.yaml` destinations are ignored by Git and
-must not be included in release commits.
+The `.local/`, `configs/local_*.yaml`, `output/`, and `runtime/` destinations
+are ignored by Git and must not be included in release commits. Keep local
+datasets, GeoTIFFs, model weights, credentials, and run artifacts there or in
+external storage referenced by `.local`.
 
 ## 3. Dataset Release
 
@@ -98,9 +128,34 @@ scenes. Use `applications/map_downloader` with `scenes_list.yaml` to reconstruct
 local scene files, then use `applications/trajectory_generation` to generate
 offline trajectory data for training.
 
-## 4. SatNav Core
+## 4. SatNav Core and Public API
 
 SatNav is mainly built around `SatNavDataset`, `Env`, `VLNTask`, and `SatSim`. The dataset provides navigation episodes, `Env` connects the task and simulator, and `SatSim` renders RGB observations from GeoTIFF satellite maps.
+
+Use the public environment contract in applications and baseline adapters:
+
+```python
+from applications.resources import load_example_task_config
+from satnav.core.env import Env
+
+config = load_example_task_config()
+env = Env(config)
+try:
+    observation = env.reset()
+    observation, done, info = env.step("STOP")
+    metrics = env.get_metrics()
+    episode = env.current_episode
+    state = env.agent_state
+finally:
+    env.close()
+```
+
+Supported properties include `episodes`, `current_episode`, `simulator`,
+`agent_state`, `last_step_info`, `episode_over`, `observation_space`, and
+`action_space`. `step()` returns `(observation, done, info)`. Applications
+must not reach through `_dataset`, `_task`, or `_sim`. Dataset `scene_id` is a
+stable logical name; machine-local resolution is kept in runtime-only
+`scene_path` and excluded from normal serialization and benchmark results.
 
 For more details about the module structure and runtime flow, see [SatNav Architecture Overview](doc/simulator/SATNAV_ARCHITECTURE.md).
 
@@ -124,12 +179,28 @@ Note: if you want to train or evaluate models with SatNav episodes, you usually 
 
 For usage details, see [Examples README](examples/README.md).
 
-## 7. Baseline Models
+## 7. Baselines and Unified Evaluation
 
-SatNav currently provides two VLN baselines:
+Classic baselines live under `baselines/classic/`: Random,
+ReferenceFollower, Seq2Seq, and CMA. Seq2Seq and CMA use offline imitation
+learning; all four methods use the same framework-independent
+`satnav.evaluation` rollout and result contract. Importing `satnav` or
+`satnav.evaluation` does not import PyTorch.
+
+The neural model documentation remains available here:
 
 - [Seq2Seq](doc/models/SEQ2SEQ_IMPLEMENTATION.md): a lightweight recurrent baseline that encodes the instruction and current RGB observation before predicting navigation actions.
 - [CMA](doc/models/CMA_IMPLEMENTATION.md): a recurrent baseline with cross-modal attention that fuses language and visual features before predicting actions.
+
+External VLMs keep their incompatible model environments outside the core
+package. The maintained integrations are
+[StreamVLN](baselines/vlm/streamvln/README.md),
+[NaVILA](baselines/vlm/navila/README.md),
+[Uni-NaVid](baselines/vlm/uninavid/README.md), and
+[OpenFly](baselines/vlm/openfly/README.md). They all use the public `Env` and
+`satnav.evaluation.PolicyAdapter` contracts; see the
+[VLM baseline overview](baselines/vlm/README.md) for ownership and environment
+boundaries.
 
 You can quickly run training and evaluation with the bundled tiny example data:
 
@@ -139,17 +210,40 @@ bash scripts/quickstart_models.sh
 
 This script prepares the vocabulary, GloVe embeddings, offline trajectory data, and then trains and evaluates both Seq2Seq and CMA. For detailed steps and default output paths, see [Baseline Model Quickstart](doc/models/QUICKSTART.md).
 
-## 8. Regression and Release Checks
-
-Run the lightweight navigation and trajectory-generator regression suite in
-the `satnav` environment:
+For canonical SatNav-v0.1 evaluation, first configure the ignored classic
+overlay described in Section 2, then run:
 
 ```bash
-python -m unittest discover -s tests -v
+bash scripts/classic/eval.sh random val_seen 8
+bash scripts/classic/eval.sh reference_follower val_seen 8
+bash scripts/classic/eval_parallel.sh random val_seen 2 0,1 8
 ```
 
-The suite uses fake simulators and temporary output directories, so it does
-not require external maps, checkpoints, or persistent test artifacts.
+The default benchmark kind is the tracked smoke contract; set
+`SATNAV_BENCHMARK_KIND=official` for the full 500-step contract. Seq2Seq and
+CMA additionally require the matching checkpoint, vocabulary, and local eval
+config variables documented in [Classic Baselines](baselines/classic/README.md).
+Every run writes benchmark/run manifests, rank-local JSONL and done markers,
+and a strictly validated `summary.json` under
+`output/baselines/classic/<method>/<split>/<kind>/<N>rank/`.
+
+Canonical online evaluation uses `configs/satnav_eval_task.yaml`: Boundary and
+Road success radii are 10 m and the LandmarkSet success radius is 30 m. The
+tighter 3 m LandmarkSet radius in the trajectory-generation config is only a
+waypoint-arrival tolerance for producing offline expert trajectories; it is
+not an evaluation threshold.
+
+## 8. Regression and Release Checks
+
+Run the automated regression suite in the `satnav` environment:
+
+```bash
+python -m pytest -q
+```
+
+Most tests use fake simulators and temporary output directories, so they do
+not require private maps or checkpoints. Targeted real-data and GPU smoke
+tests are documented separately and are not part of the default suite.
 
 Before preparing a public release tree, also run:
 
@@ -162,6 +256,14 @@ machine-specific values, credential-like values, and placeholder repository
 metadata. It checks the current tree; a public release must additionally use a
 clean history that never contained private local information.
 
+Ignored `.local` overlays are allowed in a development checkout and are never
+read or printed by the normal check. To validate a sanitized release checkout
+where no ignored local-only files may exist, run:
+
+```bash
+SATNAV_RELEASE_TREE=1 bash scripts/check_release_hygiene.sh
+```
+
 ## License
 
 SatNav uses separate licenses for code, documentation, episode metadata, and
@@ -171,6 +273,9 @@ third-party map content.
 - Documentation is released under CC BY 4.0 unless otherwise stated.
 - SatNav episode JSON files and related benchmark metadata are released under
   ODbL-1.0 because they may contain information derived from OpenStreetMap.
+- The bundled example `applications/resources/map.tif` is a procedurally
+  generated synthetic raster dedicated to the public domain under CC0 1.0;
+  see [resource provenance](applications/resources/README.md).
 - Google Maps, Mapbox, and other third-party satellite or map imagery are not
   included in the SatNav-Episodes release and are not sublicensed by the
   authors.
