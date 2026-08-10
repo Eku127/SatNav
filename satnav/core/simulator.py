@@ -136,6 +136,14 @@ class Simulator(abc.ABC):
             A navigable position as [longitude, latitude, altitude].
         """
         raise NotImplementedError
+
+    def close(self) -> None:
+        """Release simulator resources.
+
+        The default is a no-op so existing external simulator implementations
+        remain source-compatible while resource-owning backends can override it.
+        """
+        return None
     
     @property
     @abc.abstractmethod

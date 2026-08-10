@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Action definitions for SatNav VLN tasks."""
+"""Action definitions and integer encoding for SatNav VLN tasks."""
+
+from typing import Union
+
+
+# Offline trajectory annotations include one frame before the first action.
+# This sentinel keeps that frame aligned with the action sequence without
+# pretending that it is an executable simulator action.
+INITIAL_ACTION_INDEX = -1
 
 
 class Action:
@@ -69,3 +77,19 @@ class Action:
             raise IndexError(f"Action index {index} out of range [0, {len(cls.ALL_ACTIONS)})")
         return cls.ALL_ACTIONS[index]
 
+
+def encode_action(action: Union[str, int]) -> int:
+    """Encode a SatNav action with the canonical discrete action indices.
+
+    The mapping is ``STOP=0``, ``MOVE_FORWARD=1``, ``TURN_LEFT=2`` and
+    ``TURN_RIGHT=3``.  ``INITIAL_ACTION_INDEX`` (``-1``) is also accepted so
+    callers can validate an already encoded offline annotation sequence.
+    """
+    if isinstance(action, int):
+        if action == INITIAL_ACTION_INDEX:
+            return action
+        # Reuse the canonical bounds check and keep the integer unchanged.
+        Action.get_action_from_index(action)
+        return action
+
+    return Action.get_action_index(action)

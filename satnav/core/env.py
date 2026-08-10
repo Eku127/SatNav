@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Environment class for SatNav VLN tasks."""
 
-from typing import Any, Dict, Iterator, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 from omegaconf import DictConfig
 
 from satnav.core.episode import VLNEpisode
-from satnav.core.simulator import Simulator
+from satnav.core.simulator import AgentState, Simulator
 from satnav.dataset.satnav_dataset import SatNavDataset
 from satnav.sims import create_simulator
 from satnav.task.vln_task import VLNTask
@@ -50,13 +50,17 @@ class Env:
         # Extract configuration values
         if isinstance(config, DictConfig):
             env_config = getattr(config, "ENVIRONMENT", {})
-            self.max_episode_steps = getattr(env_config, "MAX_EPISODE_STEPS", 500)
+            self.max_episode_steps = int(
+                getattr(env_config, "MAX_EPISODE_STEPS", 500)
+            )
             sim_config = getattr(config, "SIMULATOR", {})
             task_config = getattr(config, "TASK", {})
             dataset_config = getattr(config, "DATASET", None)
         else:
             env_config = config.get("ENVIRONMENT", {})
-            self.max_episode_steps = env_config.get("MAX_EPISODE_STEPS", 500)
+            self.max_episode_steps = int(
+                env_config.get("MAX_EPISODE_STEPS", 500)
+            )
             sim_config = config.get("SIMULATOR", {})
             task_config = config.get("TASK", {})
             dataset_config = config.get("DATASET", None)
@@ -75,6 +79,8 @@ class Env:
                 scenes_dir = getattr(dataset_config, "SCENES_DIR", None)
             else:
                 scenes_dir = dataset_config.get("SCENES_DIR")
+        if scenes_dir is None and self._dataset is not None:
+            scenes_dir = getattr(self._dataset, "scenes_dir", None)
         
         self._sim = create_simulator(config, scenes_dir=scenes_dir)
         
@@ -87,6 +93,8 @@ class Env:
         self._episode_iterator: Optional[Iterator[VLNEpisode]] = None
         self._elapsed_steps = 0
         self._episode_over = False
+        self._last_step_info: Optional[Dict[str, Any]] = None
+        self._closed = False
         
         # Setup episode iterator if dataset is available
         if self._dataset is not None:
@@ -135,14 +143,7 @@ class Env:
                     "Set cycle=True in Env.__init__() to enable cycling for training."
                 )
         
-        # Reset task (which resets simulator and measures)
-        observations = self._task.reset(self._current_episode)
-        
-        # Reset episode state
-        self._elapsed_steps = 0
-        self._episode_over = False
-        
-        return observations
+        return self.reset_to_episode(self._current_episode)
     
     def reset_to_episode(self, episode: VLNEpisode) -> Dict[str, Any]:
         """Reset environment directly to a specified episode.
@@ -157,7 +158,15 @@ class Env:
         # even if task.reset() fails)
         self._elapsed_steps = 0
         self._episode_over = False
+        self._last_step_info = None
         self._current_episode = episode
+
+        # SatSim uses the logical scene ID publicly while retaining a local
+        # path mapping for legacy datasets that embedded paths in scene_id.
+        register_scene_path = getattr(self._sim, "register_scene_path", None)
+        scene_path = getattr(episode, "scene_path", None)
+        if scene_path and callable(register_scene_path):
+            register_scene_path(episode.scene_id, scene_path)
 
         # Reset task (which resets simulator and measures)
         # If this fails, the environment is still in a clean state for the next episode
@@ -219,10 +228,26 @@ class Env:
         info = {
             "metrics": metrics,
             "episode_id": self._current_episode.episode_id,
+            "episode_key": getattr(
+                self._current_episode,
+                "episode_key",
+                str(self._current_episode.episode_id),
+            ),
+            "scene_id": self._current_episode.scene_id,
             "elapsed_steps": self._elapsed_steps,
             "episode_over": self._episode_over,
+            "stop_called": bool(stop_called),
+            "max_steps_reached": bool(max_steps_reached),
+            "termination_reason": (
+                "stop"
+                if stop_called
+                else "max_steps"
+                if max_steps_reached
+                else None
+            ),
         }
-        
+        self._last_step_info = info
+
         return observations, self._episode_over, info
     
     def get_metrics(self) -> Dict[str, float]:
@@ -239,6 +264,29 @@ class Env:
             return {}
         
         return self._task.get_metrics()
+
+    def _rgb_observation_shape(self) -> Tuple[int, int, int]:
+        """Resolve RGB shape from the active simulator, then configuration."""
+        sensor_suite = getattr(self._sim, "sensor_suite", {})
+        if isinstance(sensor_suite, dict):
+            rgb_sensor = sensor_suite.get("rgb", sensor_suite.get("RGB", {}))
+            if isinstance(rgb_sensor, dict):
+                width = rgb_sensor.get("width", rgb_sensor.get("WIDTH"))
+                height = rgb_sensor.get("height", rgb_sensor.get("HEIGHT"))
+                if width is not None and height is not None:
+                    return int(height), int(width), 3
+
+        if isinstance(self._config, DictConfig):
+            simulator_config = getattr(self._config, "SIMULATOR", {})
+            rgb_sensor = getattr(simulator_config, "RGB_SENSOR", {})
+            width = getattr(rgb_sensor, "WIDTH", 224)
+            height = getattr(rgb_sensor, "HEIGHT", 224)
+        else:
+            simulator_config = self._config.get("SIMULATOR", {})
+            rgb_sensor = simulator_config.get("RGB_SENSOR", {})
+            width = rgb_sensor.get("WIDTH", 224)
+            height = rgb_sensor.get("HEIGHT", 224)
+        return int(height), int(width), 3
     
     @property
     def observation_space(self) -> Dict[str, Any]:
@@ -252,7 +300,7 @@ class Env:
         """
         return {
             "rgb": {
-                "shape": (224, 224, 3),
+                "shape": self._rgb_observation_shape(),
                 "dtype": "uint8",
                 "description": "RGB image from satellite map"
             },
@@ -277,6 +325,13 @@ class Env:
             "actions": ["STOP", "MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],
             "description": "Discrete action space for VLN navigation"
         }
+
+    @property
+    def episodes(self) -> List[VLNEpisode]:
+        """Return the dataset episodes through the supported public API."""
+        if self._dataset is None:
+            return []
+        return self._dataset.episodes
     
     @property
     def current_episode(self) -> Optional[VLNEpisode]:
@@ -286,6 +341,21 @@ class Env:
             Current episode, or None if not set.
         """
         return self._current_episode
+
+    @property
+    def simulator(self) -> Simulator:
+        """Return the simulator instance used by this environment."""
+        return self._sim
+
+    @property
+    def agent_state(self) -> AgentState:
+        """Return the simulator's current agent state."""
+        return self._sim.get_agent_state()
+
+    @property
+    def last_step_info(self) -> Optional[Dict[str, Any]]:
+        """Return the info dictionary produced by the most recent step."""
+        return self._last_step_info
     
     @property
     def episode_over(self) -> bool:
@@ -296,3 +366,16 @@ class Env:
         """
         return self._episode_over
 
+    def close(self) -> None:
+        """Release simulator resources.  Calling close repeatedly is safe."""
+        if self._closed:
+            return
+
+        task_close = getattr(self._task, "close", None)
+        if callable(task_close):
+            task_close()
+
+        simulator_close = getattr(self._sim, "close", None)
+        if callable(simulator_close):
+            simulator_close()
+        self._closed = True

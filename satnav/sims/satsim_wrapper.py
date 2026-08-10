@@ -10,6 +10,7 @@ from omegaconf import DictConfig
 
 from satnav.core.simulator import AgentState, Observations, Simulator
 from satnav.core.utils import geodesic_distance_with_altitude
+from satnav.dataset.scene_resolver import SceneResolver
 from satnav.sims.satsim import SatSim
 
 # Debug logging for specific rank
@@ -76,6 +77,8 @@ class SatSimWrapper(Simulator):
                     scenes_dir = config["DATASET"].get("SCENES_DIR")
         
         self._scenes_dir = scenes_dir
+        self._scene_resolver = SceneResolver(scenes_dir)
+        self._registered_scene_paths: Dict[str, str] = {}
         
         # Initialize SatSim engine with SIMULATOR config
         if isinstance(config, DictConfig):
@@ -87,6 +90,7 @@ class SatSimWrapper(Simulator):
         
         # Current scene ID (for reference)
         self._scene_id: Optional[str] = None
+        self._scene_path: Optional[str] = None
     
     def reset(self, scene_id: str) -> Observations:
         """Reset the simulator and load a new scene.
@@ -102,21 +106,24 @@ class SatSimWrapper(Simulator):
         """
         _debug_log(f"SatSimWrapper.reset() called with scene_id={scene_id}")
         
+        scene_path = self._combine_scene_path(scene_id)
+
         # Check if we need to load a new scene
         # If scene_id is the same, skip loading (scene is already loaded)
         # This optimization avoids path processing and load_scene() overhead
         # Note: SatSim.load_scene() already has caching, but checking scene_id
         # first avoids unnecessary path processing and function calls
-        scene_changed = (self._scene_id != scene_id)
+        scene_changed = (
+            self._scene_id != scene_id or self._scene_path != scene_path
+        )
         _debug_log(f"  scene_changed={scene_changed}, current_scene_id={self._scene_id}")
         
         if scene_changed:
-            # Combine scene path
-            scene_path = self._combine_scene_path(scene_id)
             _debug_log(f"  Loading new scene: {scene_path}")
             # Load scene in SatSim (will use cache if already loaded)
             self._satsim.load_scene(scene_path)
             self._scene_id = scene_id
+            self._scene_path = scene_path
         # else: scene_id is the same, scene is already loaded, skip loading
         
         # Get current agent state for debugging
@@ -273,19 +280,14 @@ class SatSimWrapper(Simulator):
         Returns:
             Full path to scene file.
         """
-        if self._scenes_dir is None:
-            # If no scenes_dir, assume scene_id is already a full path
-            return scene_id
-        
-        # Check if scene_id is already an absolute path or contains path separators
-        # (meaning it's already a full path from dataset)
-        if os.path.isabs(scene_id) or os.sep in scene_id or '/' in scene_id:
-            # scene_id is already a full path, use it directly
-            return scene_id
-        
-        # Combine scenes_dir with scene_id
-        scene_path = os.path.join(self._scenes_dir, scene_id)
-        return scene_path
+        registered_path = self._registered_scene_paths.get(str(scene_id))
+        if registered_path:
+            return registered_path
+        return self._scene_resolver.resolve(scene_id)
+
+    def register_scene_path(self, scene_id: str, scene_path: str) -> None:
+        """Associate a logical scene ID with a legacy or resolved local path."""
+        self._registered_scene_paths[str(scene_id)] = str(scene_path)
     
     @property
     def sensor_suite(self):
@@ -319,6 +321,11 @@ class SatSimWrapper(Simulator):
             Current scene ID, or None if no scene is loaded.
         """
         return self._scene_id
+
+    @property
+    def scene_path(self) -> Optional[str]:
+        """Return the resolved machine-local path for the current scene."""
+        return self._scene_path
     
     @property
     def forward_step_size(self) -> float:
@@ -365,3 +372,8 @@ class SatSimWrapper(Simulator):
         """
         return self._satsim._camera.hfov
 
+    def close(self) -> None:
+        """Close cached raster datasets owned by SatSim."""
+        self._satsim.close()
+        self._scene_id = None
+        self._scene_path = None

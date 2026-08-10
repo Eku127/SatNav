@@ -7,13 +7,8 @@ import os
 from pathlib import Path
 from typing import List, Tuple
 
-# 数据集根目录。旧的 SWIFTVLN 变量保留一个迁移周期作为兼容 fallback。
-DATASET_ROOT = Path(
-    os.environ.get(
-        "SATNAV_DATA_ROOT",
-        os.environ.get("SWIFTVLN_SATNAV_DATA_ROOT", "data/satnav"),
-    )
-).expanduser()
+# 数据集根目录。机器路径通过 SatNav 自己的环境变量注入。
+DATASET_ROOT = Path(os.environ.get("SATNAV_DATA_ROOT", "data/satnav")).expanduser()
 
 # 城市分类配置（0327 默认划分）
 # eval: LosAngeles-1, Rome-1, NewYork-1, Auckland-1, Orlando-1, Rotterdam-1
