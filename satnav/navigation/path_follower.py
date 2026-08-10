@@ -323,16 +323,27 @@ class ReferencePathFollower:
             goal_radius: Distance threshold for all waypoints including final goal (meters).
             turn_angle: Angle per turn action (degrees).
         """
-        self.goal_radius = goal_radius
+        self._goal_radius = float(goal_radius)
         self.turn_angle = turn_angle
         
         # Internal path follower using unified goal_radius for all waypoints
         self._follower = SatNavPathFollower(
-            goal_radius=goal_radius,
+            goal_radius=self._goal_radius,
             turn_angle=turn_angle
         )
         self._reference_path: Optional[List[List[float]]] = None
         self._current_waypoint_idx: int = 0
+
+    @property
+    def goal_radius(self) -> float:
+        """Distance threshold shared by this follower and its goal follower."""
+        return self._goal_radius
+
+    @goal_radius.setter
+    def goal_radius(self, value: float) -> None:
+        self._goal_radius = float(value)
+        if hasattr(self, "_follower"):
+            self._follower.goal_radius = self._goal_radius
     
     def reset(self, reference_path: List[List[float]]) -> None:
         """Reset the follower with a new reference path.

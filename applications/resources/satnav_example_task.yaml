@@ -1,5 +1,6 @@
 # Minimal SatNav task config for example applications.
-# Points to the example episodes and GeoTIFF scene in applications/resources/.
+# Points to the example episodes and procedurally generated synthetic GeoTIFF
+# scene in applications/resources/; see that directory's README for provenance.
 
 ENVIRONMENT:
   MAX_EPISODE_STEPS: 500
