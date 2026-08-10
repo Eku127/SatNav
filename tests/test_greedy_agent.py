@@ -25,7 +25,11 @@ def make_episode(episode_id, reference_path, goal=None):
 class FakeEnv:
     def __init__(self, episode, simulator):
         self.current_episode = episode
-        self._task = SimpleNamespace(_sim=simulator)
+        self.simulator = simulator
+
+    @property
+    def agent_state(self):
+        return self.simulator.get_agent_state()
 
 
 class GreedyAgentWaypointTests(unittest.TestCase):

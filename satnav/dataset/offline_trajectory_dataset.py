@@ -108,10 +108,15 @@ class OfflineTrajectoryDataset(torch.utils.data.Dataset):
             prev_actions = [-1] + actions[:-1]
             teacher_actions = actions
 
-        # Match online RecollectTrainer semantics: do not train the final STOP.
-        if teacher_actions and teacher_actions[-1] == 0:
-            teacher_actions = teacher_actions[:-1]
-            prev_actions = prev_actions[: len(teacher_actions)]
+        # STOP is a supervised terminal decision.  Keep its pre-action
+        # observation, but discard any malformed post-STOP suffix (including
+        # duplicated STOPs from older archives).  Archives that omit INIT or
+        # STOP retain their existing boundary rather than gaining a fabricated
+        # action.
+        if 0 in teacher_actions:
+            terminal_idx = teacher_actions.index(0) + 1
+            teacher_actions = teacher_actions[:terminal_idx]
+            prev_actions = prev_actions[:terminal_idx]
 
         return prev_actions, teacher_actions
 
@@ -142,8 +147,10 @@ class OfflineTrajectoryDataset(torch.utils.data.Dataset):
                 f"Trajectory {ann.get('id')} has only {len(frame_paths)} frames for required length {traj_len}"
             )
 
-        # Keep observations aligned with online RecollectTrainer: use frames
-        # before each non-STOP teacher action and drop the duplicated post-STOP frame.
+        # Every teacher target uses its pre-action observation.  Canonical
+        # annotations have actions [-1, ..., STOP] and one frame per action, so
+        # this includes the frame before STOP while excluding the saved frame
+        # after STOP.
         selected_paths = frame_paths[:traj_len]
         frames = []
         for path in selected_paths:

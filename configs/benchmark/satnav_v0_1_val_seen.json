@@ -1,0 +1,40 @@
+{
+  "action_space": [
+    "STOP",
+    "MOVE_FORWARD",
+    "TURN_LEFT",
+    "TURN_RIGHT"
+  ],
+  "benchmark_id": "satnav-v0.1-val-seen",
+  "dataset_digest": "a199d7553fd5dbe1babd5756ee560f9df28e96336278cdc36e2b0fbc2624510c",
+  "dataset_version": "SatNav-v0.1",
+  "episode_count": 4574,
+  "episode_digest": "a02581357a54859ae3d0a696b12d339d0b1a9b0bcacc0b99522d2aa0cc453562",
+  "forward_step_size": 10.0,
+  "kind": "official",
+  "max_episode_steps": 500,
+  "metadata": {
+    "episode_digest_method": "sorted-stable-key-length-prefixed-sha256-v1"
+  },
+  "observation": {
+    "rgb": {
+      "height": 448,
+      "hfov": 90,
+      "width": 448
+    }
+  },
+  "required_metrics": [
+    "distance_to_goal",
+    "success",
+    "oracle_success",
+    "spl",
+    "path_length"
+  ],
+  "split": "val_seen",
+  "success_threshold": {
+    "Boundary": 10.0,
+    "LandmarkSet": 30.0,
+    "Road": 10.0
+  },
+  "turn_angle": 15.0
+}
