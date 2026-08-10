@@ -1,0 +1,14 @@
+This directory adapts Uni-NaVid for SatNav without vendoring its runtime.
+
+Upstream source:
+  https://github.com/jzhzhang/Uni-NaVid.git
+  revision 79ef5ea3fea14c205342d1ab070563d84c7a966a
+
+The upstream repository carries the MIT license copied in LICENSE.upstream.
+Individual inherited LLaVA files also retain Apache-2.0 notices. Model weights
+follow the Uni-NaVid/Vicuna/Llama 2 lineage and remain subject to the Meta
+Llama 2 terms. EVA-CLIP, SatNav datasets/scenes, and other dependencies retain
+their own terms. Review those terms before redistribution.
+
+Migration input:
+  SwiftVLN revision 7b996303b05ca62791a2e5bf8f5fda729d6fdc07

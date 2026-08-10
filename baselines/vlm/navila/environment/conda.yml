@@ -1,0 +1,8 @@
+# NaVILA remains isolated from SatNav core and the other VLM environments.
+name: satnav-navila
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - decord=0.6.0

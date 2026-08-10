@@ -1,0 +1,27 @@
+# Paths remain CLI/local-env values and intentionally do not appear here.
+model:
+  version: llama_3
+  mm-vision-select-feature: cls_patch
+  mm-projector: mlp_downsample
+  mm-vision-select-layer: -2
+  model-max-length: 4096
+
+data:
+  num-video-frames: 8
+
+training:
+  train-components: all
+  seed: 10
+  num-train-epochs: 1
+  per-device-batch-size: 1
+  gradient-accumulation-steps: 1
+  learning-rate: 3.0e-5
+  weight-decay: 0.0
+  warmup-ratio: 0.03
+  lr-scheduler-type: cosine
+  save-steps: 1000
+  save-total-limit: 1
+  logging-steps: 1
+  tf32: true
+  gradient-checkpointing: true
+  dataloader-num-workers: 8

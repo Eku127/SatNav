@@ -1,0 +1,20 @@
+StreamVLN third-party notice
+============================
+
+This SatNav baseline interoperates with and derives model-specific adapter
+behavior from Eku127/StreamVLN at commit
+60476e81f4c01b29f1a51a7469f1cb4addbc1d62.
+
+The pinned fork contains no standalone LICENSE file. Its README identifies
+the work as Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+International (CC BY-NC-SA 4.0):
+https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+The adapter migration input was Eku127/SwiftVLN at commit
+7b996303b05ca62791a2e5bf8f5fda729d6fdc07, baseline/streamvln. That adapter
+declared Eku127/SatNav commit c0c0e72ea4575b36d74a5e8f777942172978938e
+as its SatNav integration reference.
+
+No StreamVLN model weights or complete upstream model implementation are
+distributed in this directory. This notice does not replace or expand any
+upstream license grant.

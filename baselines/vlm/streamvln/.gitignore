@@ -1,0 +1,6 @@
+.local/
+model/
+output/
+results/
+__pycache__/
+*.py[cod]

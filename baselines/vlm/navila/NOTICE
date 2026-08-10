@@ -1,0 +1,14 @@
+NaVILA third-party notice
+=========================
+
+This SatNav integration interoperates with and derives model-specific behavior
+from AnjieCheng/NaVILA at commit
+76b98f233dd0fff05dfcd69435eec6740febff9d. The upstream repository distributes
+its source under the Apache License, Version 2.0. A complete copy is distributed
+beside this notice as LICENSE.upstream. Its copyright and attribution notices
+remain authoritative.
+
+The adapter migration input was Eku127/SwiftVLN at commit
+7b996303b05ca62791a2e5bf8f5fda729d6fdc07, baseline/navila. No NaVILA model
+weights or complete upstream model implementation are distributed here. This
+notice does not replace or expand any upstream license grant.

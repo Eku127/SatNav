@@ -1,0 +1,5 @@
+.local/
+model/
+output/
+__pycache__/
+*.pyc
