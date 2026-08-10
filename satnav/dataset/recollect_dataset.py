@@ -13,9 +13,8 @@ Reference: VLN-CE vlnce_baselines/common/recollection_dataset.py
 
 import copy
 from collections import defaultdict, deque
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 from omegaconf import DictConfig, OmegaConf
@@ -23,8 +22,18 @@ from omegaconf import DictConfig, OmegaConf
 from satnav.core.config import get_success_distance_default
 from satnav.navigation import ReferencePathFollower
 from satnav.task.actions import Action
-from satnav.training.distributed import get_rank, get_world_size
 from satnav.utils.build_vocab import build_vocab_from_dataset, VocabDict
+
+
+def _distributed_runtime_value(config, key: str, default: int) -> int:
+    """Read runtime shard metadata without depending on the training package."""
+    if isinstance(config, dict):
+        distributed = config.get("DISTRIBUTED", {})
+        if isinstance(distributed, dict):
+            return int(distributed.get(key, default))
+        return int(getattr(distributed, key, default))
+    distributed = getattr(config, "DISTRIBUTED", {})
+    return int(getattr(distributed, key, default))
 
 
 class RecollectionDataset(torch.utils.data.IterableDataset):
@@ -71,8 +80,8 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         self.config = config
         self.target_rgb_size = target_rgb_size
         self._preload = deque()
-        self.rank = get_rank(config)
-        self.world_size = get_world_size(config)
+        self.rank = _distributed_runtime_value(config, "rank", 0)
+        self.world_size = _distributed_runtime_value(config, "world_size", 1)
         
         # Filter out TOP_DOWN_MAP from measurements during training for performance
         # This avoids the overhead of updating the map on every step during data collection
@@ -112,7 +121,7 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         self.vocab = self._load_vocabulary()
         self.max_instruction_len = 200  # Maximum instruction length
 
-        all_episode_indices = list(range(len(self.env._dataset.episodes)))
+        all_episode_indices = list(range(len(self.env.episodes)))
         self._episode_indices = all_episode_indices[self.rank::self.world_size]
         self._current_episode_idx = 0
         print(
@@ -270,7 +279,7 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         trajectories = {}
         
         for episode_idx in self._episode_indices:
-            episode = self.env._dataset.episodes[episode_idx]
+            episode = self.env.episodes[episode_idx]
             # Reset environment to this episode's start
             # Note: Since env cycles through episodes, we need to reset until we get this one
             # For now, we'll directly use the simulator
@@ -284,8 +293,8 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
             
             # Reset simulator to episode start
             try:
-                self.env._sim.reset(episode.scene_id)
-                self.env._sim.set_agent_state(
+                self.env.simulator.reset(episode.scene_id)
+                self.env.simulator.set_agent_state(
                     position=episode.start_position,
                     rotation=episode.start_rotation
                 )
@@ -301,7 +310,7 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
             try:
                 actions = self.path_follower.follow_path(
                     reference_path=reference_path,
-                    simulator=self.env._sim,
+                    simulator=self.env.simulator,
                     execute=True  # Execute actions in simulator
                 )
 
@@ -309,12 +318,13 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
                 traj = []
                 prev_action = 0  # STOP
                 for action_str in actions:
-                    if action_str == Action.STOP:
-                        # Don't include STOP in training trajectory
-                        break
-                    
                     action_idx = Action.get_action_index(action_str)
                     traj.append((prev_action, action_idx))
+                    if action_str == Action.STOP:
+                        # STOP is the final supervised decision.  Append it
+                        # exactly once, paired with the preceding action, then
+                        # ignore any post-STOP suffix from the follower.
+                        break
                     prev_action = action_idx
                 
                 # Check trajectory length limit
@@ -371,7 +381,7 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
         Returns:
             List of (observation, prev_action, teacher_action) tuples
         """
-        episode = self.env._dataset.episodes[episode_idx]
+        episode = self.env.episodes[episode_idx]
         
         # Check if we have trajectory for this episode
         if episode.episode_id not in self.trajectories:
@@ -420,6 +430,12 @@ class RecollectionDataset(torch.utils.data.IterableDataset):
                 prev_action,
                 teacher_action
             ))
+
+            # The current observation is the one immediately before STOP and
+            # is therefore the terminal training sample.  Do not execute STOP
+            # and retain its duplicated post-action observation.
+            if teacher_action == Action.get_action_index(Action.STOP):
+                break
             
             # Execute teacher action
             obs, done, info = self.env.step(teacher_action)

@@ -432,7 +432,7 @@ class Evaluator:
                 # Collect topdown frame using annotate_topdown_map (after step, like example)
                 try:
                     # Get agent state
-                    agent_state = env._task._sim.get_agent_state()
+                    agent_state = env.agent_state
                     
                     # Calculate distance to goal (use first waypoint as current target for simplicity)
                     # Note: In evaluation, we don't track waypoint progress, so we use goal distance
@@ -508,7 +508,13 @@ class Evaluator:
         ep_id = episode.episode_id
         final_distance = float(metrics.get('distance_to_goal', 0.0))
         success = float(metrics.get('success', 0.0))
-        stop_called = bool(env._task.is_stop_called)
+        last_step_info = getattr(env, "last_step_info", None) or {}
+        if isinstance(last_step_info, dict) and "stop_called" in last_step_info:
+            stop_called = bool(last_step_info["stop_called"])
+        else:
+            # Compatibility fallback for third-party Env implementations that
+            # have not yet exposed stop_called in last_step_info.
+            stop_called = bool(step_count > 0 and action_name == "STOP")
         distance_reduction = initial_distance - final_distance
         best_distance_reduction = initial_distance - min_distance
         if success >= 1.0:
@@ -761,3 +767,12 @@ class Evaluator:
             if metric_name not in ['num_episodes', 'split', 'checkpoint_index']:
                 print(f"  {metric_name}: {value:.4f}")
         print("=" * 80)
+
+
+# Compatibility names for callers migrating away from the trainer-owned
+# evaluator.  Existing ``Evaluator(config, device)`` behavior remains intact;
+# new code should import ``satnav.evaluation.Evaluator`` directly.
+LegacyEvaluator = Evaluator
+from satnav.evaluation import Evaluator as GenericEvaluator  # noqa: E402
+
+__all__ = ["Evaluator", "GenericEvaluator", "LegacyEvaluator"]

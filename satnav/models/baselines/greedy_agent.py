@@ -194,7 +194,7 @@ class GreedyAgent(ILPolicy):
             return action, rnn_states
         
         # Get current position
-        agent_state = self._env._task._sim.get_agent_state()
+        agent_state = self._env.agent_state
         current_position = agent_state.position
 
         # Dense reference paths can contain multiple consecutive waypoints
@@ -228,7 +228,7 @@ class GreedyAgent(ILPolicy):
         # path_follower.get_next_action returns action index (0-3)
         action_idx = self.path_follower.get_next_action(
             current_waypoint,
-            self._env._task._sim
+            self._env.simulator,
         )
         
         # Convert to torch tensor with correct shape: (batch_size, 1)
