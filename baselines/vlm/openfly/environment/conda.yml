@@ -1,0 +1,8 @@
+name: satnav-openfly
+channels:
+  - defaults
+dependencies:
+  - python=3.10.14
+  - pip=24.2
+  - setuptools=75.8.0
+  - wheel=0.45.1

@@ -1,0 +1,15 @@
+OpenFly integration for SatNav
+================================
+
+The files under openfly_core/ and action_tokenizer.py derive from OpenFly-
+Platform, Copyright (c) 2025 Shanghai Artificial Intelligence Laboratory,
+licensed under the MIT License reproduced in LICENSE.upstream.
+
+Upstream project: https://github.com/SHAILAB-IPEC/OpenFly-Platform
+Frozen upstream revision: c075075497a7122bad82f5b76b9be926ad5a81b3
+
+The SatNav adapter also preserves behavior audited from the read-only
+SwiftVLN integration at revision
+7b996303b05ca62791a2e5bf8f5fda729d6fdc07. SatNav-specific validation,
+content identities, training, checkpoint, and evaluator code is maintained in
+this directory.

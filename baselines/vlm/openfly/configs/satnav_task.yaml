@@ -1,0 +1,29 @@
+# OpenFly online evaluation task. Real paths belong in .local/env.sh or CLI.
+
+ENVIRONMENT:
+  MAX_EPISODE_STEPS: 500
+
+SIMULATOR:
+  TYPE: satsim
+  FORWARD_STEP_SIZE: 10
+  TURN_ANGLE: 15
+  RGB_SENSOR:
+    WIDTH: 448
+    HEIGHT: 448
+    HFOV: 90
+
+TASK:
+  TYPE: VLN
+  SUCCESS_DISTANCE:
+    DEFAULT: 10.0
+    Boundary: 10.0
+    LandmarkSet: 30.0
+    Road: 10.0
+  POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, ORACLE_SUCCESS, SPL, PATH_LENGTH]
+
+DATASET:
+  TYPE: SatNav
+  SPLIT: val_seen
+  DATA_PATH: applications/resources/satnav_example_episodes.json
+  SCENES_DIR: applications/resources/

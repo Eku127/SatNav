@@ -1,0 +1,64 @@
+# Install torch/torchvision from the cu121 index before this file; see
+# scripts/bootstrap_env.sh. Every direct and critical transitive dependency is
+# pinned so a fresh environment cannot silently inherit the legacy VILA stack.
+numpy==1.26.4
+transformers==4.48.1
+tokenizers==0.21.1
+huggingface-hub==0.28.1
+accelerate==0.33.0
+deepspeed==0.14.4
+timm==0.9.16
+safetensors==0.4.5
+sentencepiece==0.2.0
+einops==0.8.0
+omegaconf==2.3.0
+PyYAML==6.0.2
+Pillow==10.4.0
+opencv-python==4.10.0.84
+rasterio==1.3.10
+pyproj==3.6.1
+scipy==1.13.1
+imageio==2.35.1
+attrs==23.2.0
+affine==2.4.0
+click==8.1.8
+click-plugins==1.1.1
+cligj==0.7.2
+snuggs==1.4.7
+antlr4-python3-runtime==4.9.3
+filelock==3.16.1
+fsspec==2024.10.0
+packaging==24.2
+psutil==6.1.1
+py-cpuinfo==9.0.0
+hjson==3.1.0
+ninja==1.11.1.3
+# Frozen transitive dependencies from the Torch/DeepSpeed/test stack.  These
+# otherwise resolve to the newest release available at bootstrap time.
+sympy==1.14.0
+networkx==3.4.2
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+mpmath==1.3.0
+nvidia-nvjitlink-cu12==12.9.86
+nvidia-ml-py==13.610.43
+exceptiongroup==1.3.1
+tomli==2.4.1
+pydantic==2.10.6
+annotated-types==0.7.0
+pydantic-core==2.27.2
+typing-extensions==4.12.2
+regex==2024.11.6
+requests==2.32.3
+charset-normalizer==3.4.1
+idna==3.10
+urllib3==2.3.0
+certifi==2025.1.31
+tqdm==4.67.1
+protobuf==5.29.3
+pyparsing==3.2.1
+pytest==8.3.5
+iniconfig==2.0.0
+pluggy==1.5.0
+ruff==0.9.10
+flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.5.8/flash_attn-2.5.8%2Bcu122torch2.3cxx11abiFALSE-cp310-cp310-linux_x86_64.whl#sha256=13454dd3d37cf173649bd389b84614b8072fb283f8f2fd23a65ab66caafc304b
