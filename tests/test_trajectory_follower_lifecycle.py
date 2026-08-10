@@ -32,10 +32,14 @@ class CountingFollower:
 
 class FakeTrajectoryEnv:
     def __init__(self):
-        self._task = SimpleNamespace(_sim=FakeSimulator())
+        self.simulator = FakeSimulator()
         self.max_episode_steps = 5
         self.reset_count = 0
-        self._current_episode = None
+        self.current_episode = None
+
+    @property
+    def agent_state(self):
+        return self.simulator.get_agent_state()
 
     @staticmethod
     def _observation():
@@ -43,8 +47,8 @@ class FakeTrajectoryEnv:
 
     def reset_to_episode(self, episode):
         self.reset_count += 1
-        self._current_episode = episode
-        self._task._sim.state.position = list(episode.start_position)
+        self.current_episode = episode
+        self.simulator.state.position = list(episode.start_position)
         return self._observation()
 
     def step(self, action):
@@ -65,6 +69,24 @@ def make_episode():
     )
 
 
+def make_config(output_path):
+    scenes_dir = os.path.join(output_path, "scenes")
+    os.makedirs(scenes_dir, exist_ok=True)
+    with open(os.path.join(scenes_dir, "test-scene.tif"), "wb") as handle:
+        handle.write(b"test-scene-content")
+    return SimpleNamespace(
+        ENVIRONMENT=SimpleNamespace(MAX_EPISODE_STEPS=5),
+        SIMULATOR=SimpleNamespace(
+            TYPE="satsim",
+            FORWARD_STEP_SIZE=10,
+            TURN_ANGLE=15,
+            RGB_SENSOR=SimpleNamespace(WIDTH=2, HEIGHT=2, HFOV=90),
+        ),
+        TASK=SimpleNamespace(SUCCESS_DISTANCE=3.0),
+        DATASET=SimpleNamespace(SCENES_DIR=scenes_dir),
+    )
+
+
 class SerialTrajectoryLifecycleTests(unittest.TestCase):
     def test_runner_resets_follower_and_preserves_action_frame_alignment(self):
         with tempfile.TemporaryDirectory() as output_path:
@@ -72,9 +94,8 @@ class SerialTrajectoryLifecycleTests(unittest.TestCase):
             runner.output_path = output_path
             runner.dataset_name = "satnav"
             runner._completed_episode_ids = set()
-            runner.config = SimpleNamespace(
-                TASK=SimpleNamespace(SUCCESS_DISTANCE=3.0)
-            )
+            runner.config = make_config(output_path)
+            runner._scene_identity_cache = {}
             runner.env = FakeTrajectoryEnv()
             runner.path_follower = CountingFollower()
 
@@ -111,9 +132,8 @@ class ParallelTrajectoryLifecycleTests(unittest.TestCase):
             "_worker_dataset": SimpleNamespace(episodes=[episode]),
             "_worker_output_path": output_path,
             "_worker_dataset_name": "satnav",
-            "_worker_config": SimpleNamespace(
-                TASK=SimpleNamespace(SUCCESS_DISTANCE=3.0)
-            ),
+            "_worker_config": make_config(output_path),
+            "_worker_scene_identity_cache": {},
         }
         with mock.patch.multiple(generate_parallel, **replacements):
             annotation = generate_parallel.process_single_episode(0)
@@ -129,7 +149,7 @@ class ParallelTrajectoryLifecycleTests(unittest.TestCase):
             self.assertEqual(environment.reset_count, 1)
             self.assertEqual(annotation["actions"], [-1, 0])
 
-    def test_parallel_corrupt_cache_rerun_gets_a_second_clean_reset(self):
+    def test_parallel_legacy_marker_forces_one_clean_full_rerender(self):
         with tempfile.TemporaryDirectory() as output_path:
             annotation, follower, environment = self.run_generator(
                 output_path,
@@ -137,8 +157,8 @@ class ParallelTrajectoryLifecycleTests(unittest.TestCase):
             )
 
             self.assertFalse(annotation.get("_failed", False))
-            self.assertEqual(follower.reset_count, 2)
-            self.assertEqual(environment.reset_count, 2)
+            self.assertEqual(follower.reset_count, 1)
+            self.assertEqual(environment.reset_count, 1)
             rgb_dir = os.path.join(output_path, annotation["video"], "rgb")
             self.assertEqual(sorted(os.listdir(rgb_dir)), ["001.jpg", "002.jpg"])
 

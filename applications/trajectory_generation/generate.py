@@ -71,8 +71,8 @@ def _load_episode_indices(path: Path):
     return indices
 
 
-def main():
-    """Main entry point for trajectory generation."""
+def build_parser() -> argparse.ArgumentParser:
+    """Build the serial generator CLI parser for reuse in fast tests."""
     parser = argparse.ArgumentParser(
         description="Generate trajectory data from SatNav episodes",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -107,8 +107,11 @@ Examples:
     parser.add_argument(
         "--landmark_success",
         type=float,
-        default=2.0,
-        help="SUCCESS_DISTANCE for LandmarkSet episodes in meters (default: 2.0)"
+        default=None,
+        help=(
+            "Optional SUCCESS_DISTANCE override for LandmarkSet episodes in "
+            "meters (default: keep the value from --config)"
+        ),
     )
 
     parser.add_argument(
@@ -118,7 +121,12 @@ Examples:
         help="Optional file containing episode indices to generate (JSON array/object or newline/comma-separated text)"
     )
 
-    args = parser.parse_args()
+    return parser
+
+
+def main():
+    """Main entry point for trajectory generation."""
+    args = build_parser().parse_args()
     
     # Validate config file exists
     config_path = Path(args.config)
@@ -131,7 +139,10 @@ Examples:
     print("=" * 60)
     print(f"Config: {args.config}")
     print(f"Output: {args.output_dir}")
-    print(f"Landmark success distance: {args.landmark_success}m")
+    if args.landmark_success is None:
+        print("Landmark success distance: from config")
+    else:
+        print(f"Landmark success distance override: {args.landmark_success}m")
     selected_indices = None
     if args.episode_indices_file:
         episode_indices_path = Path(args.episode_indices_file)
