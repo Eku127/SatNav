@@ -4,7 +4,7 @@
 列出所有城市及其 episodes 统计信息
 
 Usage:
-    python inspect_data.py ver_260211
+    python -m applications.episode_processing.inspect_data SatNav-v0.1
 """
 
 import json
@@ -149,7 +149,7 @@ def main():
     parser.add_argument(
         "version",
         type=str,
-        help="数据集版本名称 (e.g., ver_260211)"
+        help="数据集版本名称 (e.g., SatNav-v0.1)"
     )
 
     args = parser.parse_args()

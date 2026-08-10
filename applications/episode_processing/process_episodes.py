@@ -4,9 +4,9 @@
 将各城市的VLN_episodes.json按照城市和类型整理成train和eval数据集
 
 Usage:
-    python process_episodes.py ver_260202
-    python process_episodes.py ver_260202 --train-only
-    python process_episodes.py ver_260202 --eval-only
+    python -m applications.episode_processing.process_episodes SatNav-v0.1
+    python -m applications.episode_processing.process_episodes SatNav-v0.1 --train-only
+    python -m applications.episode_processing.process_episodes SatNav-v0.1 --eval-only
 """
 
 import json
@@ -119,7 +119,7 @@ def process_episodes(
     处理指定版本的episodes数据
 
     Args:
-        version: 数据集版本名称 (e.g., ver_260202)
+        version: 数据集版本名称 (e.g., SatNav-v0.1)
         train_only: 只处理训练集
         eval_only: 只处理评估集
     """
@@ -189,7 +189,7 @@ def main():
     parser.add_argument(
         "version",
         type=str,
-        help="数据集版本名称 (e.g., ver_260202)"
+        help="数据集版本名称 (e.g., SatNav-v0.1)"
     )
     parser.add_argument(
         "--train-only",

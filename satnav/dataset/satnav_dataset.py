@@ -4,8 +4,7 @@
 import gzip
 import json
 import os
-from pathlib import Path
-from typing import List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Union
 
 from omegaconf import DictConfig
 
@@ -14,12 +13,32 @@ from satnav.core.episode import (
     NavigationGoal,
     VLNEpisode,
 )
+from satnav.dataset.scene_resolver import SceneResolver
 
 
 # Constants for filtering
 ALL_SCENES_MASK = "*"
 ALL_EPISODES_MASK = "*"
-DEFAULT_SCENE_PATH_PREFIX = "data/scene_datasets/"
+
+_KNOWN_EPISODE_FIELDS = {
+    "episode_id",
+    "trajectory_id",
+    "trajectory_type",
+    "trajectory_subtype",
+    "scene_id",
+    "start_position",
+    "start_rotation",
+    "goals",
+    "instruction",
+    "waypoints",
+    "reference_path",
+    "aux_info",
+}
+_KNOWN_INSTRUCTION_FIELDS = {
+    "instruction_text",
+    "instruction_type",
+    "difficulty_level",
+}
 
 
 class SatNavDataset:
@@ -45,6 +64,11 @@ class SatNavDataset:
                 - EPISODES_ALLOWED: List of episode IDs to load, or ["*"] for all (optional)
         """
         self.episodes: List[VLNEpisode] = []
+        self.split: Optional[str] = None
+        self.scenes_dir: Optional[str] = None
+        self.scene_resolver = SceneResolver()
+        self.instruction_vocab: Optional[Dict[str, Any]] = None
+        self.metadata: Dict[str, Any] = {}
         
         if config is None:
             return
@@ -62,14 +86,23 @@ class SatNavDataset:
             scenes_dir = config.get("SCENES_DIR")
             content_scenes = config.get("CONTENT_SCENES", [ALL_SCENES_MASK])
             episodes_allowed = config.get("EPISODES_ALLOWED", [ALL_EPISODES_MASK])
+
+        if data_path is None:
+            raise ValueError("DATASET.DATA_PATH must be configured")
+
+        self.split = str(split) if split is not None else None
+        self.scenes_dir = str(scenes_dir) if scenes_dir is not None else None
+        self.scene_resolver = SceneResolver(self.scenes_dir)
+        content_scenes = content_scenes or [ALL_SCENES_MASK]
+        episodes_allowed = episodes_allowed or [ALL_EPISODES_MASK]
         
         # Load dataset file
         # Handle both format strings and direct paths
         try:
-            dataset_filename = data_path.format(split=split)
+            dataset_filename = str(data_path).format(split=split)
         except (KeyError, AttributeError):
             # If format fails, use data_path directly (might be absolute path)
-            dataset_filename = data_path
+            dataset_filename = str(data_path)
         
         if not os.path.exists(dataset_filename):
             raise FileNotFoundError(f"Dataset file not found: {dataset_filename}")
@@ -95,7 +128,9 @@ class SatNavDataset:
         
         # Filter by scenes if specified
         if ALL_SCENES_MASK not in content_scenes:
-            scenes_to_load = set(content_scenes)
+            scenes_to_load = {
+                self.scene_from_scene_path(scene) for scene in content_scenes
+            }
             self.episodes = [
                 e for e in self.episodes
                 if self.scene_from_scene_path(e.scene_id) in scenes_to_load
@@ -104,41 +139,77 @@ class SatNavDataset:
         # Filter by episode IDs if specified
         if ALL_EPISODES_MASK not in episodes_allowed:
             ep_ids_before = {ep.episode_id for ep in self.episodes}
-            ep_ids_to_purge = ep_ids_before - set(episodes_allowed)
+            ep_ids_to_purge = ep_ids_before - {
+                str(episode_id) for episode_id in episodes_allowed
+            }
             self.episodes = [
                 episode for episode in self.episodes
                 if episode.episode_id not in ep_ids_to_purge
             ]
     
     def from_json(
-        self, json_str: str, scenes_dir: Optional[str] = None
+        self,
+        json_str: str,
+        scenes_dir: Optional[str] = None,
+        split: Optional[str] = None,
     ) -> None:
         """Load episodes from JSON string.
         
         Args:
             json_str: JSON string containing dataset episodes.
-            scenes_dir: Optional directory path to prepend to scene_id paths.
+            scenes_dir: Optional local scene root.  This resolves
+                ``episode.scene_path`` without changing logical ``scene_id``.
+            split: Optional split override used for stable episode keys.
         """
         deserialized = json.loads(json_str)
-        
-        # Handle instruction_vocab if present (optional, for compatibility)
-        if "instruction_vocab" in deserialized:
-            # Store vocab if needed, but not required for minimal implementation
-            pass
+
+        if not isinstance(deserialized, dict) or not isinstance(
+            deserialized.get("episodes"), list
+        ):
+            raise ValueError("Dataset JSON must contain an 'episodes' list")
+
+        if split is not None:
+            self.split = str(split)
+        if scenes_dir is not None:
+            self.scenes_dir = str(scenes_dir)
+            self.scene_resolver = SceneResolver(self.scenes_dir)
+
+        self.instruction_vocab = deserialized.get("instruction_vocab")
+        self.metadata = {
+            key: value
+            for key, value in deserialized.items()
+            if key not in {"episodes", "instruction_vocab"}
+        }
         
         for episode_data in deserialized["episodes"]:
-            # Convert IDs to strings for consistency
-            episode_data["episode_id"] = str(episode_data.get("episode_id", ""))
-            episode_data["trajectory_id"] = str(episode_data.get("trajectory_id", ""))
+            if not isinstance(episode_data, dict):
+                raise ValueError("Every episode entry must be a JSON object")
+
+            # Convert IDs to strings for compatibility with existing consumers.
+            episode_id = str(episode_data.get("episode_id", ""))
+            trajectory_id = str(episode_data.get("trajectory_id", ""))
             
             # Parse instruction
             instruction_data = episode_data.get("instruction", {})
             if isinstance(instruction_data, dict):
                 instruction = InstructionData(
-                    instruction_text=instruction_data.get("instruction_text", "")
+                    instruction_text=str(
+                        instruction_data.get("instruction_text", "")
+                    ),
+                    instruction_type=instruction_data.get("instruction_type"),
+                    difficulty_level=instruction_data.get("difficulty_level"),
+                    extras={
+                        key: value
+                        for key, value in instruction_data.items()
+                        if key not in _KNOWN_INSTRUCTION_FIELDS
+                    },
                 )
-            else:
+            elif isinstance(instruction_data, InstructionData):
                 instruction = instruction_data
+            else:
+                instruction = InstructionData(
+                    instruction_text=str(instruction_data or "")
+                )
             
             # Parse goals (continuous space coordinates)
             goals_data = episode_data.get("goals", [])
@@ -146,9 +217,18 @@ class SatNavDataset:
             if goals_data is not None:
                 for goal_data in goals_data:
                     if isinstance(goal_data, dict):
-                        goal = NavigationGoal(position=goal_data.get("position", []))
-                    else:
+                        goal = NavigationGoal(
+                            position=goal_data.get("position", []),
+                            extras={
+                                key: value
+                                for key, value in goal_data.items()
+                                if key != "position"
+                            },
+                        )
+                    elif isinstance(goal_data, NavigationGoal):
                         goal = goal_data
+                    else:
+                        goal = NavigationGoal(position=goal_data)
                     goals.append(goal)
             
             # Parse reference_path (continuous path: List[List[float]])
@@ -156,24 +236,35 @@ class SatNavDataset:
             if reference_path is None:
                 reference_path = []
             
-            # Handle scene_id path adjustment
-            scene_id = episode_data.get("scene_id", "")
-            if scenes_dir is not None and scene_id:
-                if scene_id.startswith(DEFAULT_SCENE_PATH_PREFIX):
-                    scene_id = scene_id[len(DEFAULT_SCENE_PATH_PREFIX):]
-                scene_id = os.path.join(scenes_dir, scene_id)
+            raw_scene_reference = str(episode_data.get("scene_id", ""))
+            scene_id = self.scene_resolver.logical_scene_id(raw_scene_reference)
+            scene_path = (
+                self.scene_resolver.resolve(raw_scene_reference)
+                if raw_scene_reference
+                else None
+            )
             
             # Create VLNEpisode
             episode = VLNEpisode(
-                episode_id=episode_data["episode_id"],
+                episode_id=episode_id,
                 scene_id=scene_id,
                 start_position=episode_data.get("start_position", [0.0, 0.0, 0.0]),
                 start_rotation=episode_data.get("start_rotation", 0.0),
                 goals=goals,
                 reference_path=reference_path,
                 instruction=instruction,
-                trajectory_id=episode_data["trajectory_id"],
+                trajectory_id=trajectory_id,
                 trajectory_type=episode_data.get("trajectory_type"),
+                trajectory_subtype=episode_data.get("trajectory_subtype"),
+                waypoints=episode_data.get("waypoints") or [],
+                aux_info=episode_data.get("aux_info") or {},
+                split=self.split,
+                scene_path=scene_path,
+                extras={
+                    key: value
+                    for key, value in episode_data.items()
+                    if key not in _KNOWN_EPISODE_FIELDS
+                },
             )
             
             self.episodes.append(episode)
@@ -188,7 +279,15 @@ class SatNavDataset:
         Returns:
             Scene name without extension.
         """
-        return os.path.splitext(os.path.basename(scene_path))[0]
+        return SceneResolver.logical_scene_id(scene_path)
+
+    def resolve_scene_path(self, scene: Union[str, VLNEpisode]) -> str:
+        """Resolve an episode or logical scene ID to its local asset path."""
+        if isinstance(scene, VLNEpisode):
+            if scene.scene_path:
+                return scene.scene_path
+            scene = scene.scene_id
+        return self.scene_resolver.resolve(scene)
     
     @classmethod
     def check_config_paths_exist(cls, config: Union[DictConfig, dict]) -> bool:
@@ -248,4 +347,3 @@ class SatNavDataset:
             Iterator over episodes.
         """
         return iter(self.episodes)
-

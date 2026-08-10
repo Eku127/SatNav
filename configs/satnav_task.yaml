@@ -31,12 +31,12 @@ TASK:
   
   # Success distance threshold in meters
   # Agent is considered successful if it stops within this distance from the goal
-  # DEFAULT is used for examples and path generation
-  # Type-specific values (Boundary, LandmarkSet, Road) are used during evaluation
+  # This shared application config retains the offline trajectory-generation
+  # waypoint radii. Canonical online evaluation uses configs/satnav_eval_task.yaml.
   SUCCESS_DISTANCE:
     DEFAULT: 10.0
     Boundary: 10.0
-    # Here we set 3 for precise trajectory generation!
+    # Tighter waypoint radius for precise offline trajectory generation only.
     LandmarkSet: 3.0
     Road: 10.0
   

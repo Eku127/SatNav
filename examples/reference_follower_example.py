@@ -27,24 +27,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from satnav.core.config import get_success_distance_default
 from satnav.navigation import ReferencePathFollower
+from satnav.task.config import get_episode_success_distance
 from satnav.utils.examples import (
     setup_example,
     print_episode_info,
     save_visualizations,
     print_metrics,
 )
-
-
-def get_success_distance(config, trajectory_type: str) -> float:
-    """Get SUCCESS_DISTANCE based on trajectory type."""
-    sd_config = config.TASK.SUCCESS_DISTANCE
-    if isinstance(sd_config, (int, float)):
-        return float(sd_config)
-    if trajectory_type and hasattr(sd_config, trajectory_type):
-        return float(getattr(sd_config, trajectory_type))
-    elif hasattr(sd_config, "DEFAULT"):
-        return float(sd_config.DEFAULT)
-    return 10.0
 
 
 def main():
@@ -110,7 +99,7 @@ def main():
         
         # Update goal_radius based on trajectory_type
         trajectory_type = getattr(episode, 'trajectory_type', None)
-        goal_radius = get_success_distance(config, trajectory_type)
+        goal_radius = get_episode_success_distance(config, trajectory_type)
         path_follower.goal_radius = goal_radius
         
         # Print episode information
@@ -129,7 +118,7 @@ def main():
         
         while not done and step_count < env.max_episode_steps:
             # Get next action from reference path follower
-            action = path_follower.get_next_action(env._task._sim)
+            action = path_follower.get_next_action(env.simulator)
             action_history.append(action)
             
             # Execute action

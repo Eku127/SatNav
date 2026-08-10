@@ -30,6 +30,7 @@ from omegaconf import OmegaConf
 
 from satnav.core.env import Env
 from satnav.core.utils import geodesic_distance
+from satnav.task.config import get_episode_success_distance
 from satnav.utils.maps import annotate_topdown_map
 from satnav.utils.examples import prepare_waypoints, print_metrics
 
@@ -83,7 +84,10 @@ class TaskViewer:
         # Navigation state
         self.waypoints = prepare_waypoints(self.episode)
         self.current_waypoint_idx = 0
-        self.goal_radius = self._get_config_value("TASK", "SUCCESS_DISTANCE", 10.0)
+        self.goal_radius = get_episode_success_distance(
+            self.config,
+            getattr(self.episode, "trajectory_type", None),
+        )
         
         print(f"  Waypoints: {len(self.waypoints)}")
         print(f"  Goal radius: {self.goal_radius}m")
@@ -104,23 +108,12 @@ class TaskViewer:
                 measurements_list.append("TOP_DOWN_MAP")
                 self.config.TASK.MEASUREMENTS = measurements_list
     
-    def _get_config_value(self, section: str, key: str, default):
-        """Get configuration value with fallback."""
-        if isinstance(self.config, dict):
-            section_config = self.config.get(section, {})
-            if isinstance(section_config, dict):
-                return section_config.get(key, default)
-            return getattr(section_config, key, default)
-        else:
-            section_config = getattr(self.config, section, {})
-            return getattr(section_config, key, default)
-    
     def _check_waypoint_reached(self):
         """Check if current waypoint has been reached and update index."""
         if not self.waypoints or self.current_waypoint_idx >= len(self.waypoints):
             return
         
-        agent_state = self.env._task._sim.get_agent_state()
+        agent_state = self.env.agent_state
         current_waypoint = self.waypoints[self.current_waypoint_idx]
         
         current_distance = geodesic_distance(
@@ -138,12 +131,12 @@ class TaskViewer:
     def _handle_move_forward(self):
         """Handle move forward action with boundary checking."""
         action = "MOVE_FORWARD"
-        agent_state_before = self.env._task._sim.get_agent_state()
+        agent_state_before = self.env.agent_state
         position_before = agent_state_before.position
         
         try:
             self.obs, done, info = self.env.step(action)
-            agent_state_after = self.env._task._sim.get_agent_state()
+            agent_state_after = self.env.agent_state
             position_after = agent_state_after.position
             
             # Check if position actually changed (movement was successful)
@@ -216,6 +209,10 @@ class TaskViewer:
             self.at_boundary = False
             self.waypoints = prepare_waypoints(self.episode)
             self.current_waypoint_idx = 0
+            self.goal_radius = get_episode_success_distance(
+                self.config,
+                getattr(self.episode, "trajectory_type", None),
+            )
             
             print(f"\nLoaded next episode: {self.episode.episode_id}")
             print(f"Scene: {self.episode.scene_id}")
@@ -470,7 +467,7 @@ class TaskViewer:
             rgb_image = self.obs["rgb"].copy()
             
             # Get agent state
-            agent_state = self.env._task._sim.get_agent_state()
+            agent_state = self.env.agent_state
             
             # Calculate distances
             dist_to_next_waypoint = 0.0

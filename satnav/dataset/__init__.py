@@ -2,22 +2,26 @@
 
 Keep package imports lightweight.
 
-`RecollectionDataset` pulls in the training package, which in turn imports the
-evaluator and environment stack. Import it lazily here to avoid circular import
-failures when evaluation code only needs `SatNavDataset`.
+Training-oriented datasets import PyTorch and are exposed lazily so importing
+the core episode loader never loads baseline dependencies.
 """
 
-from satnav.dataset.offline_trajectory_dataset import OfflineTrajectoryDataset
 from satnav.dataset.satnav_dataset import SatNavDataset
+from satnav.dataset.scene_resolver import SceneResolver
 
 __all__ = [
     "SatNavDataset",
+    "SceneResolver",
     "RecollectionDataset",
     "OfflineTrajectoryDataset",
 ]
 
 
 def __getattr__(name):
+    if name == "OfflineTrajectoryDataset":
+        from satnav.dataset.offline_trajectory_dataset import OfflineTrajectoryDataset
+
+        return OfflineTrajectoryDataset
     if name == "RecollectionDataset":
         from satnav.dataset.recollect_dataset import RecollectionDataset
 

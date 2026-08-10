@@ -3,7 +3,7 @@
 一键处理数据集：生成 episodes
 
 Usage:
-    python run_all.py ver_260202
+    python -m applications.episode_processing.run_all SatNav-v0.1
 """
 
 import argparse
@@ -81,7 +81,7 @@ def main():
     parser.add_argument(
         "version",
         type=str,
-        help="数据集版本名称 (e.g., ver_260202)"
+        help="数据集版本名称 (e.g., SatNav-v0.1)"
     )
     args = parser.parse_args()
 
