@@ -1,0 +1,35 @@
+# Canonical SatNav-v0.1 online-evaluation task configuration.
+#
+# Evaluation success radii are metric thresholds.  They are intentionally
+# separate from the tighter LandmarkSet waypoint radius used while generating
+# offline expert trajectories in
+# applications/episode_processing/configs/trajectory_generation.yaml.
+
+ENVIRONMENT:
+  MAX_EPISODE_STEPS: 500
+
+SIMULATOR:
+  TYPE: satsim
+  FORWARD_STEP_SIZE: 10
+  TURN_ANGLE: 15
+  RGB_SENSOR:
+    WIDTH: 448
+    HEIGHT: 448
+    HFOV: 90
+
+TASK:
+  TYPE: VLN
+  SUCCESS_DISTANCE:
+    DEFAULT: 10.0
+    Boundary: 10.0
+    LandmarkSet: 30.0
+    Road: 10.0
+  POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, ORACLE_SUCCESS, SPL, PATH_LENGTH]
+
+DATASET:
+  TYPE: SatNav
+  VERSION: SatNav-v0.1
+  SPLIT: val_seen
+  DATA_PATH: applications/resources/satnav_example_episodes.json
+  SCENES_DIR: applications/resources/
