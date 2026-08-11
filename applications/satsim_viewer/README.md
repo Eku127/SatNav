@@ -13,6 +13,9 @@ The default free-viewer map is:
 applications/resources/map.tif
 ```
 
+This bundled scene is a procedurally generated CC0 example, not provider map
+or satellite imagery. See [resource provenance](../resources/README.md).
+
 The default task-viewer config is:
 
 ```bash

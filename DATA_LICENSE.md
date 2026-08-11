@@ -29,6 +29,15 @@ separate SatNav-Episodes dataset releases.
 
 ## Satellite and Map Imagery
 
+The bundled `applications/resources/map.tif` is an exception to the following
+third-party-imagery warning because it is not imagery from a map provider. It
+is generated entirely from deterministic coordinate formulas by
+`scripts/generate_synthetic_example_map.py` and is dedicated to the public
+domain under CC0 1.0. Its GeoTIFF tags and
+`applications/resources/README.md` record this provenance.
+
+https://creativecommons.org/publicdomain/zero/1.0/
+
 Google Maps, Mapbox, and other third-party satellite or map imagery are not
 included in the SatNav-Episodes dataset release and are not sublicensed by the
 authors. The map downloader utilities are provided only to help users prepare

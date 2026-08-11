@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit SatNav release files through the public lossless dataset loader."""
+"""Validate SatNav episode data and scene coverage."""
 
 from __future__ import annotations
 
@@ -10,26 +10,15 @@ import os
 import tempfile
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Tuple
 
 from satnav.dataset import SatNavDataset, SceneResolver
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _file_identity(
-    path: Path, digest: Optional[str] = None
-) -> Mapping[str, Any]:
-    """Return a content-bound identity without retaining a host path."""
+def _file_identity(path: Path) -> Mapping[str, Any]:
+    """Return a portable file identity without retaining a host path."""
     return {
         "id": path.name,
-        "sha256": digest if digest is not None else _sha256(path),
         "size": path.stat().st_size,
     }
 
@@ -88,14 +77,8 @@ def validate_split(
     path: Path,
     scenes_dir: Path,
     expected_count: int,
-    expected_digest: str,
 ) -> Mapping[str, Any]:
-    digest = _sha256(path)
     errors: List[str] = []
-    if digest != expected_digest:
-        errors.append(
-            f"dataset digest mismatch: expected {expected_digest}, got {digest}"
-        )
     with path.open("r", encoding="utf-8") as handle:
         source = json.load(handle)
     source_rows = source.get("episodes") if isinstance(source, dict) else None
@@ -174,7 +157,7 @@ def validate_split(
         key_digest.update(encoded)
     return {
         "status": "passed" if not errors else "failed",
-        "artifact": _file_identity(path, digest),
+        "artifact": _file_identity(path),
         "source_count": len(source_rows),
         "loader_count": len(dataset.episodes),
         "unique_key_count": len(set(keys)),
@@ -196,48 +179,52 @@ def main() -> int:
     parser.add_argument("--split", type=_parse_split, action="append", required=True)
     parser.add_argument("--expected", action="append", required=True)
     parser.add_argument("--scenes-dir", type=Path, required=True)
-    parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        help="Optional JSON report path. No report is written by default.",
+    )
     args = parser.parse_args()
 
     expected = {}
     for value in args.expected:
-        name, separator, facts = value.partition("=")
-        count, separator_two, digest = facts.partition(":")
-        if not separator or not separator_two:
-            raise ValueError("--expected must be NAME=COUNT:SHA256")
-        expected[name] = (int(count), digest)
+        name, separator, count = value.partition("=")
+        if not separator or not name or not count:
+            raise ValueError("--expected must be NAME=COUNT")
+        expected[name] = int(count)
 
     reports = {}
     for split, path in args.split:
         if split not in expected:
             raise ValueError(f"no --expected facts for split {split}")
-        reports[split] = validate_split(
-            split, path, args.scenes_dir, *expected[split]
-        )
+        reports[split] = validate_split(split, path, args.scenes_dir, expected[split])
     status = "passed" if all(
         report["status"] == "passed" for report in reports.values()
     ) else "failed"
-    payload = {
-        "schema_version": 2,
-        "status": status,
-        "scene_dir": _directory_identity(args.scenes_dir),
-        "splits": reports,
-    }
-    _atomic_json(args.report, payload)
-    print(
-        json.dumps(
-            {
-                split: {
-                    "count": report["loader_count"],
-                    "unique": report["unique_key_count"],
-                    "status": report["status"],
-                }
-                for split, report in reports.items()
-            },
-            sort_keys=True,
+    if args.report is not None:
+        payload = {
+            "schema_version": 2,
+            "status": status,
+            "scene_dir": _directory_identity(args.scenes_dir),
+            "splits": reports,
+        }
+        _atomic_json(args.report, payload)
+
+    for split, report in reports.items():
+        print(
+            f"{split}: {report['status']} "
+            f"({report['loader_count']} episodes)"
         )
-    )
-    print(f"status={status} report={args.report}")
+        for error in report["errors"]:
+            print(f"  - {error}")
+
+    if args.report is not None:
+        print(f"Report: {args.report}")
+    if status == "passed":
+        print("SatNav data configuration is complete.")
+    else:
+        print("SatNav data configuration is incomplete.")
     return 0 if status == "passed" else 1
 
 

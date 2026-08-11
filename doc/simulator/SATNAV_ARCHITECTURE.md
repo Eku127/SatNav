@@ -257,11 +257,16 @@ Model-specific scripts live under:
 
 ## Configuration Entry Points
 
-The main task configuration is:
+The canonical online-evaluation task configuration is:
 
 ```text
-configs/satnav_task.yaml
+configs/satnav_eval_task.yaml
 ```
+
+Offline production uses
+`applications/episode_processing/configs/trajectory_generation.yaml`. Its
+3 m LandmarkSet waypoint radius is deliberately separate from the canonical
+30 m online-evaluation success threshold.
 
 Baseline training and evaluation configs are under:
 
@@ -298,4 +303,3 @@ When editing the simulator stack, prefer these boundaries:
 
 Avoid hard-coding dataset or map paths in code. Prefer config fields and
 scripts.
-

@@ -27,6 +27,15 @@ The authors do not redistribute, sublicense, or grant rights to Google Maps or
 Mapbox imagery. Generated local GeoTIFF scene files are user-prepared assets and
 are not covered by the SatNav source-code license.
 
+Bundled Synthetic Example Map
+-----------------------------
+
+`applications/resources/map.tif` is generated from deterministic coordinate
+formulas by `scripts/generate_synthetic_example_map.py`. It contains no
+third-party map or satellite pixels and is dedicated to the public domain under
+CC0 1.0. The georeferencing is retained only for compatibility with the bundled
+example episodes; the synthetic visual features do not describe that place.
+
 Research and Safety Notice
 --------------------------
 

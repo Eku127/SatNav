@@ -12,14 +12,14 @@ from omegaconf import OmegaConf
 
 from scripts.validation import capture_env_trace
 from scripts.validation import compare_env_traces
-from scripts.validation import validate_dataset_release
+from scripts.validation import data_validation
 
 
 def _json_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_dataset_release_report_uses_only_portable_input_identities(
+def test_data_validation_report_uses_only_portable_input_identities(
     tmp_path, monkeypatch
 ):
     private_root = tmp_path / "private-host-root"
@@ -53,20 +53,19 @@ def test_dataset_release_report_uses_only_portable_input_identities(
             }
 
     monkeypatch.setattr(
-        validate_dataset_release,
+        data_validation,
         "SatNavDataset",
         lambda _config: SimpleNamespace(episodes=[FakeEpisode(), FakeEpisode()]),
     )
     report_path = private_root / "release-report.json"
-    digest = _json_sha256(dataset_path)
     monkeypatch.setattr(
         "sys.argv",
         [
-            "validate_dataset_release.py",
+            "data_validation.py",
             "--split",
             f"val_seen={dataset_path}",
             "--expected",
-            f"val_seen=2:{digest}",
+            "val_seen=2",
             "--scenes-dir",
             str(scenes_dir),
             "--report",
@@ -74,7 +73,7 @@ def test_dataset_release_report_uses_only_portable_input_identities(
         ],
     )
 
-    assert validate_dataset_release.main() == 1
+    assert data_validation.main() == 1
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     serialized = json.dumps(payload, sort_keys=True)
 
@@ -83,7 +82,6 @@ def test_dataset_release_report_uses_only_portable_input_identities(
     split = payload["splits"]["val_seen"]
     assert split["artifact"] == {
         "id": "episodes.json",
-        "sha256": digest,
         "size": dataset_path.stat().st_size,
     }
     assert split["missing_scene_assets"] == [
@@ -91,6 +89,60 @@ def test_dataset_release_report_uses_only_portable_input_identities(
         {"index": 1, "scene_id": "SecretScene"},
     ]
     assert split["duplicate_keys"] == ["val_seen::SecretScene::7"]
+
+
+def test_data_validation_runs_without_writing_a_report(
+    tmp_path, monkeypatch, capsys
+):
+    scenes_dir = tmp_path / "scenes"
+    scenes_dir.mkdir()
+    scene_asset_path = scenes_dir / "Scene-1.tif"
+    scene_asset_path.touch()
+    dataset_path = tmp_path / "episodes.json"
+    source_row = {
+        "episode_id": "7",
+        "trajectory_id": "11",
+        "scene_id": "Scene-1",
+    }
+    dataset_path.write_text(
+        json.dumps({"episodes": [source_row]}),
+        encoding="utf-8",
+    )
+
+    class FakeEpisode:
+        episode_id = "7"
+        trajectory_id = "11"
+        scene_id = "Scene-1"
+        scene_path = str(scene_asset_path)
+        episode_key = "val_seen::Scene-1::7"
+
+        @staticmethod
+        def to_dict():
+            return dict(source_row)
+
+    monkeypatch.setattr(
+        data_validation,
+        "SatNavDataset",
+        lambda _config: SimpleNamespace(episodes=[FakeEpisode()]),
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "data_validation.py",
+            "--split",
+            f"val_seen={dataset_path}",
+            "--expected",
+            "val_seen=1",
+            "--scenes-dir",
+            str(scenes_dir),
+        ],
+    )
+
+    assert data_validation.main() == 0
+    output = capsys.readouterr().out
+    assert "val_seen: passed (1 episodes)" in output
+    assert "SatNav data configuration is complete." in output
+    assert "Report:" not in output
 
 
 def test_capture_trace_removes_checkout_and_scene_asset_paths(

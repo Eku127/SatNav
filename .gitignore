@@ -111,6 +111,9 @@ dmypy.json
 # Project Specific
 # =============================================================================
 
+# A local comparison checkout/ref is never part of the public source tree.
+/rebuttal/
+
 # Dataset files (usually large, should be stored separately)
 data/datasets/
 data/scene_datasets/
@@ -119,6 +122,8 @@ data/scene_datasets/
 # Keep example dataset for tests
 !tests/test_data/*.json
 !applications/trajectory_generation/config/traj_gen_example.json
+!baselines/vlm/openfly/configs/zero2.json
+!baselines/vlm/uninavid/configs/zero1.json
 
 # Scene files (GeoTIFF)
 *.tif
@@ -133,14 +138,23 @@ data/
 
 # Output files (visualizations, videos, results)
 output/
+runtime/
+baselines/vlm/*/results/
 
 # Model checkpoints and logs
 checkpoints/
 logs/
 runs/
 wandb/
+*.ckpt
+*.pth
+*.pt
+*.safetensors
+*.onnx
+pytorch_model*.bin
 
 # Local configuration overrides
+.local/
 **/.local/
 configs/local_*.yaml
 *.local.yaml
