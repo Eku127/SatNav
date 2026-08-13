@@ -45,6 +45,7 @@ pip-delete-this-directory.txt
 # Testing & Coverage
 # =============================================================================
 
+tests/
 htmlcov/
 .tox/
 .nox/
