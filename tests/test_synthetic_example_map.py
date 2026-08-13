@@ -71,7 +71,7 @@ class SyntheticExampleMapTests(unittest.TestCase):
                             tracked_source.read(window=window),
                         )
 
-    def test_packaged_resource_helper_resets_the_example_environment(self):
+    def test_resource_helper_resets_the_example_environment(self):
         config = load_example_task_config()
         self.assertTrue(Path(config.DATASET.DATA_PATH).is_file())
         self.assertTrue(Path(config.DATASET.SCENES_DIR).is_dir())
