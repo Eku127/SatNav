@@ -186,6 +186,15 @@ bash baselines/vlm/navila/scripts/download.sh \
 评测时将下载后的目录传给 `--model-path`。发布目录包含推理所需文件，不包含 optimizer 与
 scheduler state。
 
+已发布 checkpoint 在完整 split 和 500 步上限下的参考结果如下：
+
+| Checkpoint | Split | Episode 数 | NE ↓ | OS ↑ | SR ↑ | SPL ↑ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Scratch | `val_seen` | 4,574 | 93.05 | 27.59 | 18.10 | 18.02 |
+| Scratch | `val_unseen` | 8,756 | 128.88 | 23.66 | 13.00 | 12.96 |
+| Continue | `val_seen` | 4,574 | 93.88 | 35.00 | 24.99 | 24.88 |
+| Continue | `val_unseen` | 8,756 | 123.49 | 31.60 | 18.57 | 18.44 |
+
 ### 5.2 训练起点
 
 `continue` 训练使用 NaVILA SFT checkpoint：

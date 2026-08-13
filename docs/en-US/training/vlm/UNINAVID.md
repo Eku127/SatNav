@@ -170,6 +170,16 @@ Pass the downloaded directory to `--model-path` for evaluation. The EVA weight
 and processor described below are still required. These releases contain
 inference artifacts rather than optimizer and scheduler state.
 
+The released checkpoints achieve the following reference results on the full
+splits with a 500-step cap.
+
+| Checkpoint | Split | Episodes | NE ↓ | OS ↑ | SR ↑ | SPL ↑ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Scratch | `val_seen` | 4,574 | 174.68 | 60.43 | 25.12 | 24.81 |
+| Scratch | `val_unseen` | 8,756 | 228.46 | 49.94 | 20.36 | 20.00 |
+| Continue | `val_seen` | 4,574 | 87.11 | 68.17 | 49.69 | 49.15 |
+| Continue | `val_unseen` | 8,756 | 149.85 | 55.85 | 36.72 | 36.29 |
+
 ### 5.2 Training starting point and shared assets
 
 Download the complete Uni-NaVid checkpoint and EVA weights:

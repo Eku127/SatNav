@@ -172,6 +172,16 @@ bash baselines/vlm/streamvln/scripts/download.sh \
 Pass the downloaded directory to `--model-path` for evaluation. These releases
 contain inference artifacts rather than optimizer and scheduler state.
 
+The released checkpoints achieve the following reference results on the full
+splits with a 500-step cap.
+
+| Checkpoint | Split | Episodes | NE ↓ | OS ↑ | SR ↑ | SPL ↑ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Scratch | `val_seen` | 4,574 | 53.24 | 71.71 | 64.30 | 63.66 |
+| Scratch | `val_unseen` | 8,756 | 84.99 | 60.99 | 52.25 | 51.78 |
+| Continue | `val_seen` | 4,574 | 47.47 | 77.59 | 70.35 | 69.66 |
+| Continue | `val_unseen` | 8,756 | 86.63 | 68.33 | 58.44 | 57.80 |
+
 ### 5.2 Training starting points
 
 `continue` training starts from the official StreamVLN checkpoint:

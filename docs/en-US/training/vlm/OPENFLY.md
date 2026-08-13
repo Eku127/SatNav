@@ -157,6 +157,16 @@ python -m huggingface_hub.commands.huggingface_cli download \
 Pass the downloaded directory to `--model-path` for evaluation. These releases
 contain inference artifacts rather than optimizer and scheduler state.
 
+The released checkpoints achieve the following reference results with a
+500-step cap.
+
+| Checkpoint | Split | Episodes | NE ↓ | OS ↑ | SR ↑ | SPL ↑ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Scratch | `val_seen` | 4,601 | 166.88 | 33.47 | 13.21 | 13.03 |
+| Scratch | `val_unseen` | 8,756 | 195.91 | 32.17 | 11.73 | 11.62 |
+| Continue | `val_seen` | 4,601 | 163.07 | 38.08 | 21.10 | 20.99 |
+| Continue | `val_unseen` | 8,756 | 196.90 | 34.88 | 17.12 | 16.91 |
+
 ### 5.2 Continue from a complete Hugging Face checkpoint
 
 `continue` accepts a complete local OpenFly checkpoint in Hugging Face format:

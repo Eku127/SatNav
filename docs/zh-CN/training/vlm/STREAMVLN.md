@@ -185,6 +185,15 @@ bash baselines/vlm/streamvln/scripts/download.sh \
 评测时将下载后的目录传给 `--model-path`。发布目录包含推理所需文件，不包含 optimizer 与
 scheduler state。
 
+已发布 checkpoint 在完整 split 和 500 步上限下的参考结果如下：
+
+| Checkpoint | Split | Episode 数 | NE ↓ | OS ↑ | SR ↑ | SPL ↑ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Scratch | `val_seen` | 4,574 | 53.24 | 71.71 | 64.30 | 63.66 |
+| Scratch | `val_unseen` | 8,756 | 84.99 | 60.99 | 52.25 | 51.78 |
+| Continue | `val_seen` | 4,574 | 47.47 | 77.59 | 70.35 | 69.66 |
+| Continue | `val_unseen` | 8,756 | 86.63 | 68.33 | 58.44 | 57.80 |
+
 ### 5.2 训练起点
 
 `continue` 训练使用官方 StreamVLN checkpoint：

@@ -184,6 +184,15 @@ python -m huggingface_hub.commands.huggingface_cli download \
 评测时将下载后的目录传给 `--model-path`，同时仍需准备下文中的 EVA 权重和 processor。发布
 目录包含推理所需文件，不包含 optimizer 与 scheduler state。
 
+已发布 checkpoint 在完整 split 和 500 步上限下的参考结果如下：
+
+| Checkpoint | Split | Episode 数 | NE ↓ | OS ↑ | SR ↑ | SPL ↑ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Scratch | `val_seen` | 4,574 | 174.68 | 60.43 | 25.12 | 24.81 |
+| Scratch | `val_unseen` | 8,756 | 228.46 | 49.94 | 20.36 | 20.00 |
+| Continue | `val_seen` | 4,574 | 87.11 | 68.17 | 49.69 | 49.15 |
+| Continue | `val_unseen` | 8,756 | 149.85 | 55.85 | 36.72 | 36.29 |
+
 ### 5.2 训练起点与共用资源
 
 下载 Uni-NaVid 完整 checkpoint 和 EVA 权重：

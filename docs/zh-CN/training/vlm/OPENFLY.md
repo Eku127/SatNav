@@ -177,6 +177,15 @@ python -m huggingface_hub.commands.huggingface_cli download \
 评测时将下载后的目录传给 `--model-path`。发布目录包含推理所需文件，不包含 optimizer 与
 scheduler state。
 
+已发布 checkpoint 在 500 步上限下的参考结果如下：
+
+| Checkpoint | Split | Episode 数 | NE ↓ | OS ↑ | SR ↑ | SPL ↑ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Scratch | `val_seen` | 4,601 | 166.88 | 33.47 | 13.21 | 13.03 |
+| Scratch | `val_unseen` | 8,756 | 195.91 | 32.17 | 11.73 | 11.62 |
+| Continue | `val_seen` | 4,601 | 163.07 | 38.08 | 21.10 | 20.99 |
+| Continue | `val_unseen` | 8,756 | 196.90 | 34.88 | 17.12 | 16.91 |
+
 ### 5.2 Continue：完整 HF checkpoint
 
 `continue` 接受一个本地 Hugging Face 格式的完整 OpenFly checkpoint：
