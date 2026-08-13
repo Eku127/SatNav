@@ -1,4 +1,4 @@
-"""Deterministic JSON helpers for evaluation artifacts."""
+"""JSON helpers for evaluation results."""
 
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ def to_jsonable(value: Any) -> Any:
 
 
 def canonical_json_bytes(value: Any) -> bytes:
-    """Encode JSON using the canonical representation used for digests."""
+    """Encode a compact, deterministic JSON value."""
 
     return json.dumps(
         to_jsonable(value),

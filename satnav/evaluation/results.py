@@ -1,11 +1,10 @@
-"""Rank-local JSONL persistence, resume, validation, and aggregation."""
+"""Rank-local JSONL persistence, resume, and metric aggregation."""
 
 from __future__ import annotations
 
 import json
 import math
 import os
-from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
@@ -15,8 +14,6 @@ from satnav.evaluation._json import (
     read_json_object,
     to_jsonable,
 )
-from satnav.evaluation.episodes import episode_keys_digest
-from satnav.evaluation.manifest import ManifestError, read_manifest
 
 
 RESULT_SCHEMA_VERSION = 1
@@ -30,14 +27,6 @@ class ResumeRequiredError(ResultError):
     """Raised rather than silently appending to a prior non-resume run."""
 
 
-class ResultValidationError(ResultError):
-    """Raised when expected-count, duplicate, missing, or rank checks fail."""
-
-    def __init__(self, message: str, summary: Optional[Mapping[str, Any]] = None):
-        super().__init__(message)
-        self.summary = summary
-
-
 def rank_directory(output_dir: Path, rank: int) -> Path:
     return Path(output_dir) / f"rank_{int(rank):05d}"
 
@@ -45,10 +34,9 @@ def rank_directory(output_dir: Path, rank: int) -> Path:
 class RankResultStore:
     """Append-only result store owned by exactly one rank."""
 
-    def __init__(self, output_dir: Path, rank: int, run_manifest_digest: str):
+    def __init__(self, output_dir: Path, rank: int):
         self.output_dir = Path(output_dir)
         self.rank = int(rank)
-        self.run_manifest_digest = str(run_manifest_digest)
         self.directory = rank_directory(self.output_dir, self.rank)
         self.records_path = self.directory / "episodes.jsonl"
         self.done_path = self.directory / "done.json"
@@ -64,31 +52,7 @@ class RankResultStore:
                 f"Rank {self.rank} already has output in {self.directory}; "
                 "set resume=True or choose a fresh output directory"
             )
-        if done_exists:
-            self.load_done()
         return self.load_records(recover_truncated_tail=resume)
-
-    def _validate_record(self, record: Mapping[str, Any], line_number: int) -> None:
-        if record.get("schema_version") != RESULT_SCHEMA_VERSION:
-            raise ResultError(
-                f"Unsupported result schema at {self.records_path}:{line_number}"
-            )
-        if record.get("run_manifest_digest") != self.run_manifest_digest:
-            raise ResultError(
-                f"Run manifest digest mismatch at {self.records_path}:{line_number}"
-            )
-        if int(record.get("rank", -1)) != self.rank:
-            raise ResultError(
-                f"Rank mismatch at {self.records_path}:{line_number}"
-            )
-        if not isinstance(record.get("episode_key"), str):
-            raise ResultError(
-                f"Missing episode_key at {self.records_path}:{line_number}"
-            )
-        if record.get("status") not in ("ok", "error"):
-            raise ResultError(
-                f"Invalid result status at {self.records_path}:{line_number}"
-            )
 
     def load_records(
         self, *, recover_truncated_tail: bool = False
@@ -107,8 +71,7 @@ class RankResultStore:
                 decoded = json.loads(line.decode("utf-8"))
                 if not isinstance(decoded, dict):
                     raise ValueError("result record is not a JSON object")
-                self._validate_record(decoded, index)
-            except (UnicodeDecodeError, json.JSONDecodeError, ValueError, ResultError):
+            except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
                 is_tail = index == len(lines) and not complete_line
                 if recover_truncated_tail and is_tail:
                     with self.records_path.open("r+b") as handle:
@@ -118,12 +81,10 @@ class RankResultStore:
                     break
                 raise ResultError(
                     f"Invalid JSONL record at {self.records_path}:{index}"
-                )
+                ) from error
             records.append(decoded)
             valid_bytes += len(line)
             if not complete_line:
-                # A valid crash-tail record is retained and terminated before a
-                # future append, preventing two JSON objects from concatenating.
                 with self.records_path.open("ab") as handle:
                     handle.write(b"\n")
                     handle.flush()
@@ -136,7 +97,6 @@ class RankResultStore:
         normalized = to_jsonable(record)
         if not isinstance(normalized, dict):
             raise ResultError("Result record must be a mapping")
-        self._validate_record(normalized, 0)
         encoded = canonical_json_bytes(normalized) + b"\n"
         descriptor = os.open(
             str(self.records_path), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644
@@ -154,14 +114,9 @@ class RankResultStore:
         if not self.done_path.exists():
             return None
         try:
-            done = read_json_object(self.done_path)
+            return read_json_object(self.done_path)
         except (OSError, ValueError, json.JSONDecodeError) as error:
             raise ResultError(f"Cannot read done marker {self.done_path}: {error}") from error
-        if done.get("run_manifest_digest") != self.run_manifest_digest:
-            raise ResultError(f"Done marker manifest mismatch: {self.done_path}")
-        if int(done.get("rank", -1)) != self.rank:
-            raise ResultError(f"Done marker rank mismatch: {self.done_path}")
-        return done
 
     def mark_done(
         self,
@@ -169,32 +124,16 @@ class RankResultStore:
         expected_keys: Sequence[str],
         records: Sequence[Mapping[str, Any]],
     ) -> Mapping[str, Any]:
-        """Validate the local shard and atomically publish its done marker."""
+        """Publish the local rank completion marker."""
 
-        keys = [str(record["episode_key"]) for record in records]
-        counts = Counter(keys)
-        duplicates = sorted(key for key, count in counts.items() if count > 1)
-        expected = set(expected_keys)
-        observed = set(keys)
-        missing = sorted(expected - observed)
-        unexpected = sorted(observed - expected)
-        if duplicates or missing or unexpected or len(records) != len(expected_keys):
-            raise ResultValidationError(
-                f"Rank {self.rank} cannot be marked done: "
-                f"records={len(records)}, expected={len(expected_keys)}, "
-                f"duplicates={len(duplicates)}, missing={len(missing)}, "
-                f"unexpected={len(unexpected)}"
-            )
         error_count = sum(record.get("status") == "error" for record in records)
         done = {
             "schema_version": RESULT_SCHEMA_VERSION,
-            "run_manifest_digest": self.run_manifest_digest,
             "rank": self.rank,
             "status": "completed_with_errors" if error_count else "complete",
             "expected_count": len(expected_keys),
             "record_count": len(records),
             "error_count": error_count,
-            "episode_digest": episode_keys_digest(expected_keys),
         }
         atomic_write_json(self.done_path, done)
         return done
@@ -224,139 +163,51 @@ def _numeric_metrics(records: Iterable[Mapping[str, Any]]) -> Mapping[str, float
     }
 
 
+def _rank_directories(output_dir: Path) -> List[Path]:
+    return sorted(
+        path
+        for path in Path(output_dir).glob("rank_[0-9][0-9][0-9][0-9][0-9]")
+        if path.is_dir()
+    )
+
+
 def aggregate_run(
     output_dir: Path,
     *,
-    strict: bool = True,
-    require_done: bool = True,
     fail_on_episode_error: bool = False,
 ) -> Mapping[str, Any]:
-    """Deduplicate and validate every rank against the run manifest.
-
-    ``summary.json`` is written even for structurally invalid runs so automated
-    jobs have a machine-readable explanation before ``ResultValidationError``
-    is raised.
-    """
+    """Merge rank-local records and write ``summary.json``."""
 
     output_dir = Path(output_dir)
-    run_envelope = read_manifest(output_dir / "run_manifest.json")
-    benchmark_envelope = read_manifest(output_dir / "benchmark_manifest.json")
-    run_digest = str(run_envelope["digest"])
-    run_payload = run_envelope["payload"]
-    benchmark_payload = benchmark_envelope["payload"]
-    if run_payload.get("benchmark_digest") != benchmark_envelope["digest"]:
-        raise ManifestError("Run manifest references a different benchmark manifest")
-
-    selection = run_payload.get("selection", {})
-    expected_keys = [str(key) for key in selection.get("episode_keys", [])]
-    expected_count = int(selection.get("episode_count", -1))
-    if expected_count != len(expected_keys):
-        raise ManifestError("Run manifest episode_count does not match episode_keys")
-    if episode_keys_digest(expected_keys) != selection.get("episode_digest"):
-        raise ManifestError("Run manifest episode digest is invalid")
-
-    world_size = int(run_payload.get("sharding", {}).get("world_size", 0))
-    if world_size <= 0:
-        raise ManifestError("Run manifest has invalid world_size")
-    expected_rank = {key: index % world_size for index, key in enumerate(expected_keys)}
-
     all_records: List[Mapping[str, Any]] = []
-    missing_done_ranks: List[int] = []
-    invalid_done_ranks: List[int] = []
-    for rank in range(world_size):
-        store = RankResultStore(output_dir, rank, run_digest)
-        records = store.load_records(recover_truncated_tail=False)
-        all_records.extend(records)
+    done_markers: List[Mapping[str, Any]] = []
+    for directory in _rank_directories(output_dir):
+        rank = int(directory.name[len("rank_") :])
+        store = RankResultStore(output_dir, rank)
+        all_records.extend(store.load_records(recover_truncated_tail=False))
         done = store.load_done()
-        rank_expected_keys = expected_keys[rank::world_size]
-        rank_error_count = sum(
-            record.get("status") == "error" for record in records
-        )
-        if done is None:
-            if require_done:
-                missing_done_ranks.append(rank)
-        elif (
-            int(done.get("expected_count", -1)) != len(rank_expected_keys)
-            or int(done.get("record_count", -1)) != len(records)
-            or int(done.get("error_count", -1)) != rank_error_count
-            or done.get("episode_digest") != episode_keys_digest(rank_expected_keys)
-            or done.get("status")
-            != ("completed_with_errors" if rank_error_count else "complete")
-        ):
-            invalid_done_ranks.append(rank)
+        if done is not None:
+            done_markers.append(done)
 
-    counts = Counter(str(record["episode_key"]) for record in all_records)
-    duplicate_keys = sorted(key for key, count in counts.items() if count > 1)
     records_by_key: Dict[str, Mapping[str, Any]] = {}
-    for record in all_records:
-        records_by_key.setdefault(str(record["episode_key"]), record)
-    observed_keys = set(records_by_key)
-    expected_key_set = set(expected_keys)
-    missing_keys = sorted(expected_key_set - observed_keys)
-    unexpected_keys = sorted(observed_keys - expected_key_set)
-    rank_mismatches = sorted(
-        key
-        for key, record in records_by_key.items()
-        if key in expected_rank and int(record["rank"]) != expected_rank[key]
-    )
-
-    required_metrics = [str(name) for name in benchmark_payload.get("required_metrics", [])]
-    missing_required_metrics: Dict[str, List[str]] = {}
-    for key, record in records_by_key.items():
-        if record.get("status") != "ok":
-            continue
-        metrics = record.get("metrics", {})
-        missing = [name for name in required_metrics if name not in metrics]
-        if missing:
-            missing_required_metrics[key] = missing
-
-    error_records = [
-        record for record in records_by_key.values() if record.get("status") == "error"
-    ]
-    structural_errors = bool(
-        len(all_records) != expected_count
-        or duplicate_keys
-        or missing_keys
-        or unexpected_keys
-        or rank_mismatches
-        or missing_done_ranks
-        or invalid_done_ranks
-        or missing_required_metrics
-    )
-    error_policy_failed = fail_on_episode_error and bool(error_records)
-    if structural_errors:
-        status = "invalid"
-    elif error_records:
-        status = "completed_with_errors"
-    else:
-        status = "complete"
-
+    for index, record in enumerate(all_records):
+        key = str(record.get("episode_key") or f"record-{index}")
+        records_by_key[key] = record
+    records = list(records_by_key.values())
+    error_records = [record for record in records if record.get("status") == "error"]
+    status = "completed_with_errors" if error_records else "complete"
+    expected_count = sum(int(done.get("expected_count", 0)) for done in done_markers)
     summary: Mapping[str, Any] = {
         "schema_version": RESULT_SCHEMA_VERSION,
-        "run_manifest_digest": run_digest,
-        "benchmark_manifest_digest": benchmark_envelope["digest"],
         "status": status,
-        "expected_episode_count": expected_count,
+        "expected_episode_count": expected_count or len(records),
         "record_count": len(all_records),
-        "unique_record_count": len(records_by_key),
-        "ok_episode_count": sum(
-            record.get("status") == "ok" for record in records_by_key.values()
-        ),
+        "unique_record_count": len(records),
+        "ok_episode_count": sum(record.get("status") == "ok" for record in records),
         "error_episode_count": len(error_records),
-        "metrics": _numeric_metrics(records_by_key.values()),
-        "validation": {
-            "duplicate_keys": duplicate_keys,
-            "missing_keys": missing_keys,
-            "unexpected_keys": unexpected_keys,
-            "rank_mismatches": rank_mismatches,
-            "missing_done_ranks": missing_done_ranks,
-            "invalid_done_ranks": invalid_done_ranks,
-            "missing_required_metrics": missing_required_metrics,
-        },
+        "metrics": _numeric_metrics(records),
     }
     atomic_write_json(output_dir / "summary.json", summary)
-    if strict and (structural_errors or error_policy_failed):
-        raise ResultValidationError(
-            "Evaluation result validation failed; inspect summary.json", summary
-        )
+    if fail_on_episode_error and error_records:
+        raise ResultError("Evaluation contains episode errors; inspect summary.json")
     return summary

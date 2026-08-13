@@ -23,7 +23,6 @@ METHOD_ALIASES = {
 class ClassicAdapterBundle:
     adapter: Any
     policy_id: str
-    policy_metadata: Mapping[str, Any]
     config: DictConfig
 
 
@@ -83,7 +82,6 @@ def build_classic_adapter(
         return ClassicAdapterBundle(
             adapter=adapter,
             policy_id="random",
-            policy_metadata={"method": "random", "action_probabilities": list(probabilities)},
             config=config,
         )
 
@@ -100,11 +98,6 @@ def build_classic_adapter(
         return ClassicAdapterBundle(
             adapter=adapter,
             policy_id="reference_follower",
-            policy_metadata={
-                "method": "reference_follower",
-                "success_distances": dict(distances),
-                "turn_angle": turn_angle,
-            },
             config=config,
         )
 
@@ -150,6 +143,5 @@ def build_classic_adapter(
     return ClassicAdapterBundle(
         adapter=neural.adapter,
         policy_id=normalized,
-        policy_metadata=neural.policy_metadata,
         config=neural.config,
     )

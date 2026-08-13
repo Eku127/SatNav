@@ -19,7 +19,7 @@ Launcher options:
   -h, --help
 
 Evaluator options are forwarded, including:
-  --split val_seen|val_unseen --benchmark-manifest PATH
+  --split val_seen|val_unseen
   --episodes PATH --scenes-dir PATH --output-dir PATH
   --offset N --limit N --base-seed N --max-steps N
   --resume --fail-fast --fail-on-episode-error

@@ -1,4 +1,15 @@
-# SatNav Episode Processing
+# SatNav Episode Processing (Legacy)
+
+> **Legacy application:** These Episode-processing commands are retained only
+> for compatibility with the original per-city data-production workflow. New
+> users should download the published SatNav-Episodes data directly and should
+> not run this application. See [Episode data download](../../docs/DATA_DOWNLOAD.md),
+> [map download](../../docs/APPLICATION_MAP_DOWNLOAD.md), and
+> [trajectory generation](../../docs/APPLICATION_TRAJ_GENERATION.md).
+
+The production configuration under `configs/trajectory_generation.yaml`
+remains in use by `applications/trajectory_generation`; only the Episode
+processing CLI described below is legacy.
 
 This application inspects per-city `VLN_episodes.json` files and builds the
 canonical train, `val_seen`, and `val_unseen` episode JSON files used by SatNav

@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import gzip
-import hashlib
 import json
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Mapping, Type
+from typing import Any, Type
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -16,14 +14,6 @@ from baselines.classic.common.config import resolve_path
 from baselines.classic.common.observations import InstructionObservationTransform
 from baselines.classic.common.torch_policy_adapter import TorchILPolicyAdapter
 from satnav.utils.build_vocab import VocabDict
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _validated_config(config: DictConfig, vocab_size: int) -> DictConfig:
@@ -75,7 +65,6 @@ def _validate_pretrained_embeddings(config: DictConfig, vocab_size: int) -> None
 @dataclass(frozen=True)
 class NeuralAdapterBundle:
     adapter: Any
-    policy_metadata: Mapping[str, Any]
     config: DictConfig
 
 
@@ -112,9 +101,7 @@ def build_torch_il_adapter(
     policy = policy_class.from_config(
         resolved_config, observation_space, action_space
     )
-    checkpoint = load_training_checkpoint(
-        str(resolved_checkpoint), policy, device=device
-    )
+    load_training_checkpoint(str(resolved_checkpoint), policy, device=device)
     max_instruction_length = OmegaConf.select(
         resolved_config, "EVAL.MAX_INSTRUCTION_LENGTH", default=None
     )
@@ -133,15 +120,4 @@ def build_torch_il_adapter(
         deterministic=deterministic,
         min_stop_steps=min_stop_steps,
     )
-    metadata = {
-        "method": method,
-        "checkpoint_sha256": file_sha256(resolved_checkpoint),
-        "checkpoint_epoch": int(checkpoint["epoch"]),
-        "checkpoint_step_id": int(checkpoint["step_id"]),
-        "checkpoint_loss": float(checkpoint["loss"]),
-        "vocab_sha256": file_sha256(resolved_vocab),
-        "vocab_size": len(vocab),
-    }
-    return NeuralAdapterBundle(
-        adapter=adapter, policy_metadata=metadata, config=resolved_config
-    )
+    return NeuralAdapterBundle(adapter=adapter, config=resolved_config)

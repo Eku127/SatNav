@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence, Tuple
 
 
 KEY_SEPARATOR = "::"
@@ -42,22 +41,15 @@ def stable_episode_key(split: str, episode: Any) -> str:
     )
 
 
-def episode_keys_digest(keys: Iterable[str]) -> str:
-    """Hash an ordered episode-key sequence using a canonical JSON-free form."""
-
-    digest = hashlib.sha256()
-    for key in keys:
-        encoded = key.encode("utf-8")
-        digest.update(len(encoded).to_bytes(8, byteorder="big", signed=False))
-        digest.update(encoded)
-    return digest.hexdigest()
-
-
 def episode_seed(base_seed: int, episode_key: str) -> int:
     """Derive a deterministic unsigned 64-bit seed for one episode."""
 
-    payload = f"{int(base_seed)}\0{episode_key}".encode("utf-8")
-    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big", signed=False)
+    value = int(base_seed) & ((1 << 64) - 1)
+    for byte in episode_key.encode("utf-8"):
+        value = (value * 6364136223846793005 + byte + 1442695040888963407) & (
+            (1 << 64) - 1
+        )
+    return value
 
 
 @dataclass(frozen=True)
@@ -88,14 +80,6 @@ class EpisodePlan:
     @property
     def shard_keys(self) -> Tuple[str, ...]:
         return tuple(item.key for item in self.shard)
-
-    @property
-    def selected_digest(self) -> str:
-        return episode_keys_digest(self.selected_keys)
-
-    @property
-    def shard_digest(self) -> str:
-        return episode_keys_digest(self.shard_keys)
 
 
 def build_episode_plan(

@@ -1,5 +1,6 @@
 """Fast tests for stable episode identity and deterministic sharding."""
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,7 +11,6 @@ from satnav.evaluation import (
     EpisodeSelectionError,
     build_episode_plan,
     episode_seed,
-    load_benchmark_manifest,
     stable_episode_key,
 )
 
@@ -84,7 +84,7 @@ def test_episode_seed_depends_on_key_not_rank_assignment():
     assert episode_seed(123, key) != episode_seed(123, key + "x")
 
 
-def test_tracked_v01_official_and_smoke_manifests_are_path_free():
+def test_standard_benchmark_jsons_remain_digest_free_references():
     config_dir = Path(__file__).resolve().parents[1] / "configs" / "benchmark"
     expected = {
         "satnav_v0_1_val_seen.json": ("official", 4574, 500),
@@ -93,17 +93,17 @@ def test_tracked_v01_official_and_smoke_manifests_are_path_free():
         "satnav_v0_1_val_unseen_smoke.json": ("smoke", 8756, 5),
     }
     for filename, (kind, count, max_steps) in expected.items():
-        manifest = load_benchmark_manifest(config_dir / filename)
-        assert manifest.kind == kind
-        assert manifest.episode_count == count
-        assert manifest.max_episode_steps == max_steps
-        assert manifest.success_threshold == {
+        payload = json.loads((config_dir / filename).read_text(encoding="utf-8"))
+        assert payload["kind"] == kind
+        assert payload["episode_count"] == count
+        assert payload["max_episode_steps"] == max_steps
+        assert payload["success_threshold"] == {
             "Boundary": 10.0,
             "LandmarkSet": 30.0,
             "Road": 10.0,
         }
-        assert "oracle_success" in manifest.required_metrics
-        assert "/mnt/" not in str(manifest)
+        assert not any("digest" in key.lower() for key in payload)
+        assert "metadata" not in payload
 
 
 def test_generation_and_evaluation_landmark_radii_are_separate():
@@ -120,9 +120,6 @@ def test_generation_and_evaluation_landmark_radii_are_separate():
 @pytest.mark.parametrize("baseline", ("streamvln", "navila", "uninavid", "openfly"))
 def test_vlm_task_configs_match_canonical_evaluation_contract(baseline):
     repository_root = Path(__file__).resolve().parents[1]
-    benchmark = load_benchmark_manifest(
-        repository_root / "configs" / "benchmark" / "satnav_v0_1_val_seen.json"
-    )
     task_config = OmegaConf.load(
         repository_root
         / "baselines"
@@ -131,15 +128,20 @@ def test_vlm_task_configs_match_canonical_evaluation_contract(baseline):
         / "configs"
         / "satnav_task.yaml"
     )
-    assert tuple(task_config.TASK.POSSIBLE_ACTIONS) == benchmark.action_space
-    assert float(task_config.SIMULATOR.FORWARD_STEP_SIZE) == (
-        benchmark.forward_step_size
+    assert tuple(task_config.TASK.POSSIBLE_ACTIONS) == (
+        "STOP",
+        "MOVE_FORWARD",
+        "TURN_LEFT",
+        "TURN_RIGHT",
     )
-    assert float(task_config.SIMULATOR.TURN_ANGLE) == benchmark.turn_angle
+    assert float(task_config.SIMULATOR.FORWARD_STEP_SIZE) == 10.0
+    assert float(task_config.SIMULATOR.TURN_ANGLE) == 15.0
     success_distances = OmegaConf.to_container(
         task_config.TASK.SUCCESS_DISTANCE, resolve=True
     )
     assert success_distances["DEFAULT"] == 10.0
-    assert {
-        name: success_distances[name] for name in benchmark.success_threshold
-    } == benchmark.success_threshold
+    assert {name: success_distances[name] for name in ("Boundary", "LandmarkSet", "Road")} == {
+        "Boundary": 10.0,
+        "LandmarkSet": 30.0,
+        "Road": 10.0,
+    }

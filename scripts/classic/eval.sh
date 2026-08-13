@@ -38,19 +38,11 @@ if [[ ! -d "${SCENES_DIR}" ]]; then
     exit 2
 fi
 
-BENCHMARK_KIND="${SATNAV_BENCHMARK_KIND:-smoke}"
-case "${BENCHMARK_KIND}" in
-    smoke)
-        BENCHMARK_PATH="configs/benchmark/satnav_v0_1_${SPLIT}_smoke.json"
-        ;;
-    official)
-        BENCHMARK_PATH="configs/benchmark/satnav_v0_1_${SPLIT}.json"
-        ;;
-    *)
-        echo "SATNAV_BENCHMARK_KIND must be smoke or official" >&2
-        exit 2
-        ;;
-esac
+MAX_STEPS="${SATNAV_MAX_STEPS:-5}"
+if [[ ! "${MAX_STEPS}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "SATNAV_MAX_STEPS must be a positive integer" >&2
+    exit 2
+fi
 
 CHECKPOINT_ARGS=()
 case "${METHOD}" in
@@ -99,7 +91,7 @@ OUTPUT_ROOT="${SATNAV_CLASSIC_OUTPUT:-output/baselines/classic}"
 if [[ "${OUTPUT_ROOT}" != /* ]]; then
     OUTPUT_ROOT="${REPO_ROOT}/${OUTPUT_ROOT}"
 fi
-OUTPUT_DIR="${SATNAV_CLASSIC_RUN_OUTPUT:-${OUTPUT_ROOT}/${METHOD}/${SPLIT}/${BENCHMARK_KIND}/${WORLD_SIZE}rank}"
+OUTPUT_DIR="${SATNAV_CLASSIC_RUN_OUTPUT:-${OUTPUT_ROOT}/${METHOD}/${SPLIT}/${MAX_STEPS}steps/${WORLD_SIZE}rank}"
 DEVICE="${SATNAV_DEVICE:-cuda:0}"
 CUDA_DEVICES="${CUDA_DEVICES:-${SATNAV_CUDA_DEVICES:-}}"
 if [[ -n "${CUDA_DEVICES}" ]]; then
@@ -123,13 +115,13 @@ cd "${REPO_ROOT}"
 python -m baselines.classic \
     --method "${METHOD}" \
     --config "${CONFIG_PATH}" \
-    --benchmark "${BENCHMARK_PATH}" \
     --output-dir "${OUTPUT_DIR}" \
     --split "${SPLIT}" \
     --limit "${LIMIT}" \
     --rank "${RANK}" \
     --world-size "${WORLD_SIZE}" \
     --seed "${SATNAV_CLASSIC_SEED:-0}" \
+    --max-steps "${MAX_STEPS}" \
     --device "${DEVICE}" \
     --set "BASE_TASK_CONFIG_PATH=configs/satnav_eval_task.yaml" \
     --set "DATASET.DATA_PATH=${EPISODES_PATH}" \

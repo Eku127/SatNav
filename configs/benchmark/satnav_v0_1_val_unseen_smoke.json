@@ -6,16 +6,11 @@
     "TURN_RIGHT"
   ],
   "benchmark_id": "satnav-v0.1-val-unseen-smoke",
-  "dataset_digest": "52b4b176b24868456a14551b76282ecfc66619ac75f388a335aaed53e230f870",
   "dataset_version": "SatNav-v0.1",
   "episode_count": 8756,
-  "episode_digest": "b295f8d2904ae3e372d322731abbb54e4063fc48ddc0172be2a021fa2f4fcfb0",
   "forward_step_size": 10.0,
   "kind": "smoke",
   "max_episode_steps": 5,
-  "metadata": {
-    "episode_digest_method": "sorted-stable-key-length-prefixed-sha256-v1"
-  },
   "observation": {
     "rgb": {
       "height": 448,

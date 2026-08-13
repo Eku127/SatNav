@@ -11,7 +11,6 @@ from typing import Any, Mapping, Optional, Sequence
 from unittest import mock
 
 from baselines.vlm.uninavid.artifacts import (
-    external_asset_identities,
     model_identity,
 )
 from baselines.vlm.uninavid.bootstrap import bootstrap_uninavid, source_revision
@@ -99,18 +98,6 @@ def checkpoint_load_report(
         "projector": sum(key.startswith("model.mm_projector.") for key in indexed),
         "vision": sum(key.startswith("model.vision_tower.") for key in indexed),
     }
-    tensor_contract = [
-        {
-            "name": name,
-            "shape": list(state[name].shape),
-            "dtype": str(state[name].dtype),
-            "is_meta": bool(getattr(state[name], "is_meta", False)),
-        }
-        for name in sorted(indexed & loaded)
-    ]
-    contract_digest = hashlib.sha256(
-        json.dumps(tensor_contract, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
     attention_class = type(model.model.layers[0].self_attn).__name__
     errors = []
     for name, values in (
@@ -135,9 +122,7 @@ def checkpoint_load_report(
         "component_tensor_counts": component_counts,
         "expected_component_tensor_counts": EXPECTED_COMPONENT_COUNTS,
         "runtime_tensor_contract": {
-            "algorithm": "sha256-canonical-name-shape-dtype-is-meta-v2",
-            "digest": contract_digest,
-            "tensor_count": len(tensor_contract),
+            "tensor_count": len(indexed & loaded),
             "meta_tensor_count": len(meta_indexed),
         },
         "missing_keys": missing,
@@ -310,8 +295,6 @@ def load_strict_model(
         raise FileNotFoundError(processor_path)
     if dtype != "float16":
         raise ValueError("the pinned Uni-NaVid evaluation stack requires float16")
-    assets = external_asset_identities(eva_path, processor_path)
-
     import torch
     from transformers import AutoConfig, AutoTokenizer
     import uninavid.model.uninavid_arch as architecture
@@ -363,8 +346,6 @@ def load_strict_model(
         report["status"] = "failed"
     report.update({
         "tokenizer": token_report,
-        "checkpoint_identity": model_identity(model_path),
-        "external_assets": assets,
         "upstream_revision": source_revision(repo) or "unknown",
     })
     if report["errors"]:

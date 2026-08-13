@@ -12,7 +12,7 @@ from typing import Any, Mapping, Optional, Sequence
 from baselines.vlm.openfly.artifacts import openfly_model_identity
 from baselines.vlm.openfly.actions import validate_tokenizer_model_contract
 from baselines.vlm.openfly.bootstrap import register_openfly_classes
-from satnav.evaluation.manifest import read_manifest
+from satnav.training.manifest import read_manifest
 
 
 EXPECTED_COMPONENT_TENSOR_COUNTS = {

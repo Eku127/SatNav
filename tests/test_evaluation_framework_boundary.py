@@ -2,12 +2,10 @@
 
 import ast
 from pathlib import Path
-from types import SimpleNamespace
 
 import satnav.evaluation
 from satnav.core.episode import InstructionData, VLNEpisode
 from satnav.evaluation._json import to_jsonable
-from satnav.evaluation.artifacts import referenced_scene_identity
 
 
 def test_evaluation_package_does_not_import_torch_or_trainers():
@@ -43,27 +41,3 @@ def test_episode_serialization_never_leaks_runtime_scene_path():
     assert serialized["scene_id"] == "logical-scene"
     assert "scene_path" not in serialized
     assert "/private/host" not in str(serialized)
-
-
-def test_referenced_scene_identity_is_portable_and_content_exact(tmp_path):
-    first_root = tmp_path / "first" / "scenes"
-    second_root = tmp_path / "second" / "maps"
-    first_root.mkdir(parents=True)
-    second_root.mkdir(parents=True)
-    (first_root / "Rome-1.tif").write_bytes(b"same-map")
-    (second_root / "Rome-1.tif").write_bytes(b"same-map")
-    first_episode = SimpleNamespace(
-        scene_id="Rome-1", scene_path=str(first_root / "Rome-1")
-    )
-    second_episode = SimpleNamespace(
-        scene_id="Rome-1", scene_path=str(second_root / "Rome-1")
-    )
-
-    first = referenced_scene_identity(first_root, [first_episode])
-    second = referenced_scene_identity(second_root, [second_episode])
-
-    assert first == second
-    assert str(tmp_path) not in str(first)
-    (second_root / "Rome-1.tif").write_bytes(b"changed-map")
-    changed = referenced_scene_identity(second_root, [second_episode])
-    assert changed["digest"] != first["digest"]
