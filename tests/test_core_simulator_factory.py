@@ -35,9 +35,6 @@ class ExternalSimulator(Simulator):
     def is_navigable(self, position):
         return True
 
-    def sample_navigable_point(self):
-        return [0.0, 0.0, 0.0]
-
     @property
     def sensor_suite(self):
         return {}

@@ -128,15 +128,6 @@ class Simulator(abc.ABC):
         """
         raise NotImplementedError
     
-    @abc.abstractmethod
-    def sample_navigable_point(self) -> List[float]:
-        """Sample a random navigable point in the current scene.
-        
-        Returns:
-            A navigable position as [longitude, latitude, altitude].
-        """
-        raise NotImplementedError
-
     def close(self) -> None:
         """Release simulator resources.
 
