@@ -150,6 +150,28 @@ export UNINAVID_MODEL_ROOT=/path/to/uninavid-models
 mkdir -p "$UNINAVID_MODEL_ROOT"
 ```
 
+### 5.1 Released SatNav checkpoints
+
+The [SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)
+provides two Uni-NaVid checkpoints:
+
+- [scratch](https://huggingface.co/Eku127/uninavid-satnav-scratch-1ep-lr1e-5), trained from Vicuna 7B v1.5;
+- [continue](https://huggingface.co/Eku127/uninavid-satnav-continue-1ep-lr1e-5), trained from the Uni-NaVid checkpoint.
+
+Download either checkpoint into `UNINAVID_MODEL_ROOT`:
+
+```bash
+python -m huggingface_hub.commands.huggingface_cli download \
+  Eku127/uninavid-satnav-continue-1ep-lr1e-5 \
+  --local-dir "$UNINAVID_MODEL_ROOT/uninavid-satnav-continue-1ep-lr1e-5"
+```
+
+Pass the downloaded directory to `--model-path` for evaluation. The EVA weight
+and processor described below are still required. These releases contain
+inference artifacts rather than optimizer and scheduler state.
+
+### 5.2 Training starting point and shared assets
+
 Download the complete Uni-NaVid checkpoint and EVA weights:
 
 ```bash
@@ -166,6 +188,8 @@ The resulting layout is:
 ```text
 uninavid-models/
 ├── eva_vit_g.pth
+├── uninavid-satnav-scratch-1ep-lr1e-5/
+├── uninavid-satnav-continue-1ep-lr1e-5/
 └── huggingface/
     └── Uni-NaVid/
         └── uninavid-7b-full-224-video-fps-1-grid-2/

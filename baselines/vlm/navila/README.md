@@ -10,6 +10,14 @@ For environment setup, upstream checkout, model download, data validation,
 training, and single-/multi-GPU evaluation, see
 [SatNav NaVILA Baseline](../../../docs/en-US/training/vlm/NAVILA.md).
 
+## Released checkpoints
+
+- [Scratch](https://huggingface.co/Eku127/navila-satnav-scratch-1ep-8f-sample-hk7-fs7-stopx4)
+- [Continue](https://huggingface.co/Eku127/navila-satnav-continue-1ep-8f-sample-hk7-fs7-stopx4)
+
+Both checkpoints are part of the
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo).
+
 ## Upstream boundary
 
 - Repository: [`AnjieCheng/NaVILA`](https://github.com/AnjieCheng/NaVILA)

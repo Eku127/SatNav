@@ -1,4 +1,4 @@
-# Pinned non-PyTorch dependencies for Eku127/StreamVLN@60476e81.
+# Pinned non-PyTorch dependencies for InternRobotics/StreamVLN@60476e81.
 # Install torch==2.5.1 / torchvision==0.20.1 for the target CUDA runtime first,
 # then a matching FlashAttention wheel, then this file and editable SatNav.
 

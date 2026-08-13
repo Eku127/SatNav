@@ -10,9 +10,17 @@ For environment setup, upstream checkout, model download, data validation,
 training, and single-/multi-GPU evaluation, see
 [SatNav StreamVLN Baseline](../../../docs/en-US/training/vlm/STREAMVLN.md).
 
+## Released checkpoints
+
+- [Scratch](https://huggingface.co/Eku127/streamvln-satnav-scratch-1ep-f32h8s4-lr2e-5)
+- [Continue](https://huggingface.co/Eku127/streamvln-satnav-continue-1ep-f32h8s4-lr2e-5)
+
+Both checkpoints are part of the
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo).
+
 ## Upstream boundary
 
-- Repository: [`Eku127/StreamVLN`](https://github.com/Eku127/StreamVLN)
+- Repository: [`InternRobotics/StreamVLN`](https://github.com/InternRobotics/StreamVLN)
 - Commit: `60476e81f4c01b29f1a51a7469f1cb4addbc1d62`
 - Runtime: `STREAMVLN_REPO` points to a separate checkout; model dependencies
   never enter SatNav Core.

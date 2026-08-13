@@ -24,7 +24,7 @@ StreamVLN 根据导航指令、当前 RGB observation 和历史视觉信息生�
 进行训练。
 
 SatNav 当前适配的上游版本为
-[`Eku127/StreamVLN@60476e81f4c01b29f1a51a7469f1cb4addbc1d62`](https://github.com/Eku127/StreamVLN/commit/60476e81f4c01b29f1a51a7469f1cb4addbc1d62)。
+[`InternRobotics/StreamVLN@60476e81f4c01b29f1a51a7469f1cb4addbc1d62`](https://github.com/InternRobotics/StreamVLN/commit/60476e81f4c01b29f1a51a7469f1cb4addbc1d62)。
 使用模型代码和权重前，请阅读 [UPSTREAM](../../../../baselines/vlm/streamvln/UPSTREAM.md) 和
 [NOTICE](../../../../baselines/vlm/streamvln/NOTICE)。
 
@@ -87,7 +87,7 @@ command -v python
 将 StreamVLN clone 到 SatNav 仓库之外，并 checkout 到适配版本：
 
 ```bash
-git clone https://github.com/Eku127/StreamVLN.git /path/to/StreamVLN
+git clone https://github.com/InternRobotics/StreamVLN.git /path/to/StreamVLN
 git -C /path/to/StreamVLN checkout \
   60476e81f4c01b29f1a51a7469f1cb4addbc1d62
 ```
@@ -166,6 +166,27 @@ export STREAMVLN_MODEL_ROOT=/path/to/streamvln-models
 mkdir -p "$STREAMVLN_MODEL_ROOT"
 ```
 
+### 5.1 SatNav 已发布 checkpoint
+
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)
+提供两个 StreamVLN checkpoint：
+
+- [scratch](https://huggingface.co/Eku127/streamvln-satnav-scratch-1ep-f32h8s4-lr2e-5)：从 LLaVA-Video 开始训练；
+- [continue](https://huggingface.co/Eku127/streamvln-satnav-continue-1ep-f32h8s4-lr2e-5)：从 StreamVLN checkpoint 继续训练。
+
+使用 baseline downloader 下载所需 checkpoint：
+
+```bash
+bash baselines/vlm/streamvln/scripts/download.sh \
+  --repo Eku127/streamvln-satnav-continue-1ep-f32h8s4-lr2e-5 \
+  --model-root "$STREAMVLN_MODEL_ROOT"
+```
+
+评测时将下载后的目录传给 `--model-path`。发布目录包含推理所需文件，不包含 optimizer 与
+scheduler state。
+
+### 5.2 训练起点
+
 `continue` 训练使用官方 StreamVLN checkpoint：
 
 ```bash
@@ -193,6 +214,8 @@ bash baselines/vlm/streamvln/scripts/download.sh \
 
 ```text
 streamvln-models/
+├── streamvln-satnav-scratch-1ep-f32h8s4-lr2e-5/
+├── streamvln-satnav-continue-1ep-f32h8s4-lr2e-5/
 ├── StreamVLN_Video_qwen_1_5_r2r_rxr_envdrop_scalevln_v1_3/
 ├── LLaVA-Video-7B-Qwen2/
 └── siglip-so400m-patch14-384/

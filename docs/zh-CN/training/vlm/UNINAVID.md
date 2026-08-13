@@ -165,6 +165,27 @@ export UNINAVID_MODEL_ROOT=/path/to/uninavid-models
 mkdir -p "$UNINAVID_MODEL_ROOT"
 ```
 
+### 5.1 SatNav 已发布 checkpoint
+
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)
+提供两个 Uni-NaVid checkpoint：
+
+- [scratch](https://huggingface.co/Eku127/uninavid-satnav-scratch-1ep-lr1e-5)：从 Vicuna 7B v1.5 开始训练；
+- [continue](https://huggingface.co/Eku127/uninavid-satnav-continue-1ep-lr1e-5)：从 Uni-NaVid checkpoint 继续训练。
+
+将所需 checkpoint 下载到 `UNINAVID_MODEL_ROOT`：
+
+```bash
+python -m huggingface_hub.commands.huggingface_cli download \
+  Eku127/uninavid-satnav-continue-1ep-lr1e-5 \
+  --local-dir "$UNINAVID_MODEL_ROOT/uninavid-satnav-continue-1ep-lr1e-5"
+```
+
+评测时将下载后的目录传给 `--model-path`，同时仍需准备下文中的 EVA 权重和 processor。发布
+目录包含推理所需文件，不包含 optimizer 与 scheduler state。
+
+### 5.2 训练起点与共用资源
+
 下载 Uni-NaVid 完整 checkpoint 和 EVA 权重：
 
 ```bash
@@ -182,6 +203,8 @@ bash baselines/vlm/uninavid/scripts/download.sh \
 ```text
 uninavid-models/
 ├── eva_vit_g.pth
+├── uninavid-satnav-scratch-1ep-lr1e-5/
+├── uninavid-satnav-continue-1ep-lr1e-5/
 └── huggingface/
     └── Uni-NaVid/
         └── uninavid-7b-full-224-video-fps-1-grid-2/

@@ -154,10 +154,30 @@ bash baselines/vlm/openfly/scripts/validate_data.sh \
 
 ## 5. 准备模型
 
-SatNav 不随代码仓库分发 OpenFly 权重。根据 OpenFly 上游提供的模型或已有训练产物，选择
-以下一种训练起点。
+SatNav 源码仓库不保存 OpenFly 权重。可以使用 SatNav 已发布 checkpoint、OpenFly 上游
+模型或已有训练产物。
 
-### 5.1 Continue：完整 HF checkpoint
+### 5.1 SatNav 已发布 checkpoint
+
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)
+提供两个 OpenFly checkpoint：
+
+- [scratch](https://huggingface.co/Eku127/openfly-satnav-scratch-1ep-actcompact-sample-hk7-fs3-stopx2-stopw0-tail5-stoph1-hist16-lr2e-5)：从 OpenVLA 与 OpenFly processor 资源开始训练；
+- [continue](https://huggingface.co/Eku127/openfly-satnav-continue-1ep-actcompact-sample-hk7-fs3-stopx2-stopw0-tail5-stoph1-hist16-lr2e-5)：从 OpenFly Agent checkpoint 继续训练。
+
+将所需 checkpoint 下载到本地模型目录：
+
+```bash
+export OPENFLY_MODEL_ROOT=/path/to/openfly-models
+python -m huggingface_hub.commands.huggingface_cli download \
+  Eku127/openfly-satnav-continue-1ep-actcompact-sample-hk7-fs3-stopx2-stopw0-tail5-stoph1-hist16-lr2e-5 \
+  --local-dir "$OPENFLY_MODEL_ROOT/openfly-satnav-continue"
+```
+
+评测时将下载后的目录传给 `--model-path`。发布目录包含推理所需文件，不包含 optimizer 与
+scheduler state。
+
+### 5.2 Continue：完整 HF checkpoint
 
 `continue` 接受一个本地 Hugging Face 格式的完整 OpenFly checkpoint：
 
@@ -174,7 +194,7 @@ openfly-hf-checkpoint/
 权重也可以由多个 `model-*.safetensors` 与 `model.safetensors.index.json` 组成。模型目录必须
 同时包含 processor、tokenizer 和全部权重，不能只提供单独的 adapter 或部分 shard。
 
-### 5.2 Scratch：原生 checkpoint 与 processor
+### 5.3 Scratch：原生 checkpoint 与 processor
 
 `scratch` 接受 OpenFly 原生 run 目录或其中一个 `.pt` checkpoint：
 
@@ -236,9 +256,9 @@ export SATNAV_OPENFLY_OUTPUT="${SATNAV_OPENFLY_OUTPUT:-output/baselines/vlm/open
 | 变量 | 路径来源 |
 | --- | --- |
 | `OPENFLY_PYTHON` | 第 2 节 `command -v python` 的输出 |
-| `OPENFLY_CONTINUE_MODEL` | 第 5.1 节准备的完整 HF checkpoint |
-| `OPENFLY_NATIVE_RUN` | 第 5.2 节准备的原生 run 或 `.pt` |
-| `OPENFLY_PROCESSOR_PATH` | 第 5.2 节准备的 processor/tokenizer 目录 |
+| `OPENFLY_CONTINUE_MODEL` | 第 5.1 或 5.2 节准备的完整 HF checkpoint |
+| `OPENFLY_NATIVE_RUN` | 第 5.3 节准备的原生 run 或 `.pt` |
+| `OPENFLY_PROCESSOR_PATH` | 第 5.3 节准备的 processor/tokenizer 目录 |
 | `OPENFLY_NATIVE_HF_CACHE_DIR` | 原生模型转换使用的本地缓存目录 |
 | `SATNAV_OPENFLY_TRAIN_DATA` | 第 4 节校验通过的 `trajectory_data/` |
 | `SATNAV_OPENFLY_TRAIN_EPISODES` | 与 trajectory 对应的 train Episode 文件 |

@@ -66,6 +66,9 @@ VLM baselines support reproducing existing vision-language navigation models and
 
 After choosing a VLM, start with its guide; the Classic tiny example is not required. Each guide covers environment setup, model assets, local paths, data validation, smoke training, full training, and online evaluation.
 
+SatNav-trained scratch and continue checkpoints for all four VLM baselines are
+available in the [SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo).
+
 You can keep several VLM environments on the same machine, but do not share PyTorch, Transformers, or FlashAttention installations between them. Store model paths, dataset paths, upstream checkouts, and output locations in the baseline's Git-ignored `.local/env.sh` file.
 
 ## 3. Training inputs

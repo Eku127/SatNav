@@ -53,6 +53,9 @@ Random 和 ReferenceFollower 没有可学习参数，不需要训练。
 | Uni-NaVid | [Uni-NaVid Baseline](training/vlm/UNINAVID.md) |
 | OpenFly | [OpenFly Baseline](training/vlm/OPENFLY.md) |
 
+SatNav 已训练 checkpoint 发布在
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)。
+
 不要在不同 VLM 之间共用 PyTorch、Transformers 或 FlashAttention 环境。模型、数据、外部源码
 和输出路径应写入对应 baseline 的 Git ignored `.local/env.sh`。
 

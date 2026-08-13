@@ -17,7 +17,7 @@ StreamVLN generates symbolic actions from a navigation instruction, the current 
 
 The model can generate an action chunk. The adapter queues these actions and executes them one at a time through the SatNav interaction interface. By default, training builds a visual window from 32 observations, retains eight history samples, and predicts four future actions.
 
-SatNav supports upstream revision [`Eku127/StreamVLN@60476e81f4c01b29f1a51a7469f1cb4addbc1d62`](https://github.com/Eku127/StreamVLN/commit/60476e81f4c01b29f1a51a7469f1cb4addbc1d62). Before using the source or weights, read [UPSTREAM](../../../../baselines/vlm/streamvln/UPSTREAM.md) and [NOTICE](../../../../baselines/vlm/streamvln/NOTICE).
+SatNav supports upstream revision [`InternRobotics/StreamVLN@60476e81f4c01b29f1a51a7469f1cb4addbc1d62`](https://github.com/InternRobotics/StreamVLN/commit/60476e81f4c01b29f1a51a7469f1cb4addbc1d62). Before using the source or weights, read [UPSTREAM](../../../../baselines/vlm/streamvln/UPSTREAM.md) and [NOTICE](../../../../baselines/vlm/streamvln/NOTICE).
 
 ## 2. Create an isolated environment
 
@@ -78,7 +78,7 @@ Record the output of `command -v python`; use it later as `STREAMVLN_PYTHON`.
 Clone StreamVLN outside the SatNav repository and check out the supported revision:
 
 ```bash
-git clone https://github.com/Eku127/StreamVLN.git /path/to/StreamVLN
+git clone https://github.com/InternRobotics/StreamVLN.git /path/to/StreamVLN
 git -C /path/to/StreamVLN checkout \
   60476e81f4c01b29f1a51a7469f1cb4addbc1d62
 ```
@@ -153,6 +153,27 @@ export STREAMVLN_MODEL_ROOT=/path/to/streamvln-models
 mkdir -p "$STREAMVLN_MODEL_ROOT"
 ```
 
+### 5.1 Released SatNav checkpoints
+
+The [SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)
+provides two StreamVLN checkpoints:
+
+- [scratch](https://huggingface.co/Eku127/streamvln-satnav-scratch-1ep-f32h8s4-lr2e-5), trained from LLaVA-Video;
+- [continue](https://huggingface.co/Eku127/streamvln-satnav-continue-1ep-f32h8s4-lr2e-5), trained from the StreamVLN checkpoint.
+
+Download either checkpoint with the baseline downloader:
+
+```bash
+bash baselines/vlm/streamvln/scripts/download.sh \
+  --repo Eku127/streamvln-satnav-continue-1ep-f32h8s4-lr2e-5 \
+  --model-root "$STREAMVLN_MODEL_ROOT"
+```
+
+Pass the downloaded directory to `--model-path` for evaluation. These releases
+contain inference artifacts rather than optimizer and scheduler state.
+
+### 5.2 Training starting points
+
 `continue` training starts from the official StreamVLN checkpoint:
 
 ```bash
@@ -178,6 +199,8 @@ The resulting layout is usually:
 
 ```text
 streamvln-models/
+├── streamvln-satnav-scratch-1ep-f32h8s4-lr2e-5/
+├── streamvln-satnav-continue-1ep-f32h8s4-lr2e-5/
 ├── StreamVLN_Video_qwen_1_5_r2r_rxr_envdrop_scalevln_v1_3/
 ├── LLaVA-Video-7B-Qwen2/
 └── siglip-so400m-patch14-384/

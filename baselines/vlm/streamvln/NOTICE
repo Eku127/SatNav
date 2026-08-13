@@ -2,10 +2,10 @@ StreamVLN third-party notice
 ============================
 
 This SatNav baseline interoperates with and derives model-specific adapter
-behavior from Eku127/StreamVLN at commit
+behavior from InternRobotics/StreamVLN at commit
 60476e81f4c01b29f1a51a7469f1cb4addbc1d62.
 
-The pinned fork contains no standalone LICENSE file. Its README identifies
+The pinned official revision contains no standalone LICENSE file. Its README identifies
 the work as Creative Commons Attribution-NonCommercial-ShareAlike 4.0
 International (CC BY-NC-SA 4.0):
 https://creativecommons.org/licenses/by-nc-sa/4.0/

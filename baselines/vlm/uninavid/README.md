@@ -10,6 +10,14 @@ For environment setup, upstream checkout, model preparation, data validation,
 training, and single-/multi-GPU evaluation, see
 [SatNav Uni-NaVid Baseline](../../../docs/en-US/training/vlm/UNINAVID.md).
 
+## Released checkpoints
+
+- [Scratch](https://huggingface.co/Eku127/uninavid-satnav-scratch-1ep-lr1e-5)
+- [Continue](https://huggingface.co/Eku127/uninavid-satnav-continue-1ep-lr1e-5)
+
+Both checkpoints are part of the
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo).
+
 ## Upstream boundary
 
 - Repository: [`jzhzhang/Uni-NaVid`](https://github.com/jzhzhang/Uni-NaVid)

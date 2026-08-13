@@ -167,6 +167,27 @@ export NAVILA_MODEL_ROOT=/path/to/navila-models
 mkdir -p "$NAVILA_MODEL_ROOT"
 ```
 
+### 5.1 SatNav 已发布 checkpoint
+
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)
+提供两个 NaVILA checkpoint：
+
+- [scratch](https://huggingface.co/Eku127/navila-satnav-scratch-1ep-8f-sample-hk7-fs7-stopx4)：从 NaVILA pretrain checkpoint 开始训练；
+- [continue](https://huggingface.co/Eku127/navila-satnav-continue-1ep-8f-sample-hk7-fs7-stopx4)：从 NaVILA SFT checkpoint 继续训练。
+
+使用 baseline downloader 下载所需 checkpoint：
+
+```bash
+bash baselines/vlm/navila/scripts/download.sh \
+  --repo Eku127/navila-satnav-continue-1ep-8f-sample-hk7-fs7-stopx4 \
+  --model-root "$NAVILA_MODEL_ROOT"
+```
+
+评测时将下载后的目录传给 `--model-path`。发布目录包含推理所需文件，不包含 optimizer 与
+scheduler state。
+
+### 5.2 训练起点
+
 `continue` 训练使用 NaVILA SFT checkpoint：
 
 ```bash
@@ -190,6 +211,8 @@ bash baselines/vlm/navila/scripts/download.sh \
 
 ```text
 navila-models/
+├── navila-satnav-scratch-1ep-8f-sample-hk7-fs7-stopx4/
+├── navila-satnav-continue-1ep-8f-sample-hk7-fs7-stopx4/
 ├── navila-llama3-8b-8f/
 └── navila-siglip-llama3-8b-v1.5-pretrain/
 ```
