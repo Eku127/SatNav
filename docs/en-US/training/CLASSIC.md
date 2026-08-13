@@ -20,7 +20,7 @@ Both models receive:
 - the previous SatNav action;
 - an Episode continuation mask.
 
-The output is one of four SatNav primitive actions: `STOP`, `MOVE_FORWARD`, `TURN_LEFT`, or `TURN_RIGHT`. For architecture details, see [Seq2Seq Model Structure](../../../doc/models/SEQ2SEQ_IMPLEMENTATION.md) and [CMA Model Structure](../../../doc/models/CMA_IMPLEMENTATION.md).
+The output is one of four SatNav primitive actions: `STOP`, `MOVE_FORWARD`, `TURN_LEFT`, or `TURN_RIGHT`.
 
 ## 2. Environment setup
 

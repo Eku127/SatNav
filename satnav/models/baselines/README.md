@@ -150,8 +150,7 @@ To add a custom baseline model:
 - **Habitat-Lab:** [https://github.com/facebookresearch/habitat-lab](https://github.com/facebookresearch/habitat-lab)
 
 ### Documentation
-- **Seq2Seq Implementation:** `doc/models/SEQ2SEQ_IMPLEMENTATION.md`
-- **CMA Implementation:** `doc/models/CMA_IMPLEMENTATION.md`
+- [SatNav Classic Baselines](../../../docs/en-US/training/CLASSIC.md)
 
 ---
 

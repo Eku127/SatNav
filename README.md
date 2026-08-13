@@ -156,7 +156,8 @@ must not reach through `_dataset`, `_task`, or `_sim`. Dataset `scene_id` is a
 stable logical name; machine-local resolution is kept in runtime-only
 `scene_path` and excluded from normal serialization and benchmark results.
 
-For more details about the module structure and runtime flow, see [SatNav Architecture Overview](doc/simulator/SATNAV_ARCHITECTURE.md).
+For the environment and simulator interfaces, see the
+[Core API](docs/en-US/core/CORE_API.md).
 
 ## 5. Applications
 
@@ -185,11 +186,6 @@ ReferenceFollower, Seq2Seq, and CMA. Seq2Seq and CMA use offline imitation
 learning; all four methods use the same framework-independent
 `satnav.evaluation` rollout and result contract. Importing `satnav` or
 `satnav.evaluation` does not import PyTorch.
-
-The neural model documentation remains available here:
-
-- [Seq2Seq](doc/models/SEQ2SEQ_IMPLEMENTATION.md): a lightweight recurrent baseline that encodes the instruction and current RGB observation before predicting navigation actions.
-- [CMA](doc/models/CMA_IMPLEMENTATION.md): a recurrent baseline with cross-modal attention that fuses language and visual features before predicting actions.
 
 The complete SatNav-v0.1 data preparation, training, and evaluation workflow
 for both models is documented in
