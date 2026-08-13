@@ -27,6 +27,8 @@ rollout 和结果格式。
 bash scripts/quickstart_models.sh
 ```
 
+首次运行前的依赖准备、训练阶段和输出路径参阅[模型训练](TRAINING.md)。
+
 直接运行统一 Classic CLI：
 
 ```bash
@@ -264,6 +266,9 @@ python scripts/evaluation/aggregate.py \
 
 ## 9. Classic CLI 参数
 
+Seq2Seq 和 CMA 从 SatNav-v0.1 数据准备到训练、单卡评测和多卡评测的完整流程参阅
+[Classic Baselines](BASELINE_CLASSIC.md)。
+
 四种方法统一使用：
 
 ```bash
@@ -310,7 +315,15 @@ bash baselines/vlm/streamvln/scripts/eval.sh \
   --output-dir output/baselines/vlm/streamvln/smoke
 ```
 
-每个 VLM 的模型路径、上游 checkout、processor 和独立 Python 环境配置见对应 README。
+每个 VLM 的模型路径、上游 checkout、processor 和独立 Python 环境配置见下列 baseline 文档。
+StreamVLN 的完整准备、训练和单卡/多卡评测流程参阅
+[StreamVLN Baseline](BASELINE_STREAMVLN.md)。
+NaVILA 的完整准备、训练和单卡/多卡评测流程参阅
+[NaVILA Baseline](BASELINE_NAVILA.md)。
+Uni-NaVid 的完整准备、训练和单卡/多卡评测流程参阅
+[Uni-NaVid Baseline](BASELINE_UNINAVID.md)。
+OpenFly 的完整准备、训练和单卡/多卡评测流程参阅
+[OpenFly Baseline](BASELINE_OPENFLY.md)。
 
 ## 11. Python API
 

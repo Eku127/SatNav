@@ -5,6 +5,10 @@ weights external, adapts canonical `trajectory_data` without MP4 conversion,
 and implements `satnav.evaluation.PolicyAdapter`. Importing `satnav` does not
 import Torch or Uni-NaVid.
 
+For the complete environment, SatNav-v0.1 data preparation, model download,
+training, and single/multi-GPU evaluation workflow, see the
+[Uni-NaVid baseline guide](../../../docs/BASELINE_UNINAVID.md).
+
 The runtime is pinned to
 [`jzhzhang/Uni-NaVid@79ef5ea3fea14c205342d1ab070563d84c7a966a`](https://github.com/jzhzhang/Uni-NaVid/commit/79ef5ea3fea14c205342d1ab070563d84c7a966a).
 Accepted runs require a clean checkout at that exact revision. Read

@@ -6,6 +6,10 @@ delegates deterministic episode selection, strided multi-rank sharding,
 append-only JSONL, crash resume, and aggregation to the common
 evaluator.
 
+For the complete environment, SatNav-v0.1 data preparation, training, and
+single/multi-GPU evaluation workflow, see the
+[StreamVLN baseline guide](../../../docs/BASELINE_STREAMVLN.md).
+
 The model implementation and weights remain external. The runtime is pinned
 to
 [`Eku127/StreamVLN@60476e81f4c01b29f1a51a7469f1cb4addbc1d62`](https://github.com/Eku127/StreamVLN/commit/60476e81f4c01b29f1a51a7469f1cb4addbc1d62).

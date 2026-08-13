@@ -82,7 +82,8 @@ cp baselines/classic/local.env.example baselines/classic/.local/env.sh
 ```
 
 Each external VLM has a separate environment and ignored overlay. Follow the
-baseline README rather than trying to share the core or classic environment:
+corresponding baseline guide rather than trying to share the core or classic
+environment:
 
 ```text
 baselines/vlm/streamvln/.local/env.sh
@@ -192,12 +193,15 @@ The neural model documentation remains available here:
 - [Seq2Seq](doc/models/SEQ2SEQ_IMPLEMENTATION.md): a lightweight recurrent baseline that encodes the instruction and current RGB observation before predicting navigation actions.
 - [CMA](doc/models/CMA_IMPLEMENTATION.md): a recurrent baseline with cross-modal attention that fuses language and visual features before predicting actions.
 
+The complete SatNav-v0.1 data preparation, training, and evaluation workflow
+for both models is documented in [Classic Baselines](docs/BASELINE_CLASSIC.md).
+
 External VLMs keep their incompatible model environments outside the core
 package. The maintained integrations are
-[StreamVLN](baselines/vlm/streamvln/README.md),
-[NaVILA](baselines/vlm/navila/README.md),
-[Uni-NaVid](baselines/vlm/uninavid/README.md), and
-[OpenFly](baselines/vlm/openfly/README.md). They all use the public `Env` and
+[StreamVLN](docs/BASELINE_STREAMVLN.md),
+[NaVILA](docs/BASELINE_NAVILA.md),
+[Uni-NaVid](docs/BASELINE_UNINAVID.md), and
+[OpenFly](docs/BASELINE_OPENFLY.md). They all use the public `Env` and
 `satnav.evaluation.PolicyAdapter` contracts; see the
 [VLM baseline overview](baselines/vlm/README.md) for ownership and environment
 boundaries. To connect another model, follow the
@@ -209,7 +213,7 @@ You can quickly run training and evaluation with the bundled tiny example data:
 bash scripts/quickstart_models.sh
 ```
 
-This script prepares the vocabulary, GloVe embeddings, offline trajectory data, and then trains and evaluates both Seq2Seq and CMA. For detailed steps and default output paths, see [Baseline Model Quickstart](doc/models/QUICKSTART.md).
+This script prepares the vocabulary, GloVe embeddings, offline trajectory data, and then trains and evaluates both Seq2Seq and CMA. For the training flow, prerequisites, and output layout, see the [training guide](docs/TRAINING.md).
 
 For canonical SatNav-v0.1 evaluation, first configure the ignored classic
 overlay described in Section 2, then run:

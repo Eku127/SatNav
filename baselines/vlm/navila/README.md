@@ -6,6 +6,10 @@ trajectory adapter, train/eval launchers, checkpoint identity checks, and a
 environment and external checkout, so importing `satnav` or
 `satnav.evaluation` never imports Torch, VILA, or NaVILA.
 
+For the complete SatNav-v0.1 data preparation, model download, training, and
+single-/multi-GPU evaluation workflow, see the
+[NaVILA baseline guide](../../../docs/BASELINE_NAVILA.md).
+
 The pinned model source is
 [`AnjieCheng/NaVILA@76b98f233dd0fff05dfcd69435eec6740febff9d`](https://github.com/AnjieCheng/NaVILA/commit/76b98f233dd0fff05dfcd69435eec6740febff9d).
 See [UPSTREAM.md](UPSTREAM.md) and [NOTICE](NOTICE) before redistribution.

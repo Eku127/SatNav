@@ -5,6 +5,10 @@ method uses the same public `satnav.Env` contract and generic evaluator result
 format.  Importing `satnav` or `satnav.evaluation` does not import PyTorch;
 Seq2Seq/CMA dependencies are loaded only when their packages are imported.
 
+For the complete SatNav-v0.1 data preparation, Seq2Seq/CMA training, and
+single/multi-GPU evaluation workflow, see the
+[Classic baseline guide](../../docs/BASELINE_CLASSIC.md).
+
 Maintained training/evaluation commands are source-checkout workflows: install
 this repository in editable mode so top-level `configs/` and `scripts/` remain
 available. A standalone SatNav wheel supports core imports and packaged example

@@ -4,6 +4,10 @@ This directory is a self-contained OpenFly integration for SatNav. Model code
 is loaded lazily from `baselines.vlm.openfly`; importing `satnav` does not import
 Torch, Transformers, OpenFly, or an external checkout.
 
+For the complete SatNav-v0.1 data preparation, model setup, training, and
+single-/multi-GPU evaluation workflow, see the
+[OpenFly baseline guide](../../../docs/BASELINE_OPENFLY.md).
+
 ## Frozen source and supported contract
 
 The bundled HF/Prismatic implementation is derived from OpenFly-Platform at

@@ -54,18 +54,21 @@ python -m baselines.classic --help
 
 如果使用其他 CUDA 版本，请从 PyTorch 官方源选择匹配的 wheel。
 
+安装完成后，可以按照[模型训练](TRAINING.md)使用仓库 tiny example 运行 Seq2Seq 和 CMA
+端到端训练。
+
 ## 4. VLM baselines
 
 四套 VLM 的 PyTorch、Transformers 和 FlashAttention 版本互不兼容。每套 VLM 必须使用独立 Conda 环境，不能复用 Core 或其他 VLM 的环境。
 
 | Baseline | Python | PyTorch | 安装说明 |
 | --- | --- | --- | --- |
-| StreamVLN | 3.9 | 2.5.1 | [`baselines/vlm/streamvln/README.md`](../baselines/vlm/streamvln/README.md) |
-| NaVILA | 3.10 | 2.3.0 | [`baselines/vlm/navila/README.md`](../baselines/vlm/navila/README.md) |
-| Uni-NaVid | 3.9 | 2.5.1 | [`baselines/vlm/uninavid/README.md`](../baselines/vlm/uninavid/README.md) |
-| OpenFly | 3.10 | 2.3.0 | [`baselines/vlm/openfly/README.md`](../baselines/vlm/openfly/README.md) |
+| StreamVLN | 3.9 | 2.5.1 | [StreamVLN Baseline](BASELINE_STREAMVLN.md) |
+| NaVILA | 3.10 | 2.3.0 | [NaVILA Baseline](BASELINE_NAVILA.md) |
+| Uni-NaVid | 3.9 | 2.5.1 | [Uni-NaVid Baseline](BASELINE_UNINAVID.md) |
+| OpenFly | 3.10 | 2.3.0 | [OpenFly Baseline](BASELINE_OPENFLY.md) |
 
-每个 VLM 环境都需要安装 SatNav。建议按对应 README 的顺序执行：
+每个 VLM 环境都需要安装 SatNav。建议按对应 baseline 文档的顺序执行：
 
 1. 创建该 baseline 的 Conda 环境；
 2. 安装与 CUDA 匹配的 PyTorch；

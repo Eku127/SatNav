@@ -28,11 +28,15 @@ different.  Core users should install SatNav without any VLM dependency.
 Maintained integrations:
 
 - [StreamVLN](streamvln/README.md): pinned external model code, SatNav
-  trajectory training adapter, and common-evaluator online rollout.
+  trajectory training adapter, and common-evaluator online rollout. The
+  end-to-end user guide is [here](../../docs/BASELINE_STREAMVLN.md).
 - [NaVILA](navila/README.md): pinned VILA/NaVILA runtime, safe lazy trajectory
   adapter, and natural-language action rollout through the common evaluator.
+  The end-to-end user guide is [here](../../docs/BASELINE_NAVILA.md).
 - [Uni-NaVid](uninavid/README.md): strict full-checkpoint loading, windowed
-  JPEG trajectory training, and incremental navigation-cache rollout.
+  JPEG trajectory training, and incremental navigation-cache rollout. The
+  end-to-end user guide is [here](../../docs/BASELINE_UNINAVID.md).
 - [OpenFly](openfly/README.md): bundled pinned Prismatic runtime, exact
   composite-key trajectory training, content-addressed checkpoints, and common
-  evaluator rollout.
+  evaluator rollout. The end-to-end user guide is
+  [here](../../docs/BASELINE_OPENFLY.md).
