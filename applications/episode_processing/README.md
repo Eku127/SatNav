@@ -3,9 +3,10 @@
 > **Legacy application:** These Episode-processing commands are retained only
 > for compatibility with the original per-city data-production workflow. New
 > users should download the published SatNav-Episodes data directly and should
-> not run this application. See [Episode data download](../../docs/DATA_DOWNLOAD.md),
-> [map download](../../docs/APPLICATION_MAP_DOWNLOAD.md), and
-> [trajectory generation](../../docs/APPLICATION_TRAJ_GENERATION.md).
+> not run this application. See
+> [Episode data download](../../docs/en-US/dataset/DATA_DOWNLOAD.md),
+> [map download](../../docs/en-US/applications/MAP_DOWNLOAD.md), and
+> [trajectory generation](../../docs/en-US/applications/TRAJECTORY_GENERATION.md).
 
 The production configuration under `configs/trajectory_generation.yaml`
 remains in use by `applications/trajectory_generation`; only the Episode

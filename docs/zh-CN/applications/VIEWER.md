@@ -9,7 +9,7 @@
 
 ## 1. 准备环境
 
-先完成[环境安装](INSTALLATION.md)。如需查看真实场景或 Episode，还需完成 [Episode 数据下载](DATA_DOWNLOAD.md)和[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)。
+先完成[环境安装](../getting-started/INSTALLATION.md)。如需查看真实场景或 Episode，还需完成 [Episode 数据下载](../dataset/DATA_DOWNLOAD.md)和[卫星场景下载](MAP_DOWNLOAD.md)。
 
 在 SatNav 仓库根目录执行：
 
@@ -29,7 +29,7 @@ python -m pip install -e '.[applications]'
 python -m applications.satsim_viewer free
 ```
 
-![Free viewer：显示当前 observation、坐标、高度和朝向](assets/viewer/free_viewer.png)
+![Free viewer：显示当前 observation、坐标、高度和朝向](../../assets/viewer/free_viewer.png)
 
 *Free viewer 使用合成 GeoTIFF 渲染 observation，并在画面中显示 WGS84、Web Mercator、相机高度和朝向。*
 
@@ -39,7 +39,7 @@ python -m applications.satsim_viewer free
 python -m applications.satsim_viewer task
 ```
 
-![Task viewer：同时显示 RGB observation、top-down map 和任务信息](assets/viewer/task_viewer.png)
+![Task viewer：同时显示 RGB observation、top-down map 和任务信息](../../assets/viewer/task_viewer.png)
 
 *Task viewer 左侧显示 RGB observation，右侧显示 agent、waypoint 和 reference path，底部显示指令及距离。*
 
@@ -121,7 +121,7 @@ python -m applications.satsim_viewer task \
   --config .local/satsim_viewer_task.yaml
 ```
 
-![真实 Episode 示例：Amsterdam-1 场景中的 RGB observation、reference path 和 waypoint](assets/viewer/real_episode_viewer.png)
+![真实 Episode 示例：Amsterdam-1 场景中的 RGB observation、reference path 和 waypoint](../../assets/viewer/real_episode_viewer.png)
 
 *真实 Episode 示例（Amsterdam-1，Episode 2144）：左侧为当前 RGB observation，右侧为完整 reference path 和 waypoint，底部为导航指令及距离。*
 
@@ -157,10 +157,29 @@ free viewer 中按 `P` 会将带有坐标和状态信息的 PNG 保存到仓库�
 
 ## 7. 常见问题
 
-- OpenCV 无法打开窗口：确认当前机器具有图形桌面，或正确配置 SSH X11 forwarding 和 `DISPLAY`。
-- `TIF file not found`：优先在本地配置中使用 GeoTIFF 的绝对路径。
-- 无法继续移动：相机视野已接近场景边界，请改变方向或降低高度。
-- 初始画面超出边界：减小 `AGENT.ALTITUDE`，或使用覆盖范围更大的 GeoTIFF。
-- Task viewer 找不到场景：确认 `SCENES_DIR` 正确，且文件名与 Episode 的 `scene_id` 一致。
+### 为什么 OpenCV 无法打开窗口？
+
+确认当前机器具有图形桌面。通过 SSH 使用 Viewer 时，需要正确配置 X11 forwarding 和
+`DISPLAY`；无图形界面的计算节点不能直接显示 OpenCV 窗口。
+
+### 为什么出现 `TIF file not found`？
+
+检查 Viewer 配置中的 GeoTIFF 路径是否存在。本机路径应写入 local config 或通过 CLI
+提供，不要写入公共配置。
+
+### 为什么 agent 无法继续移动？
+
+当前相机视野可能已经接近场景边界。改变前进方向或降低相机高度，确保旋转后的完整视野
+仍位于 GeoTIFF 覆盖范围内。
+
+### 为什么初始画面超出场景边界？
+
+减小 `AGENT.ALTITUDE`，或使用覆盖范围更大的 GeoTIFF。高度越高，相机需要的地面覆盖
+范围越大。
+
+### 为什么 Task viewer 找不到 Episode 对应的场景？
+
+确认 `SCENES_DIR` 指向 GeoTIFF 目录，并且场景文件名与 Episode 的 logical `scene_id`
+一致，例如 `Amsterdam-1.tif` 对应 `scene_id: Amsterdam-1`。
 
 > SatSim 使用 WGS84 经纬度描述 agent state，并从 EPSG:3857 GeoTIFF 渲染 observation。

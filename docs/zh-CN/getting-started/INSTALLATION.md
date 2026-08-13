@@ -1,6 +1,7 @@
 # SatNav 安装指南
 
-本文介绍从源码安装 SatNav。Core、classic baseline 与各 VLM baseline 的依赖边界不同，请按实际用途选择环境。
+本文介绍从源码安装 SatNav。Core、classic baseline 与各 VLM baseline 的依赖边界不同，
+请按实际用途选择环境。
 
 ## 1. 获取代码
 
@@ -25,8 +26,6 @@ python -m pip install -e .
 ```bash
 python -c "from satnav.core.env import Env; print('SatNav import OK')"
 ```
-
-仓库中的脚本和配置依赖源码目录，开发、训练和评测时建议保留 `-e` 可编辑安装。
 
 ## 3. 安装可选组件
 
@@ -54,18 +53,21 @@ python -m baselines.classic --help
 
 如果使用其他 CUDA 版本，请从 PyTorch 官方源选择匹配的 wheel。
 
+安装完成后，可以按照[模型训练](../training/README.md)使用仓库 tiny example 运行 Seq2Seq 和 CMA
+端到端训练。
+
 ## 4. VLM baselines
 
 四套 VLM 的 PyTorch、Transformers 和 FlashAttention 版本互不兼容。每套 VLM 必须使用独立 Conda 环境，不能复用 Core 或其他 VLM 的环境。
 
 | Baseline | Python | PyTorch | 安装说明 |
 | --- | --- | --- | --- |
-| StreamVLN | 3.9 | 2.5.1 | [`baselines/vlm/streamvln/README.md`](../baselines/vlm/streamvln/README.md) |
-| NaVILA | 3.10 | 2.3.0 | [`baselines/vlm/navila/README.md`](../baselines/vlm/navila/README.md) |
-| Uni-NaVid | 3.9 | 2.5.1 | [`baselines/vlm/uninavid/README.md`](../baselines/vlm/uninavid/README.md) |
-| OpenFly | 3.10 | 2.3.0 | [`baselines/vlm/openfly/README.md`](../baselines/vlm/openfly/README.md) |
+| StreamVLN | 3.9 | 2.5.1 | [StreamVLN Baseline](../training/vlm/STREAMVLN.md) |
+| NaVILA | 3.10 | 2.3.0 | [NaVILA Baseline](../training/vlm/NAVILA.md) |
+| Uni-NaVid | 3.9 | 2.5.1 | [Uni-NaVid Baseline](../training/vlm/UNINAVID.md) |
+| OpenFly | 3.10 | 2.3.0 | [OpenFly Baseline](../training/vlm/OPENFLY.md) |
 
-每个 VLM 环境都需要安装 SatNav。建议按对应 README 的顺序执行：
+每个 VLM 环境都需要安装 SatNav。建议按对应 baseline 文档的顺序执行：
 
 1. 创建该 baseline 的 Conda 环境；
 2. 安装与 CUDA 匹配的 PyTorch；
@@ -108,7 +110,29 @@ cp baselines/vlm/streamvln/local.env.example \
 
 ## 6. 常见问题
 
-- `ModuleNotFoundError: satnav`：确认已在当前环境执行 `python -m pip install -e .`。
-- CUDA 或算子加载失败：检查 PyTorch、CUDA、Python 和 FlashAttention wheel 是否匹配。
-- VLM 依赖冲突：删除混用环境，按对应 baseline 的 Conda 文件重新创建独立环境。
-- `rasterio` 或 `pyproj` 安装失败：优先使用干净的 Conda 环境，并避免混用系统 Python。
+### 为什么出现 `ModuleNotFoundError: satnav`？
+
+确认当前终端位于 SatNav 仓库根目录，并且已经在当前 Python 环境中执行：
+
+```bash
+python -m pip install -e .
+python -c "import satnav; print(satnav.__file__)"
+```
+
+如果使用 Conda，请先确认 `which python` 指向准备运行 SatNav 的环境。
+
+### 为什么 CUDA 或模型算子无法加载？
+
+检查 Python、PyTorch、CUDA 和 FlashAttention wheel 是否属于同一套兼容组合。先运行
+`python -m pip check`，再按照对应 baseline README 中列出的版本重新安装。不要在一个
+环境中混用多套 VLM 的依赖。
+
+### 为什么安装一个 VLM 后另一个 VLM 无法运行？
+
+四个 VLM baseline 的 PyTorch、Transformers 和 FlashAttention 版本不同。每个 baseline
+应使用独立 Conda 环境；删除混用环境后，按照对应 baseline 的环境文件重新创建。
+
+### 为什么 `rasterio` 或 `pyproj` 安装失败？
+
+优先使用 `environments/satnav/conda.yml` 创建干净环境，让 Conda 安装底层地理空间库。
+避免混用系统 Python、系统 GDAL 和来自不同渠道的二进制 wheel。

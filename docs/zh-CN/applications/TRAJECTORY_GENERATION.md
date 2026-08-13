@@ -4,7 +4,7 @@
 
 ## 1. 准备环境
 
-开始前请完成[环境安装](INSTALLATION.md)、[Episode 数据下载](DATA_DOWNLOAD.md)和[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)，然后在 SatNav 仓库根目录执行：
+开始前请完成[环境安装](../getting-started/INSTALLATION.md)、[Episode 数据下载](../dataset/DATA_DOWNLOAD.md)和[卫星场景下载](MAP_DOWNLOAD.md)，然后在 SatNav 仓库根目录执行：
 
 ```bash
 python -m pip install -e '.[applications]'
@@ -111,8 +111,35 @@ Generated annotations: 105164 / 105164 episodes
 
 ## 8. 常见问题
 
-- `ModuleNotFoundError`：确认当前环境已执行 `python -m pip install -e '.[applications]'`。
-- 进程占用内存过高：使用 `--num_workers N` 减少并行 worker 数量。
-- 生成速度较慢：确认数据位于本地高速磁盘，并保留默认的 scene affinity。
-- 找不到 Episode 或场景：重新设置 `SATNAV_TRAIN_EPISODES_PATH` 和 `SATNAV_SCENES_DIR`，然后运行数据配置校验。
-- 重跑后部分 Episode 被重新生成：对应的 Episode、配置或 GeoTIFF 内容已经变化，旧缓存不再有效。
+### 为什么运行生成命令时出现 `ModuleNotFoundError`？
+
+在 SatNav 仓库根目录为当前环境安装 applications 依赖：
+
+```bash
+python -m pip install -e '.[applications]'
+```
+
+### 为什么并行生成占用过多内存？
+
+使用 `--num_workers N` 减少并行 worker 数量。每个 worker 都会持有 simulator、场景缓存和
+图像编码资源，因此 worker 数不应超过机器内存和本地磁盘吞吐能够支持的范围。
+
+### 为什么 trajectory 生成速度较慢？
+
+确认 Episode、GeoTIFF 和输出目录位于本地高速磁盘，并保留默认的 scene affinity，使同一
+worker 尽量连续处理相同场景，减少 GeoTIFF 切换和缓存重建。
+
+### 为什么找不到 Episode 或场景？
+
+重新设置 `SATNAV_TRAIN_EPISODES_PATH` 和 `SATNAV_SCENES_DIR`，然后运行：
+
+```bash
+bash scripts/validation/data_validation.sh
+```
+
+确认每个 Episode 的 logical `scene_id` 都能在场景目录中解析为对应 GeoTIFF。
+
+### 为什么重跑后部分 Episode 被重新生成？
+
+对应 Episode、生成配置或 GeoTIFF 内容已经变化，因此已有缓存不能继续复用。检查本地路径
+是否指向同一批输入；如果输入确实发生变化，应保留本次重新生成的结果。

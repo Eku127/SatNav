@@ -4,10 +4,7 @@ StreamVLN, NaVILA, Uni-NaVid, and OpenFly use the same public SatNav Env and
 evaluation result contract, but keep independent conda environments and model
 code.  Nothing in this directory is imported by `satnav` itself.
 
-All maintained VLM commands run from a SatNav source checkout installed in
-editable mode. A standalone SatNav wheel does not install repository-level
-benchmark manifests or shared launcher scripts and is not a supported VLM
-train/eval surface.
+Run all VLM commands from a SatNav source checkout installed in editable mode.
 
 Each baseline contains:
 
@@ -29,11 +26,15 @@ different.  Core users should install SatNav without any VLM dependency.
 Maintained integrations:
 
 - [StreamVLN](streamvln/README.md): pinned external model code, SatNav
-  trajectory training adapter, and common-evaluator online rollout.
+  trajectory training adapter, and common-evaluator online rollout. The
+  end-to-end user guide is [here](../../docs/en-US/training/vlm/STREAMVLN.md).
 - [NaVILA](navila/README.md): pinned VILA/NaVILA runtime, safe lazy trajectory
   adapter, and natural-language action rollout through the common evaluator.
+  The end-to-end user guide is [here](../../docs/en-US/training/vlm/NAVILA.md).
 - [Uni-NaVid](uninavid/README.md): strict full-checkpoint loading, windowed
-  JPEG trajectory training, and incremental navigation-cache rollout.
+  JPEG trajectory training, and incremental navigation-cache rollout. The
+  end-to-end user guide is [here](../../docs/en-US/training/vlm/UNINAVID.md).
 - [OpenFly](openfly/README.md): bundled pinned Prismatic runtime, exact
   composite-key trajectory training, content-addressed checkpoints, and common
-  evaluator rollout.
+  evaluator rollout. The end-to-end user guide is
+  [here](../../docs/en-US/training/vlm/OPENFLY.md).

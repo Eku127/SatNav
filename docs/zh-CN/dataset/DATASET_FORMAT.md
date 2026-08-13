@@ -11,7 +11,7 @@
 | GeoTIFF 场景 | `<scene_id>.tif` | 用户自行下载，用于 SatSim 渲染 observation |
 | 离线 trajectory | `annotations.json` 和 `images/` | 根据 train Episode 和 GeoTIFF 生成，用于模型训练 |
 
-Episode 下载参阅[Episode 数据下载](DATA_DOWNLOAD.md)，场景和 trajectory 的生成分别参阅[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)和[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)。
+Episode 下载参阅[Episode 数据下载](DATA_DOWNLOAD.md)，场景和 trajectory 的生成分别参阅[卫星场景下载](../applications/MAP_DOWNLOAD.md)和[轨迹数据生成](../applications/TRAJECTORY_GENERATION.md)。
 
 ## 2. 数据划分
 
@@ -69,6 +69,8 @@ episodes/
 
 ## 3. Episode 字段
 
+`episodes` 列表中的每个元素表示一个导航 Episode：
+
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | `episode_id` | integer/string | Episode 在当前 split 和 scene 中的标识 |
@@ -79,7 +81,7 @@ episodes/
 | `start_position` | list | 起点 `[longitude, latitude, altitude]` |
 | `start_rotation` | number | 初始朝向，单位为度 |
 | `goals` | list | 目标列表，通常包含一个 `position` |
-| `instruction` | object | 导航指令及指令类型 |
+| `instruction` | object | 导航指令，包含 `instruction_text` 和 `instruction_type` |
 | `waypoints` | list | 原始稀疏导航点 |
 | `reference_path` | list | 从起点到目标的稠密参考路径 |
 | `aux_info` | object | 任务相关的附加元数据 |
@@ -112,7 +114,6 @@ SatNav loader 会将 ID 转为字符串，并保留 Episode、instruction 和 go
 
 本机路径只保存在 runtime-only 的 `scene_path` 中，默认不会写入 Episode 或评测结果。
 
-`scenes_list.yaml` 中的 `lat1`、`lon1`、`lat2` 和 `lon2` 定义场景下载范围，但该文件本身不包含地图瓦片或卫星影像。
 
 ## 5. 任务类型
 
@@ -126,7 +127,7 @@ SatNav loader 会将 ID 转为字符串，并保留 Episode、instruction 和 go
 
 ## 6. 离线 trajectory
 
-离线 trajectory 不包含在 SatNav-Episodes-v0.1 下载包中。使用仓库生成器后，默认结构为：
+离线 trajectory 不包含在 SatNav-Episodes-v0.1 下载包中，需要按照[轨迹数据生成](../applications/TRAJECTORY_GENERATION.md)使用仓库生成器自行准备。默认结构为：
 
 ```text
 trajectory_data/

@@ -16,6 +16,9 @@ The core simulator is **SatSim**:
 - Renders 2D RGB observations from local GeoTIFF files.
 - Supports offline trajectory generation, baseline training, and online rollout evaluation.
 
+For task-oriented installation, data preparation, training, evaluation, and
+model-integration guides, see the [documentation index](docs/README.md).
+
 ---
 
 ## 1. Installation
@@ -37,11 +40,6 @@ pip install -e '.[classic]'
 # Optional map, trajectory, and video applications.
 pip install -e '.[applications]'
 ```
-
-The standalone wheel contract covers core Python imports and packaged example
-resources. Repository-level classic/VLM launchers, benchmark manifests, and
-shell workflows require a SatNav source checkout installed in editable mode,
-as shown above; they are not standalone-wheel entrypoints.
 
 For a manually managed environment, use Python 3.8 or newer and run the same
 editable-install commands from the repository root.
@@ -82,7 +80,8 @@ cp baselines/classic/local.env.example baselines/classic/.local/env.sh
 ```
 
 Each external VLM has a separate environment and ignored overlay. Follow the
-baseline README rather than trying to share the core or classic environment:
+corresponding baseline guide rather than trying to share the core or classic
+environment:
 
 ```text
 baselines/vlm/streamvln/.local/env.sh
@@ -192,15 +191,20 @@ The neural model documentation remains available here:
 - [Seq2Seq](doc/models/SEQ2SEQ_IMPLEMENTATION.md): a lightweight recurrent baseline that encodes the instruction and current RGB observation before predicting navigation actions.
 - [CMA](doc/models/CMA_IMPLEMENTATION.md): a recurrent baseline with cross-modal attention that fuses language and visual features before predicting actions.
 
+The complete SatNav-v0.1 data preparation, training, and evaluation workflow
+for both models is documented in
+[Classic Baselines](docs/en-US/training/CLASSIC.md).
+
 External VLMs keep their incompatible model environments outside the core
 package. The maintained integrations are
-[StreamVLN](baselines/vlm/streamvln/README.md),
-[NaVILA](baselines/vlm/navila/README.md),
-[Uni-NaVid](baselines/vlm/uninavid/README.md), and
-[OpenFly](baselines/vlm/openfly/README.md). They all use the public `Env` and
+[StreamVLN](docs/en-US/training/vlm/STREAMVLN.md),
+[NaVILA](docs/en-US/training/vlm/NAVILA.md),
+[Uni-NaVid](docs/en-US/training/vlm/UNINAVID.md), and
+[OpenFly](docs/en-US/training/vlm/OPENFLY.md). They all use the public `Env` and
 `satnav.evaluation.PolicyAdapter` contracts; see the
 [VLM baseline overview](baselines/vlm/README.md) for ownership and environment
-boundaries.
+boundaries. To connect another model, follow the
+[model integration guide](docs/en-US/development/MODEL_INTEGRATION.md).
 
 You can quickly run training and evaluation with the bundled tiny example data:
 
@@ -208,7 +212,7 @@ You can quickly run training and evaluation with the bundled tiny example data:
 bash scripts/quickstart_models.sh
 ```
 
-This script prepares the vocabulary, GloVe embeddings, offline trajectory data, and then trains and evaluates both Seq2Seq and CMA. For detailed steps and default output paths, see [Baseline Model Quickstart](doc/models/QUICKSTART.md).
+This script prepares the vocabulary, GloVe embeddings, offline trajectory data, and then trains and evaluates both Seq2Seq and CMA. For the training flow, prerequisites, and output layout, see the [training guide](docs/en-US/training/README.md).
 
 For canonical SatNav-v0.1 evaluation, first configure the ignored classic
 overlay described in Section 2, then run:
@@ -219,13 +223,19 @@ bash scripts/classic/eval.sh reference_follower val_seen 8
 bash scripts/classic/eval_parallel.sh random val_seen 2 0,1 8
 ```
 
-The default benchmark kind is the tracked smoke contract; set
-`SATNAV_BENCHMARK_KIND=official` for the full 500-step contract. Seq2Seq and
-CMA additionally require the matching checkpoint, vocabulary, and local eval
-config variables documented in [Classic Baselines](baselines/classic/README.md).
-Every run writes benchmark/run manifests, rank-local JSONL and done markers,
-and a strictly validated `summary.json` under
-`output/baselines/classic/<method>/<split>/<kind>/<N>rank/`.
+The launcher defaults to `SATNAV_MAX_STEPS=5`; set `SATNAV_MAX_STEPS=500` for
+longer rollout. Seq2Seq and CMA additionally require the matching checkpoint,
+vocabulary, and local eval config variables documented in
+[Classic Baselines](baselines/classic/README.md). Every run writes rank-local
+JSONL, done markers, and `summary.json` under
+`output/baselines/classic/<method>/<split>/<steps>steps/<N>rank/`.
+
+Versioned SatNav-v0.1 evaluation settings are provided under
+`configs/benchmark/` for `val_seen` and `val_unseen`. Use the five-step smoke
+settings to check a rollout pipeline and the 500-step official settings when
+reporting benchmark results. See the
+[evaluation guide](docs/en-US/evaluation/README.md) for
+the complete protocol and output format.
 
 Canonical online evaluation uses `configs/satnav_eval_task.yaml`: Boundary and
 Road success radii are 10 m and the LandmarkSet success radius is 30 m. The
@@ -245,20 +255,20 @@ Most tests use fake simulators and temporary output directories, so they do
 not require private maps or checkpoints. Targeted real-data and GPU smoke
 tests are documented separately and are not part of the default suite.
 
-Before preparing a public release tree, also run:
+Before release, also run:
 
 ```bash
 bash scripts/check_release_hygiene.sh
 ```
 
-This checks candidate release files for tracked local-only paths, common
+This checks tracked files for local-only paths, common
 machine-specific values, credential-like values, and placeholder repository
 metadata. It checks the current tree; a public release must additionally use a
 clean history that never contained private local information.
 
 Ignored `.local` overlays are allowed in a development checkout and are never
-read or printed by the normal check. To validate a sanitized release checkout
-where no ignored local-only files may exist, run:
+read or printed by the normal check. To require that no ignored local-only
+files exist, run:
 
 ```bash
 SATNAV_RELEASE_TREE=1 bash scripts/check_release_hygiene.sh
@@ -271,7 +281,7 @@ third-party map content.
 
 - Source code is released under the MIT License. See `LICENSE`.
 - Documentation is released under CC BY 4.0 unless otherwise stated.
-- SatNav episode JSON files and related benchmark metadata are released under
+- SatNav episode JSON files and related benchmark parameter files are released under
   ODbL-1.0 because they may contain information derived from OpenStreetMap.
 - The bundled example `applications/resources/map.tif` is a procedurally
   generated synthetic raster dedicated to the public domain under CC0 1.0;

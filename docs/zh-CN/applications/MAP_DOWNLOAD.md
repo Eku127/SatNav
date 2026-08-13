@@ -1,12 +1,12 @@
 # SatNav 卫星场景下载
 
-本文介绍如何使用 `applications/map_downloader` 将地图瓦片拼接为 SatSim 可读取的 GeoTIFF 场景。SatNav-Episodes-v0.1 所需的 59 个场景范围定义在 `scenes_list.yaml` 中；如尚未准备该文件，请先完成 [Episode 数据下载](DATA_DOWNLOAD.md)。
+本文介绍如何使用 `applications/map_downloader` 将地图瓦片拼接为 SatSim 可读取的 GeoTIFF 场景。SatNav-Episodes-v0.1 所需的 59 个场景范围定义在 `scenes_list.yaml` 中；如尚未准备该文件，请先完成 [Episode 数据下载](../dataset/DATA_DOWNLOAD.md)。
 
 > 地图下载器只提供技术能力，不授予地图内容的下载、存储、分发或机器学习使用许可。请在使用前确认服务商的最新条款及你的授权范围。
 
 ## 1. 准备环境
 
-先完成[环境安装](INSTALLATION.md)，然后在 SatNav 仓库根目录安装 applications 依赖并设置数据路径：
+先完成[环境安装](../getting-started/INSTALLATION.md)，然后在 SatNav 仓库根目录安装 applications 依赖并设置数据路径：
 
 ```bash
 python -m pip install -e '.[applications]'
@@ -116,11 +116,31 @@ SatNav data configuration is complete.
 
 ## 6. 常见问题
 
-- `ModuleNotFoundError`：确认当前环境已执行 `python -m pip install -e '.[applications]'`。
-- API 鉴权失败：检查环境变量、API 是否启用、结算状态、key 限制和 token scope。
-- 下载中断：重新执行原命令即可续传，不要添加 `--overwrite`。
-- 网络无法连接 `tile.googleapis.com`：添加 `--use-env-proxy` 后重试。
-- Google satellite tiles 不可用：除配额和区域覆盖外，绑定 EEA 账单地址的项目无法获取 2D satellite tiles，参阅 [Google 错误说明](https://developers.google.com/maps/documentation/tile/error_handling)。
+### 为什么运行下载命令时出现 `ModuleNotFoundError`？
+
+在 SatNav 仓库根目录为当前环境安装 applications 依赖：
+
+```bash
+python -m pip install -e '.[applications]'
+```
+
+### 为什么 API 鉴权失败？
+
+确认凭据环境变量已经在当前终端生效，并检查对应 API 是否启用、账号结算状态、key 使用
+限制和 token scope。不要将 key 或 token 写入仓库配置。
+
+### 下载中断后如何继续？
+
+重新执行相同命令即可续传。不要添加 `--overwrite`，否则已经完成的场景也会重新下载。
+
+### 为什么无法连接 `tile.googleapis.com`？
+
+如果当前网络需要代理，添加 `--use-env-proxy`，让下载器读取终端中的代理环境变量后重试。
+
+### 为什么 Google satellite tiles 不可用？
+
+除配额和区域覆盖外，绑定 EEA 账单地址的项目无法获取 2D satellite tiles。根据命令返回的
+错误码检查 [Google 错误说明](https://developers.google.com/maps/documentation/tile/error_handling)。
 
 ## 7. 使用条款
 
@@ -128,4 +148,4 @@ Google Map Tiles API 当前政策限制未经授权的预取、存储和离线�
 
 Mapbox 用户请阅读 [Raster Tiles API 文档](https://docs.mapbox.com/api/maps/raster-tiles/)及对应服务条款。SatNav 不分发第三方卫星影像，也不替用户获得或转授地图内容许可。
 
-场景准备完成后，可使用 [SatSim Viewer](APPLICATION_VIEWER.md)检查 GeoTIFF，或按照[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)生成离线训练数据。
+场景准备完成后，可使用 [SatSim Viewer](VIEWER.md)检查 GeoTIFF，或按照[轨迹数据生成](TRAJECTORY_GENERATION.md)生成离线训练数据。

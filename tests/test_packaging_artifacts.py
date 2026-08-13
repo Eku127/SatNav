@@ -70,6 +70,11 @@ class PackagingArtifactTests(unittest.TestCase):
             if "rebuttal" in relative.parts:
                 continue
             source = cls.repository_root / relative
+            # ``git ls-files --cached`` also reports tracked files deleted in
+            # the current worktree. Distribution checks must model the files
+            # that actually exist in the candidate tree.
+            if not source.exists() and not source.is_symlink():
+                continue
             if source.is_symlink() or not source.is_file():
                 raise RuntimeError(f"non-regular release candidate: {relative}")
             destination = cls.source_root / relative
@@ -230,6 +235,25 @@ class PackagingArtifactTests(unittest.TestCase):
                 if member.name.endswith("/applications/resources/map.tif")
             )
         self.assertTrue(any(name.endswith("/pyproject.toml") for name in names))
+        self.assertTrue(
+            any(name.endswith("/docs/MODEL_INTEGRATION.md") for name in names)
+        )
+        self.assertTrue(any(name.endswith("/docs/TRAINING.md") for name in names))
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_CLASSIC.md") for name in names)
+        )
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_STREAMVLN.md") for name in names)
+        )
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_NAVILA.md") for name in names)
+        )
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_UNINAVID.md") for name in names)
+        )
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_OPENFLY.md") for name in names)
+        )
         self.assertTrue(
             any(
                 name.endswith(

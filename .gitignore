@@ -114,6 +114,9 @@ dmypy.json
 # A local comparison checkout/ref is never part of the public source tree.
 /rebuttal/
 
+# Local real-world transfer workspace and collected assets.
+/applications/real-trasnfer/
+
 # Dataset files (usually large, should be stored separately)
 data/datasets/
 data/scene_datasets/
