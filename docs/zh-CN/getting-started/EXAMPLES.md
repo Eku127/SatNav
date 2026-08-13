@@ -50,7 +50,7 @@ output/examples/reference_follower/
 └── topdown_map_example.png
 ```
 
-![Reference Path Follower top-down map](assets/examples/topdown_map_example.png)
+![Reference Path Follower top-down map](../../assets/examples/topdown_map_example.png)
 
 *Reference Path Follower 的 top-down map 输出。*
 
@@ -97,12 +97,12 @@ output/examples/satnav_path_follower/
 > 视频生成需要 `imageio-ffmpeg`，并要求任务配置启用 `TOP_DOWN_MAP` measurement。
 
 <video controls width="100%">
-  <source src="assets/examples/episode_1602_video.mp4" type="video/mp4">
+  <source src="../../assets/examples/episode_1602_video.mp4" type="video/mp4">
 </video>
 
 *SatNavPathFollower 视频示例（NewYork-3，Episode 1602）：左侧为 RGB observation，右侧为 top-down map，底部为导航指令。*
 
-如果当前文档页面不支持内嵌播放，可以[下载或观看 MP4 视频](assets/examples/episode_1602_video.mp4)。
+如果当前文档页面不支持内嵌播放，可以[下载或观看 MP4 视频](../../assets/examples/episode_1602_video.mp4)。
 
 ## 4. 使用自定义配置
 

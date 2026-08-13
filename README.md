@@ -16,6 +16,9 @@ The core simulator is **SatSim**:
 - Renders 2D RGB observations from local GeoTIFF files.
 - Supports offline trajectory generation, baseline training, and online rollout evaluation.
 
+For task-oriented installation, data preparation, training, evaluation, and
+model-integration guides, see the [documentation index](docs/README.md).
+
 ---
 
 ## 1. Installation
@@ -37,11 +40,6 @@ pip install -e '.[classic]'
 # Optional map, trajectory, and video applications.
 pip install -e '.[applications]'
 ```
-
-The standalone wheel contract covers core Python imports and packaged example
-resources. Repository-level classic/VLM launchers and shell workflows require
-a SatNav source checkout installed in editable mode, as shown above; they are
-not standalone-wheel entrypoints.
 
 For a manually managed environment, use Python 3.8 or newer and run the same
 editable-install commands from the repository root.
@@ -194,18 +192,19 @@ The neural model documentation remains available here:
 - [CMA](doc/models/CMA_IMPLEMENTATION.md): a recurrent baseline with cross-modal attention that fuses language and visual features before predicting actions.
 
 The complete SatNav-v0.1 data preparation, training, and evaluation workflow
-for both models is documented in [Classic Baselines](docs/BASELINE_CLASSIC.md).
+for both models is documented in
+[Classic Baselines](docs/en-US/training/CLASSIC.md).
 
 External VLMs keep their incompatible model environments outside the core
 package. The maintained integrations are
-[StreamVLN](docs/BASELINE_STREAMVLN.md),
-[NaVILA](docs/BASELINE_NAVILA.md),
-[Uni-NaVid](docs/BASELINE_UNINAVID.md), and
-[OpenFly](docs/BASELINE_OPENFLY.md). They all use the public `Env` and
+[StreamVLN](docs/en-US/training/vlm/STREAMVLN.md),
+[NaVILA](docs/en-US/training/vlm/NAVILA.md),
+[Uni-NaVid](docs/en-US/training/vlm/UNINAVID.md), and
+[OpenFly](docs/en-US/training/vlm/OPENFLY.md). They all use the public `Env` and
 `satnav.evaluation.PolicyAdapter` contracts; see the
 [VLM baseline overview](baselines/vlm/README.md) for ownership and environment
 boundaries. To connect another model, follow the
-[model integration guide](docs/MODEL_INTEGRATION.md).
+[model integration guide](docs/en-US/development/MODEL_INTEGRATION.md).
 
 You can quickly run training and evaluation with the bundled tiny example data:
 
@@ -213,7 +212,7 @@ You can quickly run training and evaluation with the bundled tiny example data:
 bash scripts/quickstart_models.sh
 ```
 
-This script prepares the vocabulary, GloVe embeddings, offline trajectory data, and then trains and evaluates both Seq2Seq and CMA. For the training flow, prerequisites, and output layout, see the [training guide](docs/TRAINING.md).
+This script prepares the vocabulary, GloVe embeddings, offline trajectory data, and then trains and evaluates both Seq2Seq and CMA. For the training flow, prerequisites, and output layout, see the [training guide](docs/en-US/training/README.md).
 
 For canonical SatNav-v0.1 evaluation, first configure the ignored classic
 overlay described in Section 2, then run:
@@ -234,7 +233,8 @@ JSONL, done markers, and `summary.json` under
 Versioned SatNav-v0.1 evaluation settings are provided under
 `configs/benchmark/` for `val_seen` and `val_unseen`. Use the five-step smoke
 settings to check a rollout pipeline and the 500-step official settings when
-reporting benchmark results. See the [evaluation guide](docs/EVALUATION.md) for
+reporting benchmark results. See the
+[evaluation guide](docs/en-US/evaluation/README.md) for
 the complete protocol and output format.
 
 Canonical online evaluation uses `configs/satnav_eval_task.yaml`: Boundary and
@@ -255,20 +255,20 @@ Most tests use fake simulators and temporary output directories, so they do
 not require private maps or checkpoints. Targeted real-data and GPU smoke
 tests are documented separately and are not part of the default suite.
 
-Before preparing a public release tree, also run:
+Before release, also run:
 
 ```bash
 bash scripts/check_release_hygiene.sh
 ```
 
-This checks candidate release files for tracked local-only paths, common
+This checks tracked files for local-only paths, common
 machine-specific values, credential-like values, and placeholder repository
 metadata. It checks the current tree; a public release must additionally use a
 clean history that never contained private local information.
 
 Ignored `.local` overlays are allowed in a development checkout and are never
-read or printed by the normal check. To validate a sanitized release checkout
-where no ignored local-only files may exist, run:
+read or printed by the normal check. To require that no ignored local-only
+files exist, run:
 
 ```bash
 SATNAV_RELEASE_TREE=1 bash scripts/check_release_hygiene.sh

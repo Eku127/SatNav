@@ -11,7 +11,7 @@
 | GeoTIFF 场景 | `<scene_id>.tif` | 用户自行下载，用于 SatSim 渲染 observation |
 | 离线 trajectory | `annotations.json` 和 `images/` | 根据 train Episode 和 GeoTIFF 生成，用于模型训练 |
 
-Episode 下载参阅[Episode 数据下载](DATA_DOWNLOAD.md)，场景和 trajectory 的生成分别参阅[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)和[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)。
+Episode 下载参阅[Episode 数据下载](DATA_DOWNLOAD.md)，场景和 trajectory 的生成分别参阅[卫星场景下载](../applications/MAP_DOWNLOAD.md)和[轨迹数据生成](../applications/TRAJECTORY_GENERATION.md)。
 
 ## 2. 数据划分
 
@@ -127,7 +127,7 @@ SatNav loader 会将 ID 转为字符串，并保留 Episode、instruction 和 go
 
 ## 6. 离线 trajectory
 
-离线 trajectory 不包含在 SatNav-Episodes-v0.1 下载包中，需要按照[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)使用仓库生成器自行准备。默认结构为：
+离线 trajectory 不包含在 SatNav-Episodes-v0.1 下载包中，需要按照[轨迹数据生成](../applications/TRAJECTORY_GENERATION.md)使用仓库生成器自行准备。默认结构为：
 
 ```text
 trajectory_data/

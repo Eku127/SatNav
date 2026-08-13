@@ -3,8 +3,8 @@
 本文介绍 SatNav 的通用训练流程，并使用仓库内置的 tiny example 完成第一次端到端训练。
 Quickstart 会生成离线轨迹、训练 Seq2Seq 和 CMA、保存 checkpoint，并在 SatSim 中运行评测。
 
-开始前建议先阅读[环境安装](INSTALLATION.md)和[数据格式](DATASET_FORMAT.md)。如果只需要将
-已有模型接入在线评测，请直接阅读[模型接入](MODEL_INTEGRATION.md)。
+开始前建议先阅读[环境安装](../getting-started/INSTALLATION.md)和[数据格式](../dataset/DATASET_FORMAT.md)。如果只需要将
+已有模型接入在线评测，请直接阅读[模型接入](../development/MODEL_INTEGRATION.md)。
 
 ## 1. 训练流程
 
@@ -42,28 +42,55 @@ Trajectory Generation
 
 Random 和 ReferenceFollower 不包含可学习参数，不需要训练。Classic 与 VLM 可以使用同一份
 SatNav trajectory export，但各模型负责自己的采样、processor、优化器和 checkpoint 格式。
-四个 VLM 的依赖互不兼容，安装方式参阅对应 baseline 文档。
+四个 VLM 的依赖互不兼容，选择模型后应进入对应的独立环境。
 
-使用完整 SatNav-v0.1 数据训练 Seq2Seq 和 CMA 的配置与命令参阅
-[Classic Baselines](BASELINE_CLASSIC.md)。
-StreamVLN 的独立环境、模型下载、数据校验、训练和评测流程参阅
-[StreamVLN Baseline](BASELINE_STREAMVLN.md)。
-NaVILA 的独立环境、上游代码、模型下载、训练和评测流程参阅
-[NaVILA Baseline](BASELINE_NAVILA.md)。
-Uni-NaVid 的独立环境、模型准备、训练和评测流程参阅
-[Uni-NaVid Baseline](BASELINE_UNINAVID.md)。
-OpenFly 的独立环境、模型准备、训练和评测流程参阅
-[OpenFly Baseline](BASELINE_OPENFLY.md)。
+## 2. 选择训练路线
 
-## 2. 训练输入
+### 2.1 Classic baselines
+
+Classic 适合第一次验证 SatNav 的数据、训练和在线评测链路，也可以作为新方法的轻量对照。
+Seq2Seq 和 CMA 共用 SatNav classic 环境、trajectory 格式与统一评测接口：
+
+| 模型 | 主要结构 | 训练起点 |
+| --- | --- | --- |
+| Seq2Seq | Instruction encoder + RGB encoder + recurrent policy | 随机初始化模型与本地 vocabulary/embedding |
+| CMA | Cross-modal attention + recurrent policy | 随机初始化模型与本地 vocabulary/embedding |
+
+第一次运行时，建议先完成本文第 4 至 6 节的 tiny example。它会生成示例 trajectory，并实际
+训练和评测两个模型。准备完整 SatNav-v0.1 后，按照
+[Classic Baselines](CLASSIC.md)完成数据校验、完整训练、checkpoint 检查以及单卡或
+多卡评测。
+
+Random 和 ReferenceFollower 只用于在线评测，不属于训练路线。
+
+### 2.2 VLM baselines
+
+VLM baseline 适合复现已有视觉语言模型，或在相同 SatNav trajectory 上进行大模型微调。每个
+模型都有独立的 Python 环境、上游代码或运行时实现、模型资源与 launcher：
+
+| Baseline | 模型代码 | 训练起点 | 完整流程 |
+| --- | --- | --- | --- |
+| StreamVLN | 固定版本的外部 StreamVLN checkout | 官方 StreamVLN checkpoint 或 LLaVA-Video base model | [StreamVLN Baseline](vlm/STREAMVLN.md) |
+| NaVILA | 固定版本的外部 NaVILA checkout | NaVILA SFT 或 pretrain checkpoint | [NaVILA Baseline](vlm/NAVILA.md) |
+| Uni-NaVid | 固定版本的外部 Uni-NaVid checkout | Uni-NaVid checkpoint 与 EVA 权重 | [Uni-NaVid Baseline](vlm/UNINAVID.md) |
+| OpenFly | SatNav 中随附的固定 OpenFly runtime | 完整 HF checkpoint，或原生 `.pt` 与 processor | [OpenFly Baseline](vlm/OPENFLY.md) |
+
+选择 VLM 后，直接从表格中的对应文档开始，不需要运行 Classic tiny example。各文档依次说明
+环境安装、模型准备、本地路径、数据校验、Smoke 训练、完整训练和在线评测。
+
+同一台机器可以准备多套 VLM 环境，但不要在环境之间复用 PyTorch、Transformers 或
+FlashAttention。模型、数据集、上游 checkout 和输出路径应保存在对应 baseline 的 Git
+ignored `.local/env.sh` 中。
+
+## 3. 训练输入
 
 一次完整训练通常需要以下输入：
 
 | 输入 | 作用 | 准备方式 |
 | --- | --- | --- |
-| Episode JSON | 提供指令、起点、目标和 reference path | [Episode 数据下载](DATA_DOWNLOAD.md) |
-| GeoTIFF scenes | 渲染 expert trajectory 的 RGB observation | [卫星场景下载](APPLICATION_MAP_DOWNLOAD.md) |
-| Offline trajectory | 提供 `annotations.json`、RGB frame 和 action | [轨迹数据生成](APPLICATION_TRAJ_GENERATION.md) |
+| Episode JSON | 提供指令、起点、目标和 reference path | [Episode 数据下载](../dataset/DATA_DOWNLOAD.md) |
+| GeoTIFF scenes | 渲染 expert trajectory 的 RGB observation | [卫星场景下载](../applications/MAP_DOWNLOAD.md) |
+| Offline trajectory | 提供 `annotations.json`、RGB frame 和 action | [轨迹数据生成](../applications/TRAJECTORY_GENERATION.md) |
 | 模型资源 | vocabulary、embedding、processor 或预训练权重 | 由对应 baseline 准备 |
 | 训练配置 | 数据路径、模型结构和优化参数 | `configs/baselines/` 或 VLM 自有配置 |
 
@@ -82,12 +109,12 @@ trajectory_data/
 
 `annotations.json` 保存 Episode instruction、action sequence、frame index 和 logical scene
 信息。每条轨迹以初始 observation 开始，并以 `STOP` action 结束。字段定义参阅
-[数据格式 - 离线 trajectory](DATASET_FORMAT.md#6-离线-trajectory)。
+[数据格式 - 离线 trajectory](../dataset/DATASET_FORMAT.md#6-离线-trajectory)。
 
 训练配置中的 Episode、scene、trajectory、checkpoint 和输出路径必须指向同一组实验数据。
 本机路径应放入 Git ignored 的 `.local/env.sh` 或 `configs/local_*.yaml`，不要写入公共配置。
 
-## 3. Tiny Example
+## 4. Tiny Example
 
 仓库提供一套可直接运行的训练资源：
 
@@ -118,7 +145,7 @@ Tiny example 的作用是确认以下链路能够在当前环境中正常工作�
 示例数据规模很小，只用于检查训练链路。其 loss 和导航指标不代表模型在
 SatNav-v0.1 benchmark 上的性能。
 
-## 4. 准备 Quickstart 环境
+## 5. 准备 Quickstart 环境
 
 在 SatNav 仓库根目录创建并激活 classic 环境：
 
@@ -132,7 +159,7 @@ python -m pip install torch==2.4.1 torchvision==0.19.1 \
 python -m pip install -e '.[classic,applications]'
 ```
 
-如果环境已经按照[安装指南](INSTALLATION.md)准备完成，不需要重复创建。使用其他 CUDA
+如果环境已经按照[安装指南](../getting-started/INSTALLATION.md)准备完成，不需要重复创建。使用其他 CUDA
 版本时，请安装与本机驱动匹配的 PyTorch 和 TorchVision。
 
 Quickstart 还需要：
@@ -159,7 +186,7 @@ command -v unzip
 command -v curl || command -v wget
 ```
 
-## 5. 运行 Tiny Example Quickstart
+## 6. 运行 Tiny Example Quickstart
 
 在仓库根目录执行：
 
@@ -238,7 +265,7 @@ RUN_SEQ2SEQ=0 bash scripts/quickstart_models.sh
 RUN_EVAL=0 bash scripts/quickstart_models.sh
 ```
 
-## 6. 常见问题
+## 7. 常见问题
 
 ### 为什么 GloVe 下载失败？
 

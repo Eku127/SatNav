@@ -27,7 +27,7 @@ rollout 和结果格式。
 bash scripts/quickstart_models.sh
 ```
 
-首次运行前的依赖准备、训练阶段和输出路径参阅[模型训练](TRAINING.md)。
+首次运行前的依赖准备、训练阶段和输出路径参阅[模型训练](../training/README.md)。
 
 直接运行统一 Classic CLI：
 
@@ -71,7 +71,7 @@ Smoke 设置用于快速检查数据、模型和环境能否完成 rollout；报
 Official 设置。启动评测时，通过 `--split`、`--limit` 和 `--max-steps` 选择相应运行规模。
 
 Seq2Seq 和 CMA 还需要在本地 overlay 中配置对应 checkpoint 与 vocabulary；详细变量见
-[`baselines/classic/local.env.example`](../baselines/classic/local.env.example)。
+[`baselines/classic/local.env.example`](../../../baselines/classic/local.env.example)。
 
 ## 3. Episode 选择与分片
 
@@ -114,7 +114,7 @@ class PolicyAdapter:
 action chunking 和 tokenization 都由 adapter 管理，不应进入通用 evaluator。
 
 从最小 adapter 到真实模型、多 rank 和 resume 的完整接入流程参阅
-[模型接入](MODEL_INTEGRATION.md)。
+[模型接入](../development/MODEL_INTEGRATION.md)。
 
 `EpisodeContext` 提供当前 Episode、稳定 key、split、rank/world size、最大步数、seed 和
 公开 environment 引用。Adapter 不应访问 `Env` 的私有字段。
@@ -267,7 +267,7 @@ python scripts/evaluation/aggregate.py \
 ## 9. Classic CLI 参数
 
 Seq2Seq 和 CMA 从 SatNav-v0.1 数据准备到训练、单卡评测和多卡评测的完整流程参阅
-[Classic Baselines](BASELINE_CLASSIC.md)。
+[Classic Baselines](../training/CLASSIC.md)。
 
 四种方法统一使用：
 
@@ -317,13 +317,13 @@ bash baselines/vlm/streamvln/scripts/eval.sh \
 
 每个 VLM 的模型路径、上游 checkout、processor 和独立 Python 环境配置见下列 baseline 文档。
 StreamVLN 的完整准备、训练和单卡/多卡评测流程参阅
-[StreamVLN Baseline](BASELINE_STREAMVLN.md)。
+[StreamVLN Baseline](../training/vlm/STREAMVLN.md)。
 NaVILA 的完整准备、训练和单卡/多卡评测流程参阅
-[NaVILA Baseline](BASELINE_NAVILA.md)。
+[NaVILA Baseline](../training/vlm/NAVILA.md)。
 Uni-NaVid 的完整准备、训练和单卡/多卡评测流程参阅
-[Uni-NaVid Baseline](BASELINE_UNINAVID.md)。
+[Uni-NaVid Baseline](../training/vlm/UNINAVID.md)。
 OpenFly 的完整准备、训练和单卡/多卡评测流程参阅
-[OpenFly Baseline](BASELINE_OPENFLY.md)。
+[OpenFly Baseline](../training/vlm/OPENFLY.md)。
 
 ## 11. Python API
 

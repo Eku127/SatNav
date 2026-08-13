@@ -4,8 +4,8 @@
 在线评测。StreamVLN 使用独立 Python 环境和外部模型代码，不与 SatNav Core、Classic 或其他
 VLM baseline 共用环境。
 
-开始前建议先阅读[环境安装](INSTALLATION.md)、[模型训练](TRAINING.md)和
-[统一评测](EVALUATION.md)。
+开始前建议先阅读[环境安装](../../getting-started/INSTALLATION.md)、[模型训练](../README.md)和
+[统一评测](../../evaluation/README.md)。
 
 ## 1. 模型与 SatNav 接口
 
@@ -25,8 +25,8 @@ StreamVLN 根据导航指令、当前 RGB observation 和历史视觉信息生�
 
 SatNav 当前适配的上游版本为
 [`Eku127/StreamVLN@60476e81f4c01b29f1a51a7469f1cb4addbc1d62`](https://github.com/Eku127/StreamVLN/commit/60476e81f4c01b29f1a51a7469f1cb4addbc1d62)。
-使用模型代码和权重前，请阅读 [UPSTREAM](../baselines/vlm/streamvln/UPSTREAM.md) 和
-[NOTICE](../baselines/vlm/streamvln/NOTICE)。
+使用模型代码和权重前，请阅读 [UPSTREAM](../../../../baselines/vlm/streamvln/UPSTREAM.md) 和
+[NOTICE](../../../../baselines/vlm/streamvln/NOTICE)。
 
 ## 2. 准备独立环境
 
@@ -99,8 +99,8 @@ git -C /path/to/StreamVLN checkout \
 
 ### 4.1 Episode、GeoTIFF 与 Trajectory
 
-按照 [Episode 数据下载](DATA_DOWNLOAD.md)、[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)和
-[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)准备 SatNav-v0.1。StreamVLN 使用与其他
+按照 [Episode 数据下载](../../dataset/DATA_DOWNLOAD.md)、[卫星场景下载](../../applications/MAP_DOWNLOAD.md)和
+[轨迹数据生成](../../applications/TRAJECTORY_GENERATION.md)准备 SatNav-v0.1。StreamVLN 使用与其他
 baseline 相同的 trajectory export：
 
 ```text

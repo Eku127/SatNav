@@ -4,8 +4,8 @@
 评测。NaVILA 使用独立 Python 环境和外部模型代码，不与 SatNav Core、Classic 或其他 VLM
 baseline 共用环境。
 
-开始前建议先阅读[环境安装](INSTALLATION.md)、[模型训练](TRAINING.md)和
-[统一评测](EVALUATION.md)。
+开始前建议先阅读[环境安装](../../getting-started/INSTALLATION.md)、[模型训练](../README.md)和
+[统一评测](../../evaluation/README.md)。
 
 ## 1. 模型与 SatNav 接口
 
@@ -28,9 +28,9 @@ SatNav primitive action 并依次执行。
 
 SatNav 当前适配的上游版本为
 [`AnjieCheng/NaVILA@76b98f233dd0fff05dfcd69435eec6740febff9d`](https://github.com/AnjieCheng/NaVILA/commit/76b98f233dd0fff05dfcd69435eec6740febff9d)。
-使用模型代码和权重前，请阅读 [UPSTREAM](../baselines/vlm/navila/UPSTREAM.md)、
-[NOTICE](../baselines/vlm/navila/NOTICE) 和
-[Upstream License](../baselines/vlm/navila/LICENSE.upstream)。
+使用模型代码和权重前，请阅读 [UPSTREAM](../../../../baselines/vlm/navila/UPSTREAM.md)、
+[NOTICE](../../../../baselines/vlm/navila/NOTICE) 和
+[Upstream License](../../../../baselines/vlm/navila/LICENSE.upstream)。
 
 ## 2. 准备独立环境
 
@@ -115,8 +115,8 @@ command -v python
 
 ### 4.1 Episode、GeoTIFF 与 Trajectory
 
-按照 [Episode 数据下载](DATA_DOWNLOAD.md)、[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)和
-[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)准备 SatNav-v0.1。NaVILA 直接读取
+按照 [Episode 数据下载](../../dataset/DATA_DOWNLOAD.md)、[卫星场景下载](../../applications/MAP_DOWNLOAD.md)和
+[轨迹数据生成](../../applications/TRAJECTORY_GENERATION.md)准备 SatNav-v0.1。NaVILA 直接读取
 trajectory 中的 JPEG：
 
 ```text

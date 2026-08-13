@@ -1,12 +1,12 @@
 # SatNav 卫星场景下载
 
-本文介绍如何使用 `applications/map_downloader` 将地图瓦片拼接为 SatSim 可读取的 GeoTIFF 场景。SatNav-Episodes-v0.1 所需的 59 个场景范围定义在 `scenes_list.yaml` 中；如尚未准备该文件，请先完成 [Episode 数据下载](DATA_DOWNLOAD.md)。
+本文介绍如何使用 `applications/map_downloader` 将地图瓦片拼接为 SatSim 可读取的 GeoTIFF 场景。SatNav-Episodes-v0.1 所需的 59 个场景范围定义在 `scenes_list.yaml` 中；如尚未准备该文件，请先完成 [Episode 数据下载](../dataset/DATA_DOWNLOAD.md)。
 
 > 地图下载器只提供技术能力，不授予地图内容的下载、存储、分发或机器学习使用许可。请在使用前确认服务商的最新条款及你的授权范围。
 
 ## 1. 准备环境
 
-先完成[环境安装](INSTALLATION.md)，然后在 SatNav 仓库根目录安装 applications 依赖并设置数据路径：
+先完成[环境安装](../getting-started/INSTALLATION.md)，然后在 SatNav 仓库根目录安装 applications 依赖并设置数据路径：
 
 ```bash
 python -m pip install -e '.[applications]'
@@ -148,4 +148,4 @@ Google Map Tiles API 当前政策限制未经授权的预取、存储和离线�
 
 Mapbox 用户请阅读 [Raster Tiles API 文档](https://docs.mapbox.com/api/maps/raster-tiles/)及对应服务条款。SatNav 不分发第三方卫星影像，也不替用户获得或转授地图内容许可。
 
-场景准备完成后，可使用 [SatSim Viewer](APPLICATION_VIEWER.md)检查 GeoTIFF，或按照[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)生成离线训练数据。
+场景准备完成后，可使用 [SatSim Viewer](VIEWER.md)检查 GeoTIFF，或按照[轨迹数据生成](TRAJECTORY_GENERATION.md)生成离线训练数据。

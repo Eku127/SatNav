@@ -4,7 +4,7 @@
 
 ## 1. 准备环境
 
-开始前请完成[环境安装](INSTALLATION.md)、[Episode 数据下载](DATA_DOWNLOAD.md)和[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)，然后在 SatNav 仓库根目录执行：
+开始前请完成[环境安装](../getting-started/INSTALLATION.md)、[Episode 数据下载](../dataset/DATA_DOWNLOAD.md)和[卫星场景下载](MAP_DOWNLOAD.md)，然后在 SatNav 仓库根目录执行：
 
 ```bash
 python -m pip install -e '.[applications]'

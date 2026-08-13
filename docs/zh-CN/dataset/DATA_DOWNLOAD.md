@@ -1,6 +1,6 @@
 # SatNav Episode 数据下载
 
-本文介绍 SatNav Episode 元数据的下载、目录配置与完整性校验。卫星场景需单独准备，参阅[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)。
+本文介绍 SatNav Episode 元数据的下载、目录配置与完整性校验。卫星场景需单独准备，参阅[卫星场景下载](../applications/MAP_DOWNLOAD.md)。
 
 ## 1. 数据集说明
 
@@ -54,10 +54,10 @@ cd -
 
 ## 4. 数据许可
 
-Episode JSON 和相关 benchmark 参数文件按 [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) 发布，数据说明文档按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 发布。完整说明参阅[数据许可](../DATA_LICENSE.md)。
+Episode JSON 和相关 benchmark 参数文件按 [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) 发布，数据说明文档按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 发布。完整说明参阅[数据许可](../../../DATA_LICENSE.md)。
 
 卫星影像不属于 SatNav-Episodes-v0.1，也未由 SatNav 转授许可。
 
 ## 5. 下一步
 
-按照[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)准备 SatSim 所需的 GeoTIFF 场景。
+按照[卫星场景下载](../applications/MAP_DOWNLOAD.md)准备 SatSim 所需的 GeoTIFF 场景。

@@ -1,6 +1,7 @@
 # SatNav 安装指南
 
-本文介绍从源码安装 SatNav。Core、classic baseline 与各 VLM baseline 的依赖边界不同，请按实际用途选择环境。
+本文介绍从源码安装 SatNav。Core、classic baseline 与各 VLM baseline 的依赖边界不同，
+请按实际用途选择环境。
 
 ## 1. 获取代码
 
@@ -25,8 +26,6 @@ python -m pip install -e .
 ```bash
 python -c "from satnav.core.env import Env; print('SatNav import OK')"
 ```
-
-仓库中的脚本和配置依赖源码目录，开发、训练和评测时建议保留 `-e` 可编辑安装。
 
 ## 3. 安装可选组件
 
@@ -54,7 +53,7 @@ python -m baselines.classic --help
 
 如果使用其他 CUDA 版本，请从 PyTorch 官方源选择匹配的 wheel。
 
-安装完成后，可以按照[模型训练](TRAINING.md)使用仓库 tiny example 运行 Seq2Seq 和 CMA
+安装完成后，可以按照[模型训练](../training/README.md)使用仓库 tiny example 运行 Seq2Seq 和 CMA
 端到端训练。
 
 ## 4. VLM baselines
@@ -63,10 +62,10 @@ python -m baselines.classic --help
 
 | Baseline | Python | PyTorch | 安装说明 |
 | --- | --- | --- | --- |
-| StreamVLN | 3.9 | 2.5.1 | [StreamVLN Baseline](BASELINE_STREAMVLN.md) |
-| NaVILA | 3.10 | 2.3.0 | [NaVILA Baseline](BASELINE_NAVILA.md) |
-| Uni-NaVid | 3.9 | 2.5.1 | [Uni-NaVid Baseline](BASELINE_UNINAVID.md) |
-| OpenFly | 3.10 | 2.3.0 | [OpenFly Baseline](BASELINE_OPENFLY.md) |
+| StreamVLN | 3.9 | 2.5.1 | [StreamVLN Baseline](../training/vlm/STREAMVLN.md) |
+| NaVILA | 3.10 | 2.3.0 | [NaVILA Baseline](../training/vlm/NAVILA.md) |
+| Uni-NaVid | 3.9 | 2.5.1 | [Uni-NaVid Baseline](../training/vlm/UNINAVID.md) |
+| OpenFly | 3.10 | 2.3.0 | [OpenFly Baseline](../training/vlm/OPENFLY.md) |
 
 每个 VLM 环境都需要安装 SatNav。建议按对应 baseline 文档的顺序执行：
 

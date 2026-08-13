@@ -4,8 +4,8 @@
 在线评测。Uni-NaVid 使用独立 Python 环境和外部模型代码，不与 SatNav Core、Classic 或其他
 VLM baseline 共用环境。
 
-开始前建议先阅读[环境安装](INSTALLATION.md)、[模型训练](TRAINING.md)和
-[统一评测](EVALUATION.md)。
+开始前建议先阅读[环境安装](../../getting-started/INSTALLATION.md)、[模型训练](../README.md)和
+[统一评测](../../evaluation/README.md)。
 
 ## 1. 模型与 SatNav 接口
 
@@ -24,9 +24,9 @@ Uni-NaVid 根据导航指令和连续 RGB observation 生成最多四个文本�
 
 SatNav 当前适配的上游版本为
 [`jzhzhang/Uni-NaVid@79ef5ea3fea14c205342d1ab070563d84c7a966a`](https://github.com/jzhzhang/Uni-NaVid/commit/79ef5ea3fea14c205342d1ab070563d84c7a966a)。
-使用模型代码和权重前，请阅读 [UPSTREAM](../baselines/vlm/uninavid/UPSTREAM.md)、
-[NOTICE](../baselines/vlm/uninavid/NOTICE) 和
-[Upstream License](../baselines/vlm/uninavid/LICENSE.upstream)。
+使用模型代码和权重前，请阅读 [UPSTREAM](../../../../baselines/vlm/uninavid/UPSTREAM.md)、
+[NOTICE](../../../../baselines/vlm/uninavid/NOTICE) 和
+[Upstream License](../../../../baselines/vlm/uninavid/LICENSE.upstream)。
 
 ## 2. 准备独立环境
 
@@ -111,8 +111,8 @@ git -C /path/to/Uni-NaVid status --short
 
 ### 4.1 Episode、GeoTIFF 与 Trajectory
 
-按照 [Episode 数据下载](DATA_DOWNLOAD.md)、[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)和
-[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)准备 SatNav-v0.1。Uni-NaVid 直接读取
+按照 [Episode 数据下载](../../dataset/DATA_DOWNLOAD.md)、[卫星场景下载](../../applications/MAP_DOWNLOAD.md)和
+[轨迹数据生成](../../applications/TRAJECTORY_GENERATION.md)准备 SatNav-v0.1。Uni-NaVid 直接读取
 trajectory 中的 JPEG：
 
 ```text

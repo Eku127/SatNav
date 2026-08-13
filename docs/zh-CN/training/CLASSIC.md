@@ -4,7 +4,7 @@
 GeoTIFF、离线 trajectory、vocabulary 和 GloVe embedding，但使用不同的模型配置和
 checkpoint。
 
-如果只需要运行仓库内置的两个示例 Episode，请先阅读[模型训练](TRAINING.md)。本文以下
+如果只需要运行仓库内置的两个示例 Episode，请先阅读[模型训练](README.md)。本文以下
 内容面向完整 SatNav-v0.1 数据。
 
 ## 1. 模型概览
@@ -25,8 +25,9 @@ expert action；评测阶段在 SatSim 中根据当前 observation 逐步预测�
 - Episode continuation mask。
 
 模型输出四个 SatNav primitive action 之一：`STOP`、`MOVE_FORWARD`、`TURN_LEFT` 或
-`TURN_RIGHT`。模型结构的详细说明参阅 [Seq2Seq Model Structure](../doc/models/SEQ2SEQ_IMPLEMENTATION.md)
-和 [CMA Model Structure](../doc/models/CMA_IMPLEMENTATION.md)。
+`TURN_RIGHT`。模型结构的详细说明参阅
+[Seq2Seq Model Structure](../../../doc/models/SEQ2SEQ_IMPLEMENTATION.md) 和
+[CMA Model Structure](../../../doc/models/CMA_IMPLEMENTATION.md)。
 
 ## 2. 准备环境
 
@@ -57,7 +58,7 @@ editable install。
 
 ### 3.1 Episode 与 GeoTIFF
 
-按照 [Episode 数据下载](DATA_DOWNLOAD.md)和[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)
+按照 [Episode 数据下载](../dataset/DATA_DOWNLOAD.md)和[卫星场景下载](../applications/MAP_DOWNLOAD.md)
 准备数据，然后在当前终端设置：
 
 ```bash
@@ -123,7 +124,7 @@ Failed: 0
 Generated annotations: 105164 / 105164 episodes
 ```
 
-完整的生产配置、worker 调整和续跑说明参阅[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)。
+完整的生产配置、worker 调整和续跑说明参阅[轨迹数据生成](../applications/TRAJECTORY_GENERATION.md)。
 
 ### 3.3 构建 Vocabulary 与 GloVe Embedding
 
@@ -505,7 +506,7 @@ bash scripts/classic/eval_parallel.sh \
 ```
 
 `val_seen` 完成后，将 split 和输出目录分别改为 `val_unseen` 再运行一次。标准 Episode 数和
-评测参数参阅 [Evaluation - SatNav-v0.1 标准设置](EVALUATION.md#satnav-v01-标准设置)。
+评测参数参阅 [Evaluation - SatNav-v0.1 标准设置](../evaluation/README.md#satnav-v01-标准设置)。
 
 评测脚本默认启用 resume。同一运行中断后，使用完全相同的数据、checkpoint、seed、
 `world_size`、最大步数和输出目录重新执行即可。评测另一个 checkpoint 或修改运行参数时，
@@ -518,7 +519,7 @@ bash scripts/classic/eval_parallel.sh \
 - `unique_record_count` 等于当前 split 的 Episode 数；
 - `metrics` 包含 `distance_to_goal`、`success`、`oracle_success`、`spl` 和 `path_length`。
 
-结果字段、Episode 分片和 resume 规则参阅[统一评测](EVALUATION.md)。
+结果字段、Episode 分片和 resume 规则参阅[统一评测](../evaluation/README.md)。
 
 ## 12. 常见问题
 

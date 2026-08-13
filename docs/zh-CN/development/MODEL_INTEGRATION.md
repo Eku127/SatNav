@@ -4,7 +4,7 @@
 限制模型框架：PyTorch、Transformers、远程推理服务或规则策略都可以实现相同的
 `PolicyAdapter` 接口。
 
-开始前建议先阅读 [Core API](CORE_API.md) 和 [Evaluation](EVALUATION.md)。前者介绍
+开始前建议先阅读 [Core API](../core/CORE_API.md) 和 [Evaluation](../evaluation/README.md)。前者介绍
 observation、action 与 `Env`，后者介绍 Episode 选择、结果格式和聚合方式。
 
 ## 1. 准备环境
@@ -29,8 +29,8 @@ applications/resources/
 ```
 
 这组资源不需要下载额外数据。接入代码能够在示例资源上完成 rollout 后，再切换到真实
-Episode 和 GeoTIFF 场景。真实数据准备流程参阅 [Episode 数据下载](DATA_DOWNLOAD.md)和
-[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)。
+Episode 和 GeoTIFF 场景。真实数据准备流程参阅 [Episode 数据下载](../dataset/DATA_DOWNLOAD.md)和
+[卫星场景下载](../applications/MAP_DOWNLOAD.md)。
 
 ## 2. 接入接口
 
@@ -147,7 +147,7 @@ Adapter 可以读取 `context.episode.instruction`、`reference_path` 或 `traje
 | `agent_pose` | `numpy.ndarray` | `(4,)` 的相对位置与朝向 |
 
 RGB 尺寸由 task config 决定。预处理代码应读取输入的实际 shape，不要固定为 224 或 448。
-完整 observation 定义参阅 [Core API - Observation](CORE_API.md#6-observation)。
+完整 observation 定义参阅 [Core API - Observation](../core/CORE_API.md#6-observation)。
 
 SatNav action 为：
 
@@ -235,7 +235,7 @@ output/model_integration/forward_then_stop/
 ```
 
 首先检查 `summary.json` 中的 `status` 和 `error_episode_count`，再查看 JSONL 中单个 Episode
-的 action trace 与 metrics。结果字段的完整定义参阅 [Evaluation - 输出格式](EVALUATION.md#5-输出格式)。
+的 action trace 与 metrics。结果字段的完整定义参阅 [Evaluation - 输出格式](../evaluation/README.md#5-输出格式)。
 
 ## 7. 接入真实模型
 
@@ -425,7 +425,7 @@ python scripts/evaluation/aggregate.py output/my_model/val_seen \
 ```
 
 `limit` 先应用于全局排序结果，再进行 stride sharding。例如 `limit=8`、`world_size=2` 时，
-两个 rank 各处理四个 Episode。完整规则参阅 [Evaluation - Episode 选择与分片](EVALUATION.md#3-episode-选择与分片)。
+两个 rank 各处理四个 Episode。完整规则参阅 [Evaluation - Episode 选择与分片](../evaluation/README.md#3-episode-选择与分片)。
 
 ## 11. Resume 与错误处理
 
@@ -477,4 +477,4 @@ metrics 和 action trace 才会同步更新。只在 navigation helper 需要读
 ### 为什么模型已经输出 STOP，但 Success 仍为 0？
 
 `STOP` 只表示模型决定结束 Episode。只有执行 STOP 时 agent 位于当前任务类型的成功半径
-内，`SUCCESS` 才为 1。标准阈值参阅 [Evaluation](EVALUATION.md)。
+内，`SUCCESS` 才为 1。标准阈值参阅 [Evaluation](../evaluation/README.md)。

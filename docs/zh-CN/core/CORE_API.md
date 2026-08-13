@@ -2,7 +2,7 @@
 
 本文从使用者视角介绍 SatNav 的核心运行接口。重点不是逐个罗列源码，而是解释一个 Episode 如何被加载、渲染、执行和评测，以及应用或模型应该在哪一层与 SatNav 交互。
 
-如果尚未准备环境和数据，请先阅读[环境安装](INSTALLATION.md)、[数据格式](DATASET_FORMAT.md)和[示例程序](EXAMPLES.md)。需要接入新的导航模型时，参阅[模型接入](MODEL_INTEGRATION.md)。
+如果尚未准备环境和数据，请先阅读[环境安装](../getting-started/INSTALLATION.md)、[数据格式](../dataset/DATASET_FORMAT.md)和[示例程序](../getting-started/EXAMPLES.md)。需要接入新的导航模型时，参阅[模型接入](../development/MODEL_INTEGRATION.md)。
 
 ## 1. 核心对象
 
@@ -422,7 +422,7 @@ print(state.rotation)  # 0° = North, clockwise
 
 ## 12. Episode API
 
-`env.current_episode` 返回 `VLNEpisode`。常用字段的完整定义参阅[数据格式](DATASET_FORMAT.md)。Core API 中最重要的是 identity 与序列化边界：
+`env.current_episode` 返回 `VLNEpisode`。常用字段的完整定义参阅[数据格式](../dataset/DATASET_FORMAT.md)。Core API 中最重要的是 identity 与序列化边界：
 
 ```python
 episode = env.current_episode

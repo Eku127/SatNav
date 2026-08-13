@@ -4,8 +4,8 @@
 评测。OpenFly 使用独立 Python 环境；其适配后的模型运行时代码已包含在 SatNav 中，不需要
 安装外部 OpenFly package，也不与 SatNav Core、Classic 或其他 VLM baseline 共用环境。
 
-开始前建议先阅读[环境安装](INSTALLATION.md)、[模型训练](TRAINING.md)和
-[统一评测](EVALUATION.md)。
+开始前建议先阅读[环境安装](../../getting-started/INSTALLATION.md)、[模型训练](../README.md)和
+[统一评测](../../evaluation/README.md)。
 
 ## 1. 模型与 SatNav 接口
 
@@ -34,9 +34,9 @@ OpenFly 支持两种 checkpoint action format：
 SatNav 中的 OpenFly 运行时代码基于
 [`SHAILAB-IPEC/OpenFly-Platform@c075075497a7122bad82f5b76b9be926ad5a81b3`](https://github.com/SHAILAB-IPEC/OpenFly-Platform/commit/c075075497a7122bad82f5b76b9be926ad5a81b3)，
 并参考固定版本的 SwiftVLN adapter 保留三帧和 prompt 行为。使用模型代码和权重前，请阅读
-[UPSTREAM](../baselines/vlm/openfly/UPSTREAM.md)、
-[NOTICE](../baselines/vlm/openfly/NOTICE) 和
-[Upstream License](../baselines/vlm/openfly/LICENSE.upstream)。
+[UPSTREAM](../../../../baselines/vlm/openfly/UPSTREAM.md)、
+[NOTICE](../../../../baselines/vlm/openfly/NOTICE) 和
+[Upstream License](../../../../baselines/vlm/openfly/LICENSE.upstream)。
 
 ## 2. 准备独立环境
 
@@ -100,8 +100,8 @@ clone 命令。
 
 ### 4.1 Episode、GeoTIFF 与 Trajectory
 
-按照 [Episode 数据下载](DATA_DOWNLOAD.md)、[卫星场景下载](APPLICATION_MAP_DOWNLOAD.md)和
-[轨迹数据生成](APPLICATION_TRAJ_GENERATION.md)准备 SatNav-v0.1。OpenFly 训练同时读取
+按照 [Episode 数据下载](../../dataset/DATA_DOWNLOAD.md)、[卫星场景下载](../../applications/MAP_DOWNLOAD.md)和
+[轨迹数据生成](../../applications/TRAJECTORY_GENERATION.md)准备 SatNav-v0.1。OpenFly 训练同时读取
 train Episode 文件与 trajectory JPEG：
 
 ```text
