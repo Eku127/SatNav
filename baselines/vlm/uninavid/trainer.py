@@ -33,7 +33,7 @@ from baselines.vlm.uninavid.dataset import (
     load_annotation_records,
     validate_records,
 )
-from satnav.evaluation.manifest import (
+from satnav.training.manifest import (
     ManifestMismatchError,
     ensure_manifest,
     read_manifest,

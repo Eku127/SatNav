@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any, List, Mapping, Optional
 
 from satnav.evaluation import EpisodeContext, PolicyStep
@@ -15,17 +14,11 @@ from baselines.vlm.uninavid.actions import (
 from baselines.vlm.uninavid.checkpoint import load_strict_model
 
 
-def _tensor_digest(tensor: Any) -> str:
-    value = tensor.detach().cpu().contiguous().numpy().tobytes()
-    return hashlib.sha256(value).hexdigest()
-
-
-def _rgb_identity(rgb: Any) -> Mapping[str, Any]:
+def _rgb_description(rgb: Any) -> Mapping[str, Any]:
     import numpy as np
 
     value = np.ascontiguousarray(rgb)
     return {
-        "sha256": hashlib.sha256(value.tobytes()).hexdigest(),
         "shape": list(value.shape),
         "dtype": str(value.dtype),
     }
@@ -244,12 +237,10 @@ class UniNaVidPolicyAdapter:
             "query_id": self._query_id,
             "prompt": prompt,
             "rendered_prompt": full_prompt,
-            "input_ids_sha256": _tensor_digest(input_ids),
             "input_token_count": int(input_ids.numel()),
             "generated_token_ids": suffix.detach().cpu().tolist()[0],
-            "generated_ids_sha256": _tensor_digest(suffix),
             "new_frame_count": len(frames),
-            "new_frame_identities": [_rgb_identity(frame) for frame in frames],
+            "new_frames": [_rgb_description(frame) for frame in frames],
             "cache_before": cache_before,
             "cache_after": self._cache_state(),
         }
@@ -261,7 +252,7 @@ class UniNaVidPolicyAdapter:
             raise RuntimeError("reset() must be called before act()")
         self._pending_frames.append(observation["rgb"])
         diagnostics = {
-            "observation": _rgb_identity(observation["rgb"]),
+            "observation": _rgb_description(observation["rgb"]),
             "agent_state_before": _agent_state(self._context),
         }
         if self._queue:

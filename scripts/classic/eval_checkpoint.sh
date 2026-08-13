@@ -65,8 +65,8 @@ OPTIONAL_ARGS=()
 if [[ -n "${SATNAV_VOCAB_PATH:-}" ]]; then
     OPTIONAL_ARGS+=(--vocab "${SATNAV_VOCAB_PATH}")
 fi
-if [[ -n "${SATNAV_BENCHMARK_PATH:-}" ]]; then
-    OPTIONAL_ARGS+=(--benchmark "${SATNAV_BENCHMARK_PATH}")
+if [[ -n "${SATNAV_MAX_STEPS:-}" ]]; then
+    OPTIONAL_ARGS+=(--max-steps "${SATNAV_MAX_STEPS}")
 fi
 if [[ "${SATNAV_CLASSIC_RESUME:-true}" == "true" ]]; then
     OPTIONAL_ARGS+=(--resume)

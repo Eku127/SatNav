@@ -16,14 +16,13 @@ Launcher options:
 
 Evaluator options are forwarded, including:
   --split val_seen|val_unseen
-  --benchmark-manifest PATH
   --episodes PATH --scenes-dir PATH --output-dir PATH
   --offset N --limit N --base-seed N --max-steps N
   --resume --fail-fast --fail-on-episode-error
   --action-format compact|sentence --dry-run
 
 Every rank receives the full episode list; satnav.evaluation owns deterministic
-selection/sharding, rank-local JSONL/done markers, resume, and strict aggregate.
+selection/sharding, rank-local JSONL/done markers, resume, and aggregation.
 EOF
 }
 

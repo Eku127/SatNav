@@ -10,12 +10,9 @@ from typing import Any, Mapping
 import pytest
 
 from satnav.evaluation import (
-    BenchmarkManifest,
     EvaluationConfig,
     Evaluator,
-    ManifestMismatchError,
     PolicyStep,
-    ResultValidationError,
     aggregate_run,
 )
 
@@ -133,17 +130,6 @@ class FakeVideoHook:
         self.closed = True
 
 
-def benchmark():
-    return BenchmarkManifest(
-        benchmark_id="fake-v1",
-        dataset_version="fake-1",
-        split="test",
-        kind="smoke",
-        action_space=("STOP", "MOVE_FORWARD"),
-        required_metrics=("success", "spl", "distance_to_goal", "path_length"),
-    )
-
-
 def episodes():
     # Deliberately unsorted, with bare ID reuse across scenes.
     return [
@@ -179,9 +165,7 @@ def run_rank(
             base_seed=base_seed,
             resume=resume,
             aggregate_single_rank=True,
-            policy_metadata={"checkpoint_sha256": "abc"},
         ),
-        benchmark=benchmark(),
         fault_injector=fault_injector,
     )
     result = evaluator.run()
@@ -216,8 +200,9 @@ def test_single_and_two_rank_runs_have_same_union_and_traces(tmp_path):
         assert single_by_key[key]["metrics"] == multi_by_key[key]["metrics"]
     assert single_summary["metrics"] == multi_summary["metrics"]
     assert multi_summary["status"] == "complete"
-    assert multi_summary["validation"]["duplicate_keys"] == []
-    assert multi_summary["validation"]["missing_keys"] == []
+    assert not (single_dir / "benchmark_manifest.json").exists()
+    assert not (single_dir / "run_manifest.json").exists()
+    assert "digest" not in json.dumps(single_summary).lower()
 
 
 def test_fault_after_record_resumes_without_repeating_completed_episode(tmp_path):
@@ -244,7 +229,7 @@ def test_fault_after_record_resumes_without_repeating_completed_episode(tmp_path
     )
 
 
-def test_manifest_mismatch_refuses_resume_before_rollout(tmp_path):
+def test_resume_skips_completed_records_without_run_identity_checks(tmp_path):
     output_dir = tmp_path / "mismatch"
     run_rank(output_dir)
 
@@ -259,12 +244,10 @@ def test_manifest_mismatch_refuses_resume_before_rollout(tmp_path):
             policy_id="fake-policy",
             base_seed=999,
             resume=True,
-            policy_metadata={"checkpoint_sha256": "abc"},
         ),
-        benchmark=benchmark(),
     )
-    with pytest.raises(ManifestMismatchError, match="different manifest"):
-        evaluator.run()
+    summary = evaluator.run()
+    assert summary["status"] == "complete"
     assert policy.reset_keys == []
     assert env.closed and policy.closed
 
@@ -335,12 +318,6 @@ def test_optional_video_hook_observes_rollout_without_core_video_imports(tmp_pat
             split="test",
             policy_id="fake-policy",
         ),
-        benchmark=BenchmarkManifest(
-            benchmark_id="video-fake",
-            dataset_version="fake-1",
-            split="test",
-            required_metrics=("success",),
-        ),
         video_hook=hook,
     )
 
@@ -350,7 +327,7 @@ def test_optional_video_hook_observes_rollout_without_core_video_imports(tmp_pat
     assert hook.closed
 
 
-def test_aggregator_reports_duplicate_and_missing_records(tmp_path):
+def test_aggregator_deduplicates_records_without_integrity_validation(tmp_path):
     output_dir = tmp_path / "invalid"
     run_rank(output_dir)
     records_path = output_dir / "rank_00000" / "episodes.jsonl"
@@ -361,8 +338,7 @@ def test_aggregator_reports_duplicate_and_missing_records(tmp_path):
         for record in records[:-1] + [records[0]]:
             handle.write(json.dumps(record, sort_keys=True) + "\n")
 
-    with pytest.raises(ResultValidationError) as raised:
-        aggregate_run(output_dir)
-    validation = raised.value.summary["validation"]
-    assert validation["duplicate_keys"] == [records[0]["episode_key"]]
-    assert validation["missing_keys"] == [records[-1]["episode_key"]]
+    summary = aggregate_run(output_dir)
+    assert summary["record_count"] == len(records)
+    assert summary["unique_record_count"] == len(records) - 1
+    assert "validation" not in summary

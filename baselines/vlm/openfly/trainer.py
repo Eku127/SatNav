@@ -40,7 +40,7 @@ from baselines.vlm.openfly.native_core import (
     resolve_native_checkpoint_path,
     resolve_native_processor_source,
 )
-from satnav.evaluation.manifest import (
+from satnav.training.manifest import (
     ensure_manifest,
     payload_digest,
     read_manifest,

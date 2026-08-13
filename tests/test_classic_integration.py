@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import hashlib
 import os
 import subprocess
 import sys
@@ -18,11 +17,6 @@ from omegaconf import OmegaConf
 from baselines.classic.common.config import load_classic_config
 from baselines.classic.factory import build_classic_adapter
 from satnav.evaluation import EpisodeContext, PolicyStep
-from satnav.evaluation import (
-    BenchmarkManifest,
-    ManifestMismatchError,
-    load_benchmark_manifest,
-)
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -147,170 +141,6 @@ def test_classic_cli_resolves_config_without_loading_torch(capsys):
     assert result == 0
     assert payload["method"] == "reference_follower"
     assert payload["config"]["SIMULATOR"]["TURN_ANGLE"] == 30
-
-
-def _canonical_eval_config():
-    return load_classic_config(
-        REPOSITORY_ROOT / "configs/baselines/seq2seq_eval.yaml",
-        overrides=(
-            "BASE_TASK_CONFIG_PATH=configs/satnav_eval_task.yaml",
-            "DATASET.SPLIT=val_seen",
-            "TASK.MEASUREMENTS=[DISTANCE_TO_GOAL,SUCCESS,ORACLE_SUCCESS,SPL,PATH_LENGTH]",
-        ),
-    )
-
-
-def test_classic_explicit_benchmark_validates_the_task_contract():
-    from baselines.classic.evaluate import _validate_benchmark_config
-
-    benchmark = load_benchmark_manifest(
-        REPOSITORY_ROOT / "configs/benchmark/satnav_v0_1_val_seen.json"
-    )
-
-    _validate_benchmark_config(_canonical_eval_config(), benchmark)
-
-
-@pytest.mark.parametrize(
-    "key,value",
-    [
-        ("TASK.POSSIBLE_ACTIONS", ["STOP"]),
-        ("SIMULATOR.FORWARD_STEP_SIZE", 9),
-        ("SIMULATOR.TURN_ANGLE", 16),
-        ("SIMULATOR.RGB_SENSOR.WIDTH", 449),
-        ("SIMULATOR.RGB_SENSOR.HEIGHT", 449),
-        ("SIMULATOR.RGB_SENSOR.HFOV", 91),
-        ("TASK.MEASUREMENTS", ["DISTANCE_TO_GOAL"]),
-        ("TASK.SUCCESS_DISTANCE.LandmarkSet", 3),
-    ],
-)
-def test_classic_explicit_benchmark_rejects_task_contract_mismatch(key, value):
-    from baselines.classic.evaluate import _validate_benchmark_config
-
-    config = _canonical_eval_config()
-    OmegaConf.update(config, key, value, merge=False)
-    benchmark = load_benchmark_manifest(
-        REPOSITORY_ROOT / "configs/benchmark/satnav_v0_1_val_seen.json"
-    )
-
-    with pytest.raises(ManifestMismatchError):
-        _validate_benchmark_config(config, benchmark)
-
-
-def test_classic_explicit_benchmark_verifies_episode_artifact_sha(tmp_path):
-    from baselines.classic.evaluate import _verify_dataset_artifact
-
-    artifact = tmp_path / "all_episodes.json"
-    artifact.write_bytes(b'{"episodes": []}\n')
-    digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
-    benchmark = BenchmarkManifest(
-        benchmark_id="test",
-        dataset_version="test",
-        split="test",
-        dataset_digest=digest,
-    )
-
-    identity = _verify_dataset_artifact(artifact, benchmark)
-    assert identity == {
-        "id": "all_episodes.json",
-        "sha256": digest,
-        "size": artifact.stat().st_size,
-    }
-    mismatched = BenchmarkManifest(
-        benchmark_id="test",
-        dataset_version="test",
-        split="test",
-        dataset_digest="0" * 64,
-    )
-    with pytest.raises(ManifestMismatchError, match="dataset_digest"):
-        _verify_dataset_artifact(artifact, mismatched)
-
-
-def test_classic_run_metadata_hashes_but_never_persists_local_paths(tmp_path):
-    from baselines.classic.evaluate import _run_metadata
-
-    first_root = tmp_path / "first"
-    second_root = tmp_path / "second"
-    first_scenes = first_root / "private-scenes"
-    second_scenes = second_root / "relocated-scenes"
-    first_scenes.mkdir(parents=True)
-    second_scenes.mkdir(parents=True)
-    (first_scenes / "scene.tif").write_bytes(b"same-scene-content")
-    (second_scenes / "scene.tif").write_bytes(b"same-scene-content")
-    config_path = first_root / "local_eval.yaml"
-    relocated_config_path = second_root / "local_eval.yaml"
-    config_path.write_text("scenes: /mnt/private/private-scenes\n", encoding="utf-8")
-    relocated_config_path.write_text(
-        "scenes: /srv/other/relocated-scenes\n", encoding="utf-8"
-    )
-    config = _canonical_eval_config()
-    OmegaConf.update(
-        config, "DATASET.DATA_PATH", "/mnt/private/episodes.json", merge=False
-    )
-    OmegaConf.update(
-        config, "DATASET.SCENES_DIR", str(first_scenes), merge=False
-    )
-
-    metadata = _run_metadata(
-        method="seq2seq",
-        config_path=config_path,
-        config=config,
-        benchmark_path=Path("configs/benchmark/test.json"),
-        episode_identity={"id": "episodes.json", "sha256": "1" * 64, "size": 7},
-        min_stop_steps=0,
-    )
-    rendered = json.dumps(metadata, sort_keys=True)
-
-    assert str(first_root) not in rendered
-    assert str(tmp_path) not in rendered
-    assert metadata["config"]["id"] == "local_eval.yaml"
-    assert metadata["episodes"]["sha256"] == "1" * 64
-
-    relocated = OmegaConf.create(OmegaConf.to_container(config, resolve=True))
-    OmegaConf.update(
-        relocated, "DATASET.DATA_PATH", "/srv/other/episodes.json", merge=False
-    )
-    OmegaConf.update(
-        relocated, "DATASET.SCENES_DIR", str(second_scenes), merge=False
-    )
-    relocated_metadata = _run_metadata(
-        method="seq2seq",
-        config_path=relocated_config_path,
-        config=relocated,
-        benchmark_path=Path("configs/benchmark/test.json"),
-        episode_identity={"id": "episodes.json", "sha256": "1" * 64, "size": 7},
-        min_stop_steps=0,
-    )
-    assert relocated_metadata == metadata
-
-    (second_scenes / "scene.tif").write_bytes(b"different-scene-content")
-    changed_scene_metadata = _run_metadata(
-        method="seq2seq",
-        config_path=relocated_config_path,
-        config=relocated,
-        benchmark_path=Path("configs/benchmark/test.json"),
-        episode_identity={"id": "episodes.json", "sha256": "1" * 64, "size": 7},
-        min_stop_steps=0,
-    )
-    assert changed_scene_metadata["scenes"]["digest"] != metadata["scenes"]["digest"]
-
-    behavior_changed = OmegaConf.create(
-        OmegaConf.to_container(relocated, resolve=True)
-    )
-    OmegaConf.update(
-        behavior_changed, "EVAL.MAX_INSTRUCTION_LENGTH", 7, merge=False
-    )
-    changed_metadata = _run_metadata(
-        method="seq2seq",
-        config_path=config_path,
-        config=behavior_changed,
-        benchmark_path=Path("configs/benchmark/test.json"),
-        episode_identity={"id": "episodes.json", "sha256": "1" * 64, "size": 7},
-        min_stop_steps=1,
-    )
-    assert changed_metadata["config"]["semantic_digest"] != (
-        metadata["config"]["semantic_digest"]
-    )
-    assert changed_metadata["min_stop_steps"] == 1
 
 
 def test_shell_entrypoints_are_valid_bash():

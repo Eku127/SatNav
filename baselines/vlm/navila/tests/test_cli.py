@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from baselines.vlm.navila.artifacts import navila_model_identity
-from baselines.vlm.navila.evaluate import _policy_metadata, build_parser as eval_parser
+from baselines.vlm.navila.evaluate import build_parser as eval_parser
 from baselines.vlm.navila.trainer import (
     _load_yaml,
     _local_configuration,
@@ -14,11 +14,7 @@ from baselines.vlm.navila.trainer import (
     build_parser as train_parser,
     build_upstream_arguments,
 )
-from satnav.evaluation.manifest import (
-    ManifestMismatchError,
-    build_run_manifest,
-    ensure_manifest,
-)
+from satnav.training.manifest import ManifestMismatchError, ensure_manifest
 
 
 SATNAV_ROOT = Path(__file__).resolve().parents[4]
@@ -79,45 +75,6 @@ def _fake_model(root: Path) -> Path:
         "{}\n", encoding="utf-8"
     )
     return model
-
-
-def _run_payload(args):
-    metadata = _policy_metadata(args)
-    return build_run_manifest(
-        benchmark_digest="a" * 64,
-        policy_id="navila:test",
-        policy_metadata=metadata,
-        split="val_seen",
-        offset=0,
-        limit=1,
-        selected_keys=("val_seen::scene::episode",),
-        selected_digest="b" * 64,
-        world_size=1,
-        base_seed=0,
-        run_metadata={"test": True},
-    )
-
-
-@pytest.mark.parametrize(
-    "change", ("llm", "tokenizer", "vision_tower", "projector", "generation")
-)
-def test_resume_identity_rejects_every_material_model_fact(tmp_path, change):
-    model = _fake_model(tmp_path)
-    args = eval_parser().parse_args(["--model-path", str(model)])
-    manifest = tmp_path / "run_manifest.json"
-    ensure_manifest(manifest, _run_payload(args))
-    if change == "generation":
-        args.max_new_tokens += 1
-    else:
-        targets = {
-            "llm": model / "llm" / "model.safetensors",
-            "tokenizer": model / "llm" / "tokenizer.json",
-            "vision_tower": model / "vision_tower" / "model.safetensors",
-            "projector": model / "mm_projector" / "model.safetensors",
-        }
-        targets[change].write_bytes(b"changed")
-    with pytest.raises(ManifestMismatchError, match="different manifest"):
-        ensure_manifest(manifest, _run_payload(args))
 
 
 def test_model_identity_covers_all_components_and_tokenizer(tmp_path):

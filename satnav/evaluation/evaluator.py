@@ -7,7 +7,7 @@ belong in ``PolicyAdapter`` implementations.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional, Protocol, Sequence
 
@@ -19,15 +19,9 @@ from satnav.evaluation.episodes import (
     build_episode_plan,
     episode_seed,
 )
-from satnav.evaluation.manifest import (
-    BenchmarkManifest,
-    build_run_manifest,
-    ensure_manifest,
-)
 from satnav.evaluation.results import (
     RESULT_SCHEMA_VERSION,
     RankResultStore,
-    ResultValidationError,
     aggregate_run,
 )
 
@@ -90,8 +84,6 @@ class EvaluationConfig:
     fail_on_episode_error: bool = False
     capture_action_trace: bool = True
     aggregate_single_rank: bool = True
-    policy_metadata: Mapping[str, Any] = field(default_factory=dict)
-    run_metadata: Mapping[str, Any] = field(default_factory=dict)
 
 
 def _scalar_metrics(metrics: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -133,14 +125,12 @@ class Evaluator:
         environment: Any,
         policy: PolicyAdapter,
         config: EvaluationConfig,
-        benchmark: BenchmarkManifest,
         video_hook: Optional[VideoHook] = None,
         fault_injector: Optional[FaultInjector] = None,
     ) -> None:
         self.environment = environment
         self.policy = policy
         self.config = config
-        self.benchmark = benchmark
         self.video_hook = video_hook
         self.fault_injector = fault_injector
 
@@ -180,7 +170,6 @@ class Evaluator:
             max_steps=max_steps,
             seed=episode_seed(self.config.base_seed, planned.key),
             environment=self.environment,
-            metadata=self.config.run_metadata,
         )
 
     def _inject(
@@ -322,14 +311,6 @@ class Evaluator:
     ) -> Mapping[str, Any]:
         all_episodes = self._episodes(episodes)
         max_steps = self._max_steps()
-        dataset_plan = build_episode_plan(
-            all_episodes,
-            split=self.config.split,
-            offset=0,
-            limit=None,
-            rank=0,
-            world_size=1,
-        )
         plan: EpisodePlan = build_episode_plan(
             all_episodes,
             split=self.config.split,
@@ -338,53 +319,15 @@ class Evaluator:
             rank=self.config.rank,
             world_size=self.config.world_size,
         )
-        resolved_benchmark = self.benchmark.resolved(
-            split=self.config.split,
-            episode_count=len(dataset_plan.selected),
-            episode_digest=dataset_plan.selected_digest,
-            max_episode_steps=max_steps,
-        )
         output_dir = Path(self.config.output_dir)
-        benchmark_envelope = ensure_manifest(
-            output_dir / "benchmark_manifest.json", resolved_benchmark.to_payload()
-        )
-        immutable_run_metadata = {
-            "evaluator": {
-                "capture_action_trace": self.config.capture_action_trace,
-                "max_steps": max_steps,
-            },
-            "user": self.config.run_metadata,
-        }
-        run_payload = build_run_manifest(
-            benchmark_digest=str(benchmark_envelope["digest"]),
-            policy_id=self.config.policy_id,
-            policy_metadata=self.config.policy_metadata,
-            split=self.config.split,
-            offset=plan.offset,
-            limit=plan.limit,
-            selected_keys=plan.selected_keys,
-            selected_digest=plan.selected_digest,
-            world_size=plan.world_size,
-            base_seed=self.config.base_seed,
-            run_metadata=immutable_run_metadata,
-        )
-        run_envelope = ensure_manifest(output_dir / "run_manifest.json", run_payload)
-        run_digest = str(run_envelope["digest"])
-        store = RankResultStore(output_dir, self.config.rank, run_digest)
+        store = RankResultStore(output_dir, self.config.rank)
 
         records = list(store.prepare(resume=self.config.resume))
-        existing_keys = [str(record["episode_key"]) for record in records]
-        if len(existing_keys) != len(set(existing_keys)):
-            raise ResultValidationError(
-                f"Rank {self.config.rank} JSONL contains duplicate episode keys"
-            )
-        unexpected = sorted(set(existing_keys) - set(plan.shard_keys))
-        if unexpected:
-            raise ResultValidationError(
-                "Rank-local JSONL contains keys outside the current shard: "
-                + ", ".join(unexpected[:5])
-            )
-        completed = set(existing_keys)
+        completed = {
+            str(record.get("episode_key"))
+            for record in records
+            if record.get("episode_key") is not None
+        }
 
         for planned in plan.shard:
             if planned.key in completed:
@@ -395,7 +338,6 @@ class Evaluator:
             except Exception as error:
                 record = self._error_record(planned, context, error)
             record = dict(record)
-            record["run_manifest_digest"] = run_digest
             store.append(record)
             records.append(record)
             completed.add(planned.key)
@@ -411,8 +353,6 @@ class Evaluator:
         if self.config.world_size == 1 and self.config.aggregate_single_rank:
             return aggregate_run(
                 output_dir,
-                strict=True,
-                require_done=True,
                 fail_on_episode_error=self.config.fail_on_episode_error,
             )
         return {
@@ -422,7 +362,6 @@ class Evaluator:
             "expected_count": len(plan.shard_keys),
             "record_count": len(records),
             "error_count": done["error_count"],
-            "run_manifest_digest": run_digest,
         }
 
     def run(

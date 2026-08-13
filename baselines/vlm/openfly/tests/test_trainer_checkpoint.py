@@ -31,7 +31,7 @@ from baselines.vlm.openfly.trainer import (
     main as trainer_main,
     resolve_resume_checkpoint,
 )
-from satnav.evaluation.manifest import ensure_manifest
+from satnav.training.manifest import ensure_manifest
 
 
 def _json(path: Path, payload) -> None:

@@ -19,7 +19,7 @@ from baselines.vlm.navila.dataset import (
     load_annotation_records,
     validate_records,
 )
-from satnav.evaluation.manifest import ensure_manifest
+from satnav.training.manifest import ensure_manifest
 
 
 BASELINE_DIR = Path(__file__).resolve().parent

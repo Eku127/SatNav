@@ -16,10 +16,9 @@ Launcher options:
 
 Common evaluator options:
   --split val_seen|val_unseen
-  --benchmark-manifest PATH
   --episodes PATH --scenes-dir PATH
   --output-dir PATH
-  --offset N --limit N --base-seed N
+  --offset N --limit N --base-seed N --max-steps N
   --resume --fail-fast --fail-on-episode-error --no-action-trace
   --vision-tower PATH --tokenizer-path PATH
   --dry-run

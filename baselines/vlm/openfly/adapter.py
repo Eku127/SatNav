@@ -17,7 +17,7 @@ from baselines.vlm.openfly.actions import (
     resolve_action_format,
     validate_tokenizer_model_contract,
 )
-from baselines.vlm.openfly.artifacts import openfly_model_identity
+from baselines.vlm.openfly.model_facts import openfly_model_facts
 from baselines.vlm.openfly.bootstrap import register_openfly_classes
 from baselines.vlm.openfly.backends.base import reject_non_strict_loading
 from baselines.vlm.openfly.prompting import build_openfly_prompt
@@ -105,8 +105,8 @@ class OpenFlyPolicyAdapter:
         unnorm_key: str = ORIGINAL_UNNORM_KEY,
     ) -> "OpenFlyPolicyAdapter":
         model_path = Path(model_path).expanduser().resolve()
-        identity = openfly_model_identity(model_path)
-        declared = str(identity["facts"]["action_format"])
+        facts = openfly_model_facts(model_path)
+        declared = str(facts["action_format"])
         resolved_format = resolve_action_format(action_format, declared)
         if resolved_format != declared:
             raise ValueError(

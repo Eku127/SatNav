@@ -21,7 +21,7 @@ source "${REPO_ROOT}/scripts/lib/local_env.sh"
 satnav_load_local_env "${REPO_ROOT}/baselines/classic"
 
 # Child ranks activate their own environment in eval.sh.  The parent process
-# also needs the same interpreter for the final strict aggregation step.
+# also needs the same interpreter for the final aggregation step.
 CONDA_INIT="${CONDA_INIT:-${SATNAV_CONDA_SH:-${HOME}/miniconda3/etc/profile.d/conda.sh}}"
 CONDA_ENV="${CONDA_ENV:-${SATNAV_CONDA_ENV:-satnav}}"
 if [[ -f "${CONDA_INIT}" ]]; then
@@ -36,7 +36,7 @@ if [[ "${#GPUS[@]}" -lt "${WORLD_SIZE_ARG}" ]]; then
     exit 2
 fi
 
-BENCHMARK_KIND="${SATNAV_BENCHMARK_KIND:-smoke}"
+MAX_STEPS="${SATNAV_MAX_STEPS:-5}"
 OUTPUT_ROOT="${SATNAV_CLASSIC_OUTPUT:-output/baselines/classic}"
 if [[ "${OUTPUT_ROOT}" != /* ]]; then
     OUTPUT_ROOT="${REPO_ROOT}/${OUTPUT_ROOT}"
@@ -45,7 +45,7 @@ NORMALIZED_METHOD="${METHOD}"
 if [[ "${METHOD}" == "reference" ]]; then
     NORMALIZED_METHOD="reference_follower"
 fi
-RUN_OUTPUT="${SATNAV_CLASSIC_RUN_OUTPUT:-${OUTPUT_ROOT}/${NORMALIZED_METHOD}/${SPLIT}/${BENCHMARK_KIND}/${WORLD_SIZE_ARG}rank}"
+RUN_OUTPUT="${SATNAV_CLASSIC_RUN_OUTPUT:-${OUTPUT_ROOT}/${NORMALIZED_METHOD}/${SPLIT}/${MAX_STEPS}steps/${WORLD_SIZE_ARG}rank}"
 if [[ "${RUN_OUTPUT}" != /* ]]; then
     RUN_OUTPUT="${REPO_ROOT}/${RUN_OUTPUT}"
 fi
