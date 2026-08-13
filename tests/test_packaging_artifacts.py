@@ -238,6 +238,22 @@ class PackagingArtifactTests(unittest.TestCase):
         self.assertTrue(
             any(name.endswith("/docs/MODEL_INTEGRATION.md") for name in names)
         )
+        self.assertTrue(any(name.endswith("/docs/TRAINING.md") for name in names))
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_CLASSIC.md") for name in names)
+        )
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_STREAMVLN.md") for name in names)
+        )
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_NAVILA.md") for name in names)
+        )
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_UNINAVID.md") for name in names)
+        )
+        self.assertTrue(
+            any(name.endswith("/docs/BASELINE_OPENFLY.md") for name in names)
+        )
         self.assertTrue(
             any(
                 name.endswith(
