@@ -200,7 +200,7 @@ python -m baselines.vlm.navila.checkpoint \
 ## Evaluation
 
 All rollout state is model-owned, while episode selection, stable seed,
-single/multi-rank sharding, result writing, resume, done markers, and strict
+single/multi-rank sharding, result writing, resume, done markers, and
 aggregation come from `satnav.evaluation`.
 
 ```bash
@@ -219,7 +219,8 @@ output directory. The selected episode union, stable seeds, action traces,
 steps, and metrics must equal the single-GPU run. Repeating the exact command
 with `--resume` leaves completed JSONL bytes and mtimes unchanged. Changing a
 model component, task YAML, episode artifact, generation option, world size,
-selection, or seed causes manifest mismatch rejection before rollout.
+selection, or seed requires a new output directory because resume only skips
+Episode keys already recorded by that rank.
 
 NaVILA's retained behavior is documented in [UPSTREAM.md](UPSTREAM.md): eight
 sampled/padded frames, Llama-3 conversation formatting, deterministic greedy

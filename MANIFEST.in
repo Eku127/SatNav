@@ -13,6 +13,7 @@ include configs/benchmark/satnav_v0_1_val_seen_smoke.json
 include configs/benchmark/satnav_v0_1_val_unseen.json
 include configs/benchmark/satnav_v0_1_val_unseen_smoke.json
 recursive-include doc *.md
+recursive-include docs *.md *.png *.jpg *.jpeg *.gif *.svg *.mp4
 recursive-include environments *.yml
 recursive-include examples *.py *.md
 recursive-include scripts *.sh *.py *.example

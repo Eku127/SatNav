@@ -116,11 +116,31 @@ SatNav data configuration is complete.
 
 ## 6. 常见问题
 
-- `ModuleNotFoundError`：确认当前环境已执行 `python -m pip install -e '.[applications]'`。
-- API 鉴权失败：检查环境变量、API 是否启用、结算状态、key 限制和 token scope。
-- 下载中断：重新执行原命令即可续传，不要添加 `--overwrite`。
-- 网络无法连接 `tile.googleapis.com`：添加 `--use-env-proxy` 后重试。
-- Google satellite tiles 不可用：除配额和区域覆盖外，绑定 EEA 账单地址的项目无法获取 2D satellite tiles，参阅 [Google 错误说明](https://developers.google.com/maps/documentation/tile/error_handling)。
+### 为什么运行下载命令时出现 `ModuleNotFoundError`？
+
+在 SatNav 仓库根目录为当前环境安装 applications 依赖：
+
+```bash
+python -m pip install -e '.[applications]'
+```
+
+### 为什么 API 鉴权失败？
+
+确认凭据环境变量已经在当前终端生效，并检查对应 API 是否启用、账号结算状态、key 使用
+限制和 token scope。不要将 key 或 token 写入仓库配置。
+
+### 下载中断后如何继续？
+
+重新执行相同命令即可续传。不要添加 `--overwrite`，否则已经完成的场景也会重新下载。
+
+### 为什么无法连接 `tile.googleapis.com`？
+
+如果当前网络需要代理，添加 `--use-env-proxy`，让下载器读取终端中的代理环境变量后重试。
+
+### 为什么 Google satellite tiles 不可用？
+
+除配额和区域覆盖外，绑定 EEA 账单地址的项目无法获取 2D satellite tiles。根据命令返回的
+错误码检查 [Google 错误说明](https://developers.google.com/maps/documentation/tile/error_handling)。
 
 ## 7. 使用条款
 

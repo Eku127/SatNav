@@ -3,7 +3,7 @@
 This is SatNav's maintained StreamVLN integration. Training consumes SatNav
 `trajectory_data`; evaluation implements `satnav.evaluation.PolicyAdapter` and
 delegates deterministic episode selection, strided multi-rank sharding,
-append-only JSONL, crash resume, manifests, and aggregation to the common
+append-only JSONL, crash resume, and aggregation to the common
 evaluator.
 
 The model implementation and weights remain external. The runtime is pinned
@@ -19,7 +19,7 @@ baselines/vlm/streamvln/
 ├── adapter.py             # PolicyAdapter, action chunks, KV/window state
 ├── dataset.py             # SatNav trajectory training dataset + validator
 ├── trainer.py             # thin wrapper around the pinned upstream trainer
-├── evaluate.py            # common evaluator/manifest assembly
+├── evaluate.py            # common evaluator entrypoint
 ├── actions.py, history.py # dependency-light behavior primitives
 ├── configs/               # SatNav task, train defaults, DeepSpeed ZeRO-2
 ├── environment/conda.yml  # independent Python environment definition
@@ -33,7 +33,7 @@ entrypoints.
 
 This integration is supported from a SatNav source checkout installed with
 `pip install -e .`. A standalone SatNav wheel does not contain the repository-
-level benchmark manifests and launcher support files used by these commands.
+level launcher support files used by these commands.
 
 ## Fresh environment gate
 
@@ -206,7 +206,7 @@ so describe this as a full model reload, not as a tensor-by-tensor strict audit.
 
 ## Evaluation
 
-Single GPU, canonical val-seen manifest:
+Single GPU, canonical val-seen episodes:
 
 ```bash
 bash baselines/vlm/streamvln/scripts/eval.sh \
@@ -224,43 +224,30 @@ the input. Each rank loads the complete episode list; the common evaluator
 sorts stable `split::scene::episode` keys, applies `--offset/--limit`, then
 assigns `selected[rank::world_size]`.
 
-Use the tracked smoke benchmark to cap every episode at five primitive steps,
-and select a small deterministic subset:
+Use `--max-steps 5` to cap every episode at five primitive steps and select a
+small deterministic subset:
 
 ```bash
 bash baselines/vlm/streamvln/scripts/eval.sh \
   --model-path /path/to/checkpoint \
   --episodes /path/to/SatNav-v0.1/episodes/eval/val_seen/all_episodes.json \
   --scenes-dir /path/to/scenes \
-  --benchmark-manifest configs/benchmark/satnav_v0_1_val_seen_smoke.json \
-  --split val_seen --limit 5 --gpus 1
+  --split val_seen --limit 5 --max-steps 5 --gpus 1
 ```
 
 The default output is:
 
 ```text
 output/baselines/vlm/streamvln/eval/<checkpoint>/<split>/
-├── benchmark_manifest.json
-├── run_manifest.json
 ├── rank_00000/episodes.jsonl
 ├── rank_00000/done.json
 └── summary.json
 ```
 
-Add `--resume` after interruption. Resume requires identical benchmark,
-checkpoint metadata, selection, seed, action-trace setting, and world size.
-Completed error records are also considered complete. Use a new output
-directory to retry them or change immutable run facts.
-
-The evaluator automatically records an auditable aggregate SHA-256 over every
-model/config artifact loaded by `from_pretrained`, including all weight shards,
-plus all tokenizer artifacts. Local vision-tower config, index, and weight
-artifacts are hashed the same way. To avoid re-hashing large published weights
-on every rank, pass their verified 64-character full-artifact SHA-256 through
-`--checkpoint-digest` and `--vision-tower-digest`; a remote tower ID requires
-the latter. The immutable run identity also contains generation limits, dtype,
-attention implementation, and the task-config content digest. Absolute
-model/data paths are not stored in manifests.
+Add `--resume` after interruption. Resume skips Episode keys already present
+in the current rank JSONL, including completed error records. It does not
+compare the previous and current model, data, selection, seed, or world size;
+use a new output directory whenever any of those conditions changes.
 
 ## Preserved model behavior and intentional integration changes
 
@@ -273,7 +260,7 @@ model/data paths are not stored in manifests.
 | Cross-boundary leftovers | Queued actions survive the boundary; later history remains anchored at that boundary |
 | History | Legacy global-frame sampling with eight history samples and current RGB |
 | SatNav motion | 10 m forward, 15 degree turns |
-| Evaluation storage | Replaced ad-hoc shared `result.jsonl` with rank-local durable JSONL, manifests, done markers, validation, and resume |
+| Evaluation storage | Replaced ad-hoc shared `result.jsonl` with rank-local durable JSONL, done markers, aggregation, and resume |
 | Episode assignment | Replaced scene-local slicing with common stable-key strided sharding |
 | Source/data paths | Replaced cwd-relative imports and `images/images` joins with validated roots |
 

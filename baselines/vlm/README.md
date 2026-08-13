@@ -6,8 +6,7 @@ code.  Nothing in this directory is imported by `satnav` itself.
 
 All maintained VLM commands run from a SatNav source checkout installed in
 editable mode. A standalone SatNav wheel does not install repository-level
-benchmark manifests or shared launcher scripts and is not a supported VLM
-train/eval surface.
+launcher scripts and is not a supported VLM train/eval surface.
 
 Each baseline contains:
 

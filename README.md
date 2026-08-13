@@ -39,9 +39,9 @@ pip install -e '.[applications]'
 ```
 
 The standalone wheel contract covers core Python imports and packaged example
-resources. Repository-level classic/VLM launchers, benchmark manifests, and
-shell workflows require a SatNav source checkout installed in editable mode,
-as shown above; they are not standalone-wheel entrypoints.
+resources. Repository-level classic/VLM launchers and shell workflows require
+a SatNav source checkout installed in editable mode, as shown above; they are
+not standalone-wheel entrypoints.
 
 For a manually managed environment, use Python 3.8 or newer and run the same
 editable-install commands from the repository root.
@@ -200,7 +200,8 @@ package. The maintained integrations are
 [OpenFly](baselines/vlm/openfly/README.md). They all use the public `Env` and
 `satnav.evaluation.PolicyAdapter` contracts; see the
 [VLM baseline overview](baselines/vlm/README.md) for ownership and environment
-boundaries.
+boundaries. To connect another model, follow the
+[model integration guide](docs/MODEL_INTEGRATION.md).
 
 You can quickly run training and evaluation with the bundled tiny example data:
 
@@ -219,13 +220,18 @@ bash scripts/classic/eval.sh reference_follower val_seen 8
 bash scripts/classic/eval_parallel.sh random val_seen 2 0,1 8
 ```
 
-The default benchmark kind is the tracked smoke contract; set
-`SATNAV_BENCHMARK_KIND=official` for the full 500-step contract. Seq2Seq and
-CMA additionally require the matching checkpoint, vocabulary, and local eval
-config variables documented in [Classic Baselines](baselines/classic/README.md).
-Every run writes benchmark/run manifests, rank-local JSONL and done markers,
-and a strictly validated `summary.json` under
-`output/baselines/classic/<method>/<split>/<kind>/<N>rank/`.
+The launcher defaults to `SATNAV_MAX_STEPS=5`; set `SATNAV_MAX_STEPS=500` for
+longer rollout. Seq2Seq and CMA additionally require the matching checkpoint,
+vocabulary, and local eval config variables documented in
+[Classic Baselines](baselines/classic/README.md). Every run writes rank-local
+JSONL, done markers, and `summary.json` under
+`output/baselines/classic/<method>/<split>/<steps>steps/<N>rank/`.
+
+Versioned SatNav-v0.1 evaluation settings are provided under
+`configs/benchmark/` for `val_seen` and `val_unseen`. Use the five-step smoke
+settings to check a rollout pipeline and the 500-step official settings when
+reporting benchmark results. See the [evaluation guide](docs/EVALUATION.md) for
+the complete protocol and output format.
 
 Canonical online evaluation uses `configs/satnav_eval_task.yaml`: Boundary and
 Road success radii are 10 m and the LandmarkSet success radius is 30 m. The
@@ -271,7 +277,7 @@ third-party map content.
 
 - Source code is released under the MIT License. See `LICENSE`.
 - Documentation is released under CC BY 4.0 unless otherwise stated.
-- SatNav episode JSON files and related benchmark metadata are released under
+- SatNav episode JSON files and related benchmark parameter files are released under
   ODbL-1.0 because they may contain information derived from OpenStreetMap.
 - The bundled example `applications/resources/map.tif` is a procedurally
   generated synthetic raster dedicated to the public domain under CC0 1.0;

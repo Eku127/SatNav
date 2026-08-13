@@ -157,10 +157,29 @@ free viewer 中按 `P` 会将带有坐标和状态信息的 PNG 保存到仓库�
 
 ## 7. 常见问题
 
-- OpenCV 无法打开窗口：确认当前机器具有图形桌面，或正确配置 SSH X11 forwarding 和 `DISPLAY`。
-- `TIF file not found`：优先在本地配置中使用 GeoTIFF 的绝对路径。
-- 无法继续移动：相机视野已接近场景边界，请改变方向或降低高度。
-- 初始画面超出边界：减小 `AGENT.ALTITUDE`，或使用覆盖范围更大的 GeoTIFF。
-- Task viewer 找不到场景：确认 `SCENES_DIR` 正确，且文件名与 Episode 的 `scene_id` 一致。
+### 为什么 OpenCV 无法打开窗口？
+
+确认当前机器具有图形桌面。通过 SSH 使用 Viewer 时，需要正确配置 X11 forwarding 和
+`DISPLAY`；无图形界面的计算节点不能直接显示 OpenCV 窗口。
+
+### 为什么出现 `TIF file not found`？
+
+检查 Viewer 配置中的 GeoTIFF 路径是否存在。本机路径应写入 local config 或通过 CLI
+提供，不要写入公共配置。
+
+### 为什么 agent 无法继续移动？
+
+当前相机视野可能已经接近场景边界。改变前进方向或降低相机高度，确保旋转后的完整视野
+仍位于 GeoTIFF 覆盖范围内。
+
+### 为什么初始画面超出场景边界？
+
+减小 `AGENT.ALTITUDE`，或使用覆盖范围更大的 GeoTIFF。高度越高，相机需要的地面覆盖
+范围越大。
+
+### 为什么 Task viewer 找不到 Episode 对应的场景？
+
+确认 `SCENES_DIR` 指向 GeoTIFF 目录，并且场景文件名与 Episode 的 logical `scene_id`
+一致，例如 `Amsterdam-1.tif` 对应 `scene_id: Amsterdam-1`。
 
 > SatSim 使用 WGS84 经纬度描述 agent state，并从 EPSG:3857 GeoTIFF 渲染 observation。

@@ -137,9 +137,8 @@ safetensors and require a finite nonzero update in each of the three components.
 
 ## Evaluate
 
-All rollouts use `satnav.evaluation`: rank-local JSONL files, immutable run and
-benchmark manifests, deterministic sharding/seeds, done markers, strict resume,
-and common aggregation.
+All rollouts use `satnav.evaluation`: rank-local JSONL files, deterministic
+sharding/seeds, done markers, Episode-key resume, and common aggregation.
 
 ```bash
 bash baselines/vlm/openfly/scripts/eval.sh \

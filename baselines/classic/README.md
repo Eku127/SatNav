@@ -43,9 +43,8 @@ supported.  Their module paths are compatibility surfaces, not core imports.
 ## Unified evaluation
 
 All four methods use `python -m baselines.classic`, which delegates episode
-selection, strided sharding, JSONL, resume, done markers, manifests, and
-aggregation to `satnav.evaluation`.  The model-specific code only constructs a
-policy adapter.
+selection, strided sharding, JSONL, resume, done markers, and aggregation to
+`satnav.evaluation`. The model-specific code only constructs a policy adapter.
 
 After configuring `baselines/classic/.local/env.sh`, canonical smoke commands
 are:
@@ -55,6 +54,10 @@ bash scripts/classic/eval.sh random val_seen 8
 bash scripts/classic/eval.sh reference_follower val_seen 8
 bash scripts/classic/eval_parallel.sh random val_seen 2 0,1 8
 ```
+
+The launcher defaults to five steps per episode. Set `SATNAV_MAX_STEPS`
+explicitly for another cap, for example
+`SATNAV_MAX_STEPS=500 bash scripts/classic/eval.sh random val_seen -1`.
 
 Seq2Seq and CMA additionally require matching checkpoint, vocabulary, and
 evaluation config variables from `local.env.example`.  Existing commands under

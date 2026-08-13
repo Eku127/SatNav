@@ -108,7 +108,29 @@ cp baselines/vlm/streamvln/local.env.example \
 
 ## 6. 常见问题
 
-- `ModuleNotFoundError: satnav`：确认已在当前环境执行 `python -m pip install -e .`。
-- CUDA 或算子加载失败：检查 PyTorch、CUDA、Python 和 FlashAttention wheel 是否匹配。
-- VLM 依赖冲突：删除混用环境，按对应 baseline 的 Conda 文件重新创建独立环境。
-- `rasterio` 或 `pyproj` 安装失败：优先使用干净的 Conda 环境，并避免混用系统 Python。
+### 为什么出现 `ModuleNotFoundError: satnav`？
+
+确认当前终端位于 SatNav 仓库根目录，并且已经在当前 Python 环境中执行：
+
+```bash
+python -m pip install -e .
+python -c "import satnav; print(satnav.__file__)"
+```
+
+如果使用 Conda，请先确认 `which python` 指向准备运行 SatNav 的环境。
+
+### 为什么 CUDA 或模型算子无法加载？
+
+检查 Python、PyTorch、CUDA 和 FlashAttention wheel 是否属于同一套兼容组合。先运行
+`python -m pip check`，再按照对应 baseline README 中列出的版本重新安装。不要在一个
+环境中混用多套 VLM 的依赖。
+
+### 为什么安装一个 VLM 后另一个 VLM 无法运行？
+
+四个 VLM baseline 的 PyTorch、Transformers 和 FlashAttention 版本不同。每个 baseline
+应使用独立 Conda 环境；删除混用环境后，按照对应 baseline 的环境文件重新创建。
+
+### 为什么 `rasterio` 或 `pyproj` 安装失败？
+
+优先使用 `environments/satnav/conda.yml` 创建干净环境，让 Conda 安装底层地理空间库。
+避免混用系统 Python、系统 GDAL 和来自不同渠道的二进制 wheel。

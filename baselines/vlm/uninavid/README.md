@@ -193,17 +193,16 @@ tensor remained bitwise identical to the source checkpoint.
 
 ## Evaluation
 
-Single GPU against the tracked five-step smoke benchmark:
+Single GPU five-step smoke:
 
 ```bash
 bash baselines/vlm/uninavid/scripts/eval.sh \
   --gpus 1 \
   --model-path /path/to/trained-checkpoint \
   --eva-path /path/to/eva_vit_g.pth \
-  --benchmark-manifest configs/benchmark/satnav_v0_1_val_seen_smoke.json \
   --episodes /path/to/SatNav-v0.1/episodes/eval/{split}/all_episodes.json \
   --scenes-dir /path/to/scenes \
-  --split val_seen --limit 4 \
+  --split val_seen --limit 4 --max-steps 5 \
   --output-dir output/baselines/vlm/uninavid/eval/single \
   --fail-on-episode-error
 ```
@@ -212,8 +211,9 @@ Repeat with `--gpus 2` and a different output directory to validate strided
 multi-rank execution. The selected episode union, stable seeds, action traces,
 steps, and metrics must match the single-GPU run. Repeating an identical
 command with `--resume` leaves completed rank JSONL bytes and mtimes unchanged.
-Changing checkpoint content, EVA/processor, task config, episodes, generation,
-selection, seed, or world size causes manifest mismatch rejection.
+Resume only skips Episode keys already recorded by that rank; use a new output
+directory if checkpoint, EVA/processor, task config, episodes, generation,
+selection, seed, or world size changes.
 
 The policy preserves the `vicuna_v1` prompt, navigation-token injection order,
 greedy generation, four-action word parser, STOP fallback, per-episode feature
