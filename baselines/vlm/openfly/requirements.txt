@@ -57,8 +57,5 @@ certifi==2025.1.31
 tqdm==4.67.1
 protobuf==5.29.3
 pyparsing==3.2.1
-pytest==8.3.5
-iniconfig==2.0.0
-pluggy==1.5.0
 ruff==0.9.10
 flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.5.8/flash_attn-2.5.8%2Bcu122torch2.3cxx11abiFALSE-cp310-cp310-linux_x86_64.whl#sha256=13454dd3d37cf173649bd389b84614b8072fb283f8f2fd23a65ab66caafc304b

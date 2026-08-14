@@ -28,7 +28,6 @@ datasets, models, environments, and output paths in the Git-ignored
 ```bash
 python -m baselines.classic --help
 bash scripts/quickstart_models.sh
-python -m pytest -q tests/test_classic_adapters.py tests/test_classic_integration.py
 ```
 
 Run training and evaluation from a SatNav source checkout installed in editable

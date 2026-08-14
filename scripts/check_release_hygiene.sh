@@ -80,13 +80,7 @@ while IFS= read -r -d '' file; do
             esac
         fi
         candidate_files+=("${file}")
-        case "${file}" in
-            tests/*|*/tests/*)
-                ;;
-            *)
-                absolute_path_files+=("${file}")
-                ;;
-        esac
+        absolute_path_files+=("${file}")
     fi
 done < <(git ls-files -z --cached --others --exclude-standard)
 
