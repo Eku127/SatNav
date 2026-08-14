@@ -10,7 +10,7 @@ repository are released under the MIT License. See `LICENSE`.
 
 ## Documentation
 
-Documentation files, including `README.md`, files under `doc/`, and application
+Documentation files, including `README.md`, files under `docs/`, and application
 or example README files, are released under the Creative Commons Attribution
 4.0 International License (CC BY 4.0):
 
@@ -24,8 +24,8 @@ derived from OpenStreetMap-based geospatial structure:
 
 https://opendatacommons.org/licenses/odbl/1-0/
 
-This includes example episode JSON files bundled for smoke tests, as well as
-separate SatNav-Episodes dataset releases.
+This includes example episode JSON files bundled for quick-start validation,
+as well as separate SatNav-Episodes dataset releases.
 
 ## Satellite and Map Imagery
 
