@@ -21,6 +21,7 @@ RUN_EVAL="${RUN_EVAL:-1}"
 VOCAB_PATH="${OUT_ROOT}/artifacts/vocab/satnav_example_vocab.json"
 GLOVE_DIR="${OUT_ROOT}/artifacts/glove"
 GLOVE_ZIP="${GLOVE_DIR}/glove.6B.zip"
+GLOVE_URL="${GLOVE_URL:-https://downloads.cs.stanford.edu/nlp/data/glove.6B.zip}"
 GLOVE_TXT="${GLOVE_DIR}/glove.6B.50d.txt"
 LOCAL_GLOVE_TXT="${LOCAL_GLOVE_TXT:-${SATNAV_GLOVE_TXT:-}}"
 EMBEDDING_PATH="${OUT_ROOT}/artifacts/embeddings/satnav_example_glove50d.json.gz"
@@ -43,9 +44,9 @@ if [ ! -f "${GLOVE_TXT}" ]; then
     fi
     while [ ! -f "${GLOVE_ZIP}" ] || ! unzip -t "${GLOVE_ZIP}" >/dev/null 2>&1; do
       if command -v curl >/dev/null 2>&1; then
-        curl -L -C - http://nlp.stanford.edu/data/glove.6B.zip -o "${GLOVE_ZIP}"
+        curl -L -C - "${GLOVE_URL}" -o "${GLOVE_ZIP}"
       elif command -v wget >/dev/null 2>&1; then
-        wget -c -O "${GLOVE_ZIP}" http://nlp.stanford.edu/data/glove.6B.zip
+        wget -c -O "${GLOVE_ZIP}" "${GLOVE_URL}"
       else
         echo "Neither curl nor wget is available. Please install one of them."
         exit 1

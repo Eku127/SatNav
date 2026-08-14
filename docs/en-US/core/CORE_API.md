@@ -478,7 +478,6 @@ debugging may use `env.simulator`:
 | `get_observations()` | Get raw simulator observations |
 | `geodesic_distance(a, b)` | Distance between geographic positions |
 | `is_navigable(position)` | Whether the full camera footprint is in bounds |
-| `sample_navigable_point()` | Extension point; not implemented by SatSim |
 | `sensor_suite` | Simulator sensor description |
 | `action_space` | Supported simulator actions |
 | `close()` | Release simulator resources |
@@ -549,9 +548,6 @@ class MySimulator(Simulator):
         ...
 
     def is_navigable(self, position):
-        ...
-
-    def sample_navigable_point(self):
         ...
 
     @property

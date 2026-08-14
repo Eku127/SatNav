@@ -67,6 +67,9 @@ Each VLM uses its own Python environment and model resources:
 | Uni-NaVid | [Uni-NaVid Baseline](training/vlm/UNINAVID.md) |
 | OpenFly | [OpenFly Baseline](training/vlm/OPENFLY.md) |
 
+Released SatNav checkpoints are available in the
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo).
+
 Do not share PyTorch, Transformers, or FlashAttention environments across VLM
 baselines. Store models, datasets, upstream checkouts, and output paths in the
 baseline's Git-ignored `.local/env.sh`.

@@ -5,6 +5,8 @@ evaluation result contract, but keep independent conda environments and model
 code.  Nothing in this directory is imported by `satnav` itself.
 
 Run all VLM commands from a SatNav source checkout installed in editable mode.
+Released SatNav checkpoints are available in the
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo).
 
 Each baseline contains:
 

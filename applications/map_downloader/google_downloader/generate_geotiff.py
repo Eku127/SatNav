@@ -194,7 +194,7 @@ def load_font(size: int) -> ImageFont.ImageFont:
 
 
 def default_google_logo_path() -> Path:
-    """Return the packaged default Google Maps logo asset path."""
+    """Return the bundled default Google Maps logo asset path."""
     return Path(__file__).parent / "assets" / "GoogleMaps_Logo_WithDarkOutline_1x.png"
 
 

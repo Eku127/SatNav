@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 
-STREAMVLN_UPSTREAM = "https://github.com/Eku127/StreamVLN.git"
+STREAMVLN_UPSTREAM = "https://github.com/InternRobotics/StreamVLN.git"
 STREAMVLN_REVISION = "60476e81f4c01b29f1a51a7469f1cb4addbc1d62"
 SATNAV_ADAPTER_UPSTREAM = "https://github.com/Eku127/SatNav.git"
 SATNAV_ADAPTER_REVISION = "c0c0e72ea4575b36d74a5e8f777942172978938e"
@@ -71,7 +71,7 @@ def bootstrap_streamvln(
 ) -> Path:
     """Add canonical and legacy upstream import roots to ``sys.path``.
 
-    The Eku127 fork contains both canonical imports such as
+    The pinned official revision contains both canonical imports such as
     ``streamvln.model`` and legacy imports such as ``model``/``utils``.  Its
     repository root and nested ``streamvln`` directory are therefore both
     required.  They are resolved once from an explicit checkout, not from

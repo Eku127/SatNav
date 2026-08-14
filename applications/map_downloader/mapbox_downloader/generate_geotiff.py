@@ -124,18 +124,18 @@ def corners_to_center(
 
 
 def default_logo_path() -> Path:
-    """Return the packaged default Mapbox logo asset path."""
+    """Return the bundled default Mapbox logo asset path."""
     return Path(__file__).parent / "assets" / "mapbox_logo_black.png"
 
 
 def resolve_logo_path(logo_path: Optional[str]) -> Optional[Path]:
-    """Resolve a configured logo path, falling back to the packaged asset."""
+    """Resolve a configured logo path, falling back to the bundled asset."""
     if logo_path:
         candidate = Path(logo_path).expanduser()
         return candidate if candidate.exists() else None
 
-    packaged = default_logo_path()
-    return packaged if packaged.exists() else None
+    bundled = default_logo_path()
+    return bundled if bundled.exists() else None
 
 
 def load_font(size: int) -> ImageFont.ImageFont:
@@ -147,7 +147,7 @@ def load_font(size: int) -> ImageFont.ImageFont:
 
 
 def crop_logo_margins(logo: Image.Image) -> Image.Image:
-    """Trim empty or near-black margins from the packaged logo image."""
+    """Trim empty or near-black margins from the bundled logo image."""
     rgba = logo.convert("RGBA")
     grayscale = ImageOps.grayscale(rgba)
     mask = grayscale.point(lambda value: 255 if value > 12 else 0)

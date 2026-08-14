@@ -78,6 +78,9 @@ VLM baseline 适合复现已有视觉语言模型，或在相同 SatNav trajecto
 选择 VLM 后，直接从表格中的对应文档开始，不需要运行 Classic tiny example。各文档依次说明
 环境安装、模型准备、本地路径、数据校验、Smoke 训练、完整训练和在线评测。
 
+四个 VLM baseline 的 SatNav scratch 与 continue checkpoint 均已发布到
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)。
+
 同一台机器可以准备多套 VLM 环境，但不要在环境之间复用 PyTorch、Transformers 或
 FlashAttention。模型、数据集、上游 checkout 和输出路径应保存在对应 baseline 的 Git
 ignored `.local/env.sh` 中。

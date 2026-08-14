@@ -50,6 +50,5 @@ tqdm==4.67.1
 wandb==0.25.0
 ninja==1.13.0
 packaging==25.0
-pytest==9.0.2
 pre-commit==4.5.1
 ruff==0.14.10

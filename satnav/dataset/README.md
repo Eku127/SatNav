@@ -62,4 +62,4 @@ OfflineTrajectoryDataset
 ```
 
 For the baseline training workflow, see
-[`doc/models/QUICKSTART.md`](../../doc/models/QUICKSTART.md).
+[Training Models with SatNav](../../docs/en-US/training/README.md).

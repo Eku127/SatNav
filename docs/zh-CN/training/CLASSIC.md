@@ -25,9 +25,7 @@ expert action；评测阶段在 SatSim 中根据当前 observation 逐步预测�
 - Episode continuation mask。
 
 模型输出四个 SatNav primitive action 之一：`STOP`、`MOVE_FORWARD`、`TURN_LEFT` 或
-`TURN_RIGHT`。模型结构的详细说明参阅
-[Seq2Seq Model Structure](../../../doc/models/SEQ2SEQ_IMPLEMENTATION.md) 和
-[CMA Model Structure](../../../doc/models/CMA_IMPLEMENTATION.md)。
+`TURN_RIGHT`。
 
 ## 2. 准备环境
 

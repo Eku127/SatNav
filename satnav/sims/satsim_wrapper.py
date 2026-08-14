@@ -250,27 +250,6 @@ class SatSimWrapper(Simulator):
         """
         return self._satsim.is_navigable(position)
     
-    def sample_navigable_point(self) -> List[float]:
-        """Sample a random navigable point in the current scene.
-        
-        Returns:
-            A navigable position as [longitude, latitude, altitude].
-            
-        Raises:
-            RuntimeError: If scene has not been loaded.
-            NotImplementedError: This method is not yet implemented in SatSim.
-        """
-        if self._scene_id is None:
-            raise RuntimeError(
-                "Scene not loaded. Call reset(scene_id) first."
-            )
-        
-        # TODO: Implement sampling in SatSim
-        raise NotImplementedError(
-            "sample_navigable_point() not yet implemented. "
-            "This method should sample a random navigable point in the scene."
-        )
-    
     def _combine_scene_path(self, scene_id: str) -> str:
         """Combine scenes_dir with scene_id to form full path.
         

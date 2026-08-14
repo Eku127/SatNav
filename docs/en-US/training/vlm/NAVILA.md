@@ -149,6 +149,37 @@ export NAVILA_MODEL_ROOT=/path/to/navila-models
 mkdir -p "$NAVILA_MODEL_ROOT"
 ```
 
+### 5.1 Released SatNav checkpoints
+
+The [SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)
+provides two NaVILA checkpoints:
+
+- [scratch](https://huggingface.co/Eku127/navila-satnav-scratch-1ep-8f-sample-hk7-fs7-stopx4), trained from the NaVILA pretraining checkpoint;
+- [continue](https://huggingface.co/Eku127/navila-satnav-continue-1ep-8f-sample-hk7-fs7-stopx4), trained from the NaVILA SFT checkpoint.
+
+Download either checkpoint with the baseline downloader:
+
+```bash
+bash baselines/vlm/navila/scripts/download.sh \
+  --repo Eku127/navila-satnav-continue-1ep-8f-sample-hk7-fs7-stopx4 \
+  --model-root "$NAVILA_MODEL_ROOT"
+```
+
+Pass the downloaded directory to `--model-path` for evaluation. These releases
+contain inference artifacts rather than optimizer and scheduler state.
+
+The released checkpoints achieve the following reference results on the full
+splits with a 500-step cap.
+
+| Checkpoint | Split | Episodes | NE ↓ | OS ↑ | SR ↑ | SPL ↑ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Scratch | `val_seen` | 4,574 | 93.05 | 27.59 | 18.10 | 18.02 |
+| Scratch | `val_unseen` | 8,756 | 128.88 | 23.66 | 13.00 | 12.96 |
+| Continue | `val_seen` | 4,574 | 93.88 | 35.00 | 24.99 | 24.88 |
+| Continue | `val_unseen` | 8,756 | 123.49 | 31.60 | 18.57 | 18.44 |
+
+### 5.2 Training starting points
+
 `continue` training uses the NaVILA SFT checkpoint:
 
 ```bash
@@ -171,6 +202,8 @@ The resulting layout is:
 
 ```text
 navila-models/
+├── navila-satnav-scratch-1ep-8f-sample-hk7-fs7-stopx4/
+├── navila-satnav-continue-1ep-8f-sample-hk7-fs7-stopx4/
 ├── navila-llama3-8b-8f/
 └── navila-siglip-llama3-8b-v1.5-pretrain/
 ```

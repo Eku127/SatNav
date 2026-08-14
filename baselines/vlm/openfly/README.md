@@ -10,6 +10,14 @@ For environment setup, model preparation, data validation, training, resume,
 and single-/multi-GPU evaluation, see
 [SatNav OpenFly Baseline](../../../docs/en-US/training/vlm/OPENFLY.md).
 
+## Released checkpoints
+
+- [Scratch](https://huggingface.co/Eku127/openfly-satnav-scratch-1ep-actcompact-sample-hk7-fs3-stopx2-stopw0-tail5-stoph1-hist16-lr2e-5)
+- [Continue](https://huggingface.co/Eku127/openfly-satnav-continue-1ep-actcompact-sample-hk7-fs3-stopx2-stopw0-tail5-stoph1-hist16-lr2e-5)
+
+Both checkpoints are part of the
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo).
+
 ## Upstream boundary
 
 - Project: [`SHAILAB-IPEC/OpenFly-Platform`](https://github.com/SHAILAB-IPEC/OpenFly-Platform)

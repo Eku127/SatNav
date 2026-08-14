@@ -1,4 +1,4 @@
-"""Runtime-resolved access to SatNav's packaged public example resources."""
+"""Runtime-resolved access to SatNav's public example resources."""
 
 from pathlib import Path
 
@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 
 
 def load_example_task_config():
-    """Load the bundled task config with source/wheel-independent paths."""
+    """Load the bundled task config with source-relative resource paths."""
 
     resource_root = Path(__file__).resolve().parent
     config = OmegaConf.load(resource_root / "satnav_example_task.yaml")

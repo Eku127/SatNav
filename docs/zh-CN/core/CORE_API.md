@@ -456,7 +456,6 @@ debug_data = episode.to_dict(include_runtime=True)
 | `get_observations()` | 获取 simulator 原始 observation |
 | `geodesic_distance(a, b)` | 计算两个地理位置之间的距离 |
 | `is_navigable(position)` | 检查完整相机视野是否位于场景安全范围内 |
-| `sample_navigable_point()` | simulator 扩展接口；内置 SatSim 当前尚未实现 |
 | `sensor_suite` | simulator sensor 描述 |
 | `action_space` | simulator 支持的动作 |
 | `close()` | 释放 simulator 资源 |
@@ -527,9 +526,6 @@ class MySimulator(Simulator):
         ...
 
     def is_navigable(self, position):
-        ...
-
-    def sample_navigable_point(self):
         ...
 
     @property

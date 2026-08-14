@@ -134,9 +134,40 @@ The launcher validates the complete train split again before training. An unmatc
 
 ## 5. Prepare a model
 
-SatNav does not distribute OpenFly weights in the source repository. Choose one of the following starting points using a model from OpenFly upstream or an existing training run.
+SatNav does not store OpenFly weights in the source repository. Use a released
+SatNav checkpoint, a model from OpenFly upstream, or an existing training run.
 
-### 5.1 Continue from a complete Hugging Face checkpoint
+### 5.1 Released SatNav checkpoints
+
+The [SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)
+provides two OpenFly checkpoints:
+
+- [scratch](https://huggingface.co/Eku127/openfly-satnav-scratch-1ep-actcompact-sample-hk7-fs3-stopx2-stopw0-tail5-stoph1-hist16-lr2e-5), trained from OpenVLA/OpenFly processor assets;
+- [continue](https://huggingface.co/Eku127/openfly-satnav-continue-1ep-actcompact-sample-hk7-fs3-stopx2-stopw0-tail5-stoph1-hist16-lr2e-5), trained from the OpenFly Agent checkpoint.
+
+Download either checkpoint into a local model directory:
+
+```bash
+export OPENFLY_MODEL_ROOT=/path/to/openfly-models
+python -m huggingface_hub.commands.huggingface_cli download \
+  Eku127/openfly-satnav-continue-1ep-actcompact-sample-hk7-fs3-stopx2-stopw0-tail5-stoph1-hist16-lr2e-5 \
+  --local-dir "$OPENFLY_MODEL_ROOT/openfly-satnav-continue"
+```
+
+Pass the downloaded directory to `--model-path` for evaluation. These releases
+contain inference artifacts rather than optimizer and scheduler state.
+
+The released checkpoints achieve the following reference results with a
+500-step cap.
+
+| Checkpoint | Split | Episodes | NE ↓ | OS ↑ | SR ↑ | SPL ↑ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Scratch | `val_seen` | 4,601 | 166.88 | 33.47 | 13.21 | 13.03 |
+| Scratch | `val_unseen` | 8,756 | 195.91 | 32.17 | 11.73 | 11.62 |
+| Continue | `val_seen` | 4,601 | 163.07 | 38.08 | 21.10 | 20.99 |
+| Continue | `val_unseen` | 8,756 | 196.90 | 34.88 | 17.12 | 16.91 |
+
+### 5.2 Continue from a complete Hugging Face checkpoint
 
 `continue` accepts a complete local OpenFly checkpoint in Hugging Face format:
 
@@ -152,7 +183,7 @@ openfly-hf-checkpoint/
 
 Weights may instead be stored as several `model-*.safetensors` files with `model.safetensors.index.json`. The directory must include the processor, tokenizer, and every weight shard; a standalone adapter or partial shard set is not sufficient.
 
-### 5.2 Scratch from a native checkpoint and processor
+### 5.3 Scratch from a native checkpoint and processor
 
 `scratch` accepts a native OpenFly run directory or one `.pt` checkpoint:
 
@@ -210,9 +241,9 @@ Variable sources:
 | Variable | Source |
 | --- | --- |
 | `OPENFLY_PYTHON` | Output of `command -v python` in Section 2 |
-| `OPENFLY_CONTINUE_MODEL` | Complete Hugging Face checkpoint from Section 5.1 |
-| `OPENFLY_NATIVE_RUN` | Native run or `.pt` from Section 5.2 |
-| `OPENFLY_PROCESSOR_PATH` | Processor/tokenizer directory from Section 5.2 |
+| `OPENFLY_CONTINUE_MODEL` | Released or locally prepared complete Hugging Face checkpoint from Section 5.1 or 5.2 |
+| `OPENFLY_NATIVE_RUN` | Native run or `.pt` from Section 5.3 |
+| `OPENFLY_PROCESSOR_PATH` | Processor/tokenizer directory from Section 5.3 |
 | `OPENFLY_NATIVE_HF_CACHE_DIR` | Local cache used for native model conversion |
 | `SATNAV_OPENFLY_TRAIN_DATA` | Validated `trajectory_data/` from Section 4 |
 | `SATNAV_OPENFLY_TRAIN_EPISODES` | Train Episode file corresponding to the trajectories |

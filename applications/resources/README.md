@@ -20,8 +20,7 @@ python scripts/generate_synthetic_example_map.py
 The generator writes atomically and records the generator path, version,
 license, and synthetic provenance in the GeoTIFF tags.
 
-When SatNav is installed as a wheel, load the example config through the
-resource helper so episode and scene paths resolve inside `site-packages`:
+Load the example config with:
 
 ```python
 from applications.resources import load_example_task_config

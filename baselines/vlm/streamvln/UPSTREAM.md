@@ -5,12 +5,12 @@ StreamVLN model implementation or model weights.
 
 ## Pinned model upstream
 
-- Repository: [`Eku127/StreamVLN`](https://github.com/Eku127/StreamVLN)
-- Commit: [`60476e81f4c01b29f1a51a7469f1cb4addbc1d62`](https://github.com/Eku127/StreamVLN/commit/60476e81f4c01b29f1a51a7469f1cb4addbc1d62)
+- Repository: [`InternRobotics/StreamVLN`](https://github.com/InternRobotics/StreamVLN)
+- Commit: [`60476e81f4c01b29f1a51a7469f1cb4addbc1d62`](https://github.com/InternRobotics/StreamVLN/commit/60476e81f4c01b29f1a51a7469f1cb4addbc1d62)
 - Runtime relationship: the checkout is loaded through `STREAMVLN_REPO`; its
   model implementation is not copied into SatNav.
 
-At the pinned commit, the Eku127 fork has no standalone `LICENSE` file. Its
+At the pinned commit, the official repository has no standalone `LICENSE` file. Its
 README states that the work is under the
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
 License](https://creativecommons.org/licenses/by-nc-sa/4.0/). SatNav therefore

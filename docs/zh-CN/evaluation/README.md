@@ -73,6 +73,9 @@ Official 设置。启动评测时，通过 `--split`、`--limit` 和 `--max-step
 Seq2Seq 和 CMA 还需要在本地 overlay 中配置对应 checkpoint 与 vocabulary；详细变量见
 [`baselines/classic/local.env.example`](../../../baselines/classic/local.env.example)。
 
+StreamVLN、NaVILA、Uni-NaVid 和 OpenFly 的已发布 checkpoint 位于
+[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)。
+
 ## 3. Episode 选择与分片
 
 每个 Episode 的稳定 key 为：

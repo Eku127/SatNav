@@ -45,6 +45,7 @@ pip-delete-this-directory.txt
 # Testing & Coverage
 # =============================================================================
 
+tests/
 htmlcov/
 .tox/
 .nox/
@@ -145,6 +146,7 @@ runtime/
 baselines/vlm/*/results/
 
 # Model checkpoints and logs
+model_zoo/
 checkpoints/
 logs/
 runs/

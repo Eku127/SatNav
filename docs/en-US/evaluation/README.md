@@ -66,6 +66,9 @@ Use the smoke settings to confirm that data, model, and environment rollouts wor
 
 Seq2Seq and CMA also require local checkpoint and vocabulary paths. See [`baselines/classic/local.env.example`](../../../baselines/classic/local.env.example) for the available variables.
 
+Released StreamVLN, NaVILA, Uni-NaVid, and OpenFly checkpoints are available in
+the [SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo).
+
 ## 3. Episode selection and sharding
 
 Each Episode has the stable key:

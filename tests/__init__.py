@@ -1,1 +1,0 @@
-"""SatNav regression tests."""
