@@ -557,7 +557,7 @@ SIMULATOR:
   RENDERER:
     ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
     AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY}
-    FIXED_HEIGHT_M: 50
+    FIXED_HEIGHT_M: ${oc.env:SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M}
     REQUIRE_GEOMETRY_CLEARANCE: true
     REQUIRE_RENDER_COMPLETE: true
     MAX_INVALID_FRACTION: 0.02
@@ -569,8 +569,9 @@ wrapper 通过本机 Unix socket 连接一个常驻 GPU renderer。这样 SatNav
 
 公开 adapter manifest 只记录 logical scene ID、模拟 Web-Mercator 原点和 ENU
 bounds。公开 renderer scene manifest 通过 asset-root 环境变量引用资产，并记录校验和
-与冻结的垂直基准；该基准会被归一化到 ENU up=0，因此所有 Episode 的相机始终位于
-固定 up=50 m 飞行平面。renderer 不会逐帧叠加 mesh 高程，完整 mesh 只用于净空检查。
+与冻结的垂直基准；该基准会被归一化到 ENU up=0。可配置的 `FIXED_HEIGHT_M` 选择一个
+绝对飞行平面，相机在整个 Episode 中保持该高度。renderer 不会逐帧叠加 mesh 高程，
+完整 mesh 只用于净空检查。
 renderer credential 必须放在 ignored local runtime 配置中。renderer 连接失败、场景缺失、帧不完整或几何净空不足时都会明确报错，
 不会回退到 GeoTIFF crop。
 
@@ -580,6 +581,7 @@ application 自身加载：
 ```bash
 export SATNAV_HUGE3DGS_ASSET_ROOT=/path/to/extracted/HUGE/assets
 export SATNAV_GSPLAT_EXTENSION=/path/to/gsplat_cuda.so
+export SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M=50
 python -m applications.huge3dgs_renderer render-server \
   --config configs/local_huge3dgs_renderer.yaml
 ```

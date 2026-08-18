@@ -3,6 +3,7 @@ SIMULATOR:
   RENDERER:
     ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
     AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY,satnav-huge3dgs}
+    FIXED_HEIGHT_M: ${oc.env:SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M}
     BACKEND_CLASS: applications.huge3dgs_renderer.gsplat_backend.GsplatRendererBackend
     DEVICE: cuda
     NEAR_PLANE: 0.1

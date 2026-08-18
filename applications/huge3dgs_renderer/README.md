@@ -79,9 +79,11 @@ The public renderer scene manifest uses
 `$SATNAV_HUGE3DGS_ASSET_ROOT/data_3d/...` paths. Each scene record contains the
 renderer scene ID, source/license/checksum metadata, ENU transform and bounds,
 camera contract, and renderer version. The ENU transform maps one frozen scene
-ground datum to up=0; every episode camera is then rendered at exactly up=50 m.
-The renderer never adds 50 m to a per-position mesh/roof height. The full mesh
-is used only for geometry-clearance checks.
+ground datum to up=0. `SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M` selects one absolute
+normalized-ENU flight plane for an evaluation run, and the episode altitude
+must match it. The camera remains on that plane for the entire episode. The
+renderer never adds the configured height to a per-position mesh/roof height;
+the full mesh is used only for geometry-clearance checks.
 
 Download only `2_city`, `3_road`, and `4_lake` from the official HUGE-Bench
 asset repository, retain its `data_3d/<scene>/...` layout, and verify the
@@ -119,6 +121,7 @@ export SATNAV_HUGE3DGS_ENDPOINT=/absolute/path/to/huge3dgs.sock
 export SATNAV_HUGE3DGS_AUTHKEY=choose-a-local-auth-key
 export SATNAV_HUGE3DGS_ASSET_ROOT=/absolute/path/to/extracted/HUGE/assets
 export SATNAV_GSPLAT_EXTENSION=/absolute/path/to/gsplat_cuda.so
+export SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M=50
 ```
 
 ## Start and validate the renderer
@@ -151,7 +154,7 @@ SIMULATOR:
   RENDERER:
     ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
     AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY}
-    FIXED_HEIGHT_M: 50
+    FIXED_HEIGHT_M: ${oc.env:SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M}
     REQUIRE_GEOMETRY_CLEARANCE: true
     MIN_GEOMETRY_CLEARANCE_M: 10
     REQUIRE_RENDER_COMPLETE: true
@@ -159,9 +162,11 @@ SIMULATOR:
 ```
 
 The wrapper preserves episode coordinates at the public API and converts them
-to local ENU only for renderer requests. A missing renderer, coordinate record,
-scene, clearance result, or complete RGB frame is an explicit error. There is
-no fallback to SatSim or GeoTIFF cropping.
+to local ENU only for renderer requests. `FIXED_HEIGHT_M` is configurable; it
+is a fixed absolute flight plane, not an offset from the mesh. Every episode
+position must carry the same altitude as the configured value. A missing
+renderer, coordinate record, scene, clearance result, or complete RGB frame is
+an explicit error. There is no fallback to SatSim or GeoTIFF cropping.
 
 ## Minimal integration smoke
 

@@ -580,7 +580,7 @@ SIMULATOR:
   RENDERER:
     ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
     AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY}
-    FIXED_HEIGHT_M: 50
+    FIXED_HEIGHT_M: ${oc.env:SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M}
     REQUIRE_GEOMETRY_CLEARANCE: true
     REQUIRE_RENDER_COMPLETE: true
     MAX_INVALID_FRACTION: 0.02
@@ -595,9 +595,10 @@ simulator or a remote cloud service.
 The public adapter manifest contains only logical scene IDs, synthetic
 Web-Mercator origins, and ENU bounds. The public renderer-scene manifest uses
 an asset-root environment variable and records checksums plus a frozen vertical
-datum. It normalizes that datum to ENU up=0, so every episode camera remains on
-the fixed up=50 m flight plane. Mesh height is never added per frame; the full
-mesh is used only for clearance checks. Renderer credentials belong in ignored
+datum. It normalizes that datum to ENU up=0. The configurable
+`FIXED_HEIGHT_M` then selects one absolute flight plane and the camera remains
+on it for the full episode. Mesh height is never added per frame; the full mesh
+is used only for clearance checks. Renderer credentials belong in ignored
 local runtime configuration. A renderer failure,
 missing scene, incomplete frame, or insufficient geometry clearance raises an
 explicit error; this backend never falls back to GeoTIFF cropping.
@@ -608,6 +609,7 @@ extension is optional and can be loaded directly by the application:
 ```bash
 export SATNAV_HUGE3DGS_ASSET_ROOT=/path/to/extracted/HUGE/assets
 export SATNAV_GSPLAT_EXTENSION=/path/to/gsplat_cuda.so
+export SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M=50
 python -m applications.huge3dgs_renderer render-server \
   --config configs/local_huge3dgs_renderer.yaml
 ```

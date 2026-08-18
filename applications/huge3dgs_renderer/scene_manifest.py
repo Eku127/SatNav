@@ -128,19 +128,14 @@ class SceneManifest:
                 raise SceneManifestError(f"scene {scene_id}.bounds are not ordered")
 
             camera = _require_mapping(record.get("camera"), f"scene {scene_id}.camera")
-            if str(camera.get("altitude_mode", "")).lower() != "fixed":
+            if str(camera.get("altitude_mode", "")).lower() != "fixed_per_episode":
                 raise SceneManifestError(
-                    f"scene {scene_id}.camera.altitude_mode must be fixed"
+                    f"scene {scene_id}.camera.altitude_mode must be fixed_per_episode"
                 )
-            try:
-                fixed_height = float(camera["fixed_height_m"])
-            except (KeyError, TypeError, ValueError) as error:
+            if str(camera.get("height_reference", "")).lower() != "normalized_enu_up":
                 raise SceneManifestError(
-                    f"scene {scene_id}.camera.fixed_height_m must be numeric"
-                ) from error
-            if not math.isfinite(fixed_height) or fixed_height <= 0.0:
-                raise SceneManifestError(
-                    f"scene {scene_id}.camera.fixed_height_m must be positive"
+                    f"scene {scene_id}.camera.height_reference must be "
+                    "normalized_enu_up"
                 )
             _require_mapping(record.get("renderer"), f"scene {scene_id}.renderer")
             self._scenes[scene_id] = record
