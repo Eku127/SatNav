@@ -1,0 +1,46 @@
+# SatNav task configuration using point-cloud RGB rendering.
+#
+# PCDSim keeps the normal GeoTIFF scene loaded for movement, navigability,
+# metrics, and TOP_DOWN_MAP compatibility.  RGB observations are rendered from
+# binary little-endian XYZRGB PLY blocks under DATASET.PCD_PATH/<scene_id>/.
+
+ENVIRONMENT:
+  MAX_EPISODE_STEPS: 500
+
+SIMULATOR:
+  TYPE: pcdsim
+  CLASS: satnav.sims.pcdsim.PCDSimWrapper
+  FORWARD_STEP_SIZE: 10
+  TURN_ANGLE: 15
+  RGB_SENSOR:
+    WIDTH: 224
+    HEIGHT: 224
+    HFOV: 90
+  PCDSIM:
+    CHUNK_POINTS: 2000000
+    POINT_SIZE: 1
+    NEAR_CLIP_METRES: 0.05
+    CACHE_PADDING_METRES: 25.0
+    GROUND_PERCENTILE: 2.0
+
+TASK:
+  TYPE: VLN
+  SUCCESS_DISTANCE:
+    DEFAULT: 10.0
+    Boundary: 10.0
+    LandmarkSet: 30.0
+    Road: 10.0
+  POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
+  TOP_DOWN_MAP:
+    MAP_RESOLUTION: 1024
+    PADDING_METERS: 50.0
+    DRAW_REFERENCE_PATH: true
+    DRAW_SOURCE_AND_TARGET: true
+
+DATASET:
+  TYPE: SatNav
+  SPLIT: test
+  DATA_PATH: F:/test/VLN_episodes.json
+  SCENES_DIR: F:/gugudata
+  PCD_PATH: F:/episode_maker/pointclouds
