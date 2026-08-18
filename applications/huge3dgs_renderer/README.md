@@ -187,6 +187,9 @@ measure. The left panel is the real 3DGS RGB observation; the right panel is a
 debug drawing of the reference and executed paths. Press `p` to pause/resume,
 `n` to execute one action while paused, and `Esc` to quit. OpenCV requires a
 graphical desktop or X11 forwarding with a non-empty `DISPLAY`.
+The viewer environment must install `opencv-python` rather than
+`opencv-python-headless`; `cv2.getBuildInformation()` must not report
+`GUI: NONE`.
 
 ## Minimal integration smoke
 

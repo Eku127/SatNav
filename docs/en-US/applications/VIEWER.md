@@ -22,6 +22,15 @@ python -m pip install -e '.[applications]'
 > The viewer opens an OpenCV window and requires a graphical desktop. Over
 > SSH, configure X11 forwarding and a valid `DISPLAY`.
 
+The active environment must install `opencv-python`, not
+`opencv-python-headless`. Check its HighGUI backend with:
+
+```bash
+python -c "import cv2; print([line.strip() for line in cv2.getBuildInformation().splitlines() if line.strip().startswith('GUI:')][0])"
+```
+
+The result must name a GUI backend such as Qt or GTK, not `GUI: NONE`.
+
 ## 2. Run the bundled examples
 
 The repository includes a synthetic GeoTIFF and two episodes.
@@ -190,6 +199,8 @@ altitude, and heading. `output/` is ignored by Git.
 
 The viewer needs a graphical desktop. Over SSH, configure X11 forwarding and
 `DISPLAY`. Headless compute nodes cannot show the interactive window directly.
+If the error says the window function is not implemented, remove
+`opencv-python-headless` and install `opencv-python` in the viewer environment.
 
 ### Why do I get `TIF file not found`?
 

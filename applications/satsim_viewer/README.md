@@ -135,6 +135,9 @@ Task viewer:
 ## Notes
 
 - OpenCV opens an interactive window, so a desktop display or X forwarding is required.
+- The active Python environment must use `opencv-python`, not
+  `opencv-python-headless`. Verify that `cv2.getBuildInformation()` reports a
+  GUI backend such as Qt or GTK rather than `GUI: NONE`.
 - If the camera view exceeds map bounds, reduce altitude or move away from the edge.
 - SatSim satellite maps read WGS84 coordinates from EPSG:3857 GeoTIFF scenes.
 - Vector top-down supports WGS84 and episode `local_enu` coordinate frames.

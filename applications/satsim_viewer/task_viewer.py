@@ -83,7 +83,7 @@ class TaskViewer:
         
         # Display configuration
         self.window_name = "SatNav Task Viewer"
-        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        self._create_window()
         # Set initial window size (width, height) - larger for task viewer with multiple panels
         cv2.resizeWindow(self.window_name, 1600, 900)
         
@@ -113,6 +113,28 @@ class TaskViewer:
         print(f"  Goal radius: {self.goal_radius}m")
         print(f"  Top-down mode: {self.topdown_mode}")
         print(f"  Reference autoplay: {'ON' if self.autoplay_reference else 'OFF'}")
+
+    def _create_window(self):
+        """Create HighGUI window with an actionable headless-build error."""
+        try:
+            cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        except cv2.error as error:
+            gui_line = next(
+                (
+                    line.strip()
+                    for line in cv2.getBuildInformation().splitlines()
+                    if line.strip().startswith("GUI:")
+                ),
+                "GUI: unknown",
+            )
+            if gui_line.upper().endswith("NONE"):
+                raise RuntimeError(
+                    "SatNav Task Viewer requires an OpenCV build with HighGUI "
+                    "support, but the active environment reports GUI: NONE. "
+                    "Remove opencv-python-headless and install opencv-python "
+                    "in the viewer environment."
+                ) from error
+            raise
     
     def _configure_topdown(self, requested_mode: str) -> str:
         """Select a compatible top-down source before constructing the Env."""
