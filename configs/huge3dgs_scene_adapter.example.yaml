@@ -1,0 +1,26 @@
+schema_version: "1.0"
+description: >-
+  Public coordinate adapters for SatNav-authored HUGE episodes. Renderer asset
+  paths belong in a separate ignored local renderer manifest.
+
+scenes:
+  - scene_id: huge_2_city_synthetic
+    renderer_scene_id: huge/2_city
+    coordinate_frame:
+      type: synthetic_wgs84_web_mercator
+      synthetic_origin_3857: [-15584728.7110583, 0.0]
+    bounds_enu: [-227.33396911621094, -305.9593200683594, 431.99224853515625, 359.77410888671875]
+
+  - scene_id: huge_3_road_synthetic
+    renderer_scene_id: huge/3_road
+    coordinate_frame:
+      type: synthetic_wgs84_web_mercator
+      synthetic_origin_3857: [-15573596.7614417, 0.0]
+    bounds_enu: [-640.1490478515625, -190.91880798339844, 430.9014587402344, 866.34130859375]
+
+  - scene_id: huge_4_lake_synthetic
+    renderer_scene_id: huge/4_lake
+    coordinate_frame:
+      type: synthetic_wgs84_web_mercator
+      synthetic_origin_3857: [-15562464.8118251, 0.0]
+    bounds_enu: [-1230.868896484375, -224.1978759765625, 975.2825317382812, 593.6720581054688]
