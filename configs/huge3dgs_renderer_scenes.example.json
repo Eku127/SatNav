@@ -1,0 +1,150 @@
+{
+  "schema_version": "1.0",
+  "dataset": "SatNav-S2R-v1-HUGE",
+  "scenes": [
+    {
+      "scene_id": "huge/2_city",
+      "source": {
+        "name": "HUGE-Bench 2_city",
+        "url": "https://huggingface.co/datasets/yu781986168/3DGS_Mesh_Envs",
+        "license": "MIT",
+        "archive_sha256": "dc3fb805140b133a6e5667c4d5cdfddea37621629374e9af3bdeabeddab2cee2"
+      },
+      "asset": {
+        "type": "3dgs",
+        "path": "$SATNAV_HUGE3DGS_ASSET_ROOT/data_3d/2_city/3dgs_ply/point_cloud_utm50.ply",
+        "sha256": "ffee5e32db5154a788233b358b6f95603fe645e0184523b9b3f46fa70426d1c6"
+      },
+      "coordinate_frame": {
+        "type": "local_enu",
+        "units": "meters",
+        "axes": "east_north_up",
+        "original_crs": "HUGE local metric survey frame derived from UTM50",
+        "vertical_datum": {
+          "method": "frozen_reference_path_surface_median",
+          "asset_ground_up_m": -100.19735717773438
+        },
+        "asset_to_enu": [
+          [1, 0, 0, 0],
+          [0, 1, 0, 0],
+          [0, 0, 1, 100.19735717773438],
+          [0, 0, 0, 1]
+        ]
+      },
+      "bounds": [-227.33396911621094, -305.9593200683594, 431.99224853515625, 359.77410888671875],
+      "camera": {
+        "width": 448,
+        "height": 448,
+        "hfov": 90,
+        "altitude_mode": "fixed",
+        "fixed_height_m": 50,
+        "heading_zero": "north",
+        "image_up": "heading"
+      },
+      "renderer": {
+        "name": "gsplat",
+        "version": "1.5.3"
+      },
+      "artifacts": {
+        "mesh": "$SATNAV_HUGE3DGS_ASSET_ROOT/data_3d/2_city/terra_ply/simplified_mesh.obj",
+        "mesh_sha256": "577688da959af94246c9a86b826b7f6c094cb1260029a9e871fe7bc7cd0fb559"
+      }
+    },
+    {
+      "scene_id": "huge/3_road",
+      "source": {
+        "name": "HUGE-Bench 3_road",
+        "url": "https://huggingface.co/datasets/yu781986168/3DGS_Mesh_Envs",
+        "license": "MIT",
+        "archive_sha256": "8ed4d08b5fbc5a20a9d90dd8378f22fab5ebb726d8eb378c57356fb8f19831b7"
+      },
+      "asset": {
+        "type": "3dgs",
+        "path": "$SATNAV_HUGE3DGS_ASSET_ROOT/data_3d/3_road/3dgs_ply/point_cloud_utm50.ply",
+        "sha256": "62086373db27a2b3a147146d5b248fbe140619d8a6bd7cbe765f3e6c9a2f381b"
+      },
+      "coordinate_frame": {
+        "type": "local_enu",
+        "units": "meters",
+        "axes": "east_north_up",
+        "original_crs": "HUGE local metric survey frame derived from UTM50",
+        "vertical_datum": {
+          "method": "frozen_reference_path_surface_median",
+          "asset_ground_up_m": -108.72315216064453
+        },
+        "asset_to_enu": [
+          [1, 0, 0, 0],
+          [0, 1, 0, 0],
+          [0, 0, 1, 108.72315216064453],
+          [0, 0, 0, 1]
+        ]
+      },
+      "bounds": [-640.1490478515625, -190.91880798339844, 430.9014587402344, 866.34130859375],
+      "camera": {
+        "width": 448,
+        "height": 448,
+        "hfov": 90,
+        "altitude_mode": "fixed",
+        "fixed_height_m": 50,
+        "heading_zero": "north",
+        "image_up": "heading"
+      },
+      "renderer": {
+        "name": "gsplat",
+        "version": "1.5.3"
+      },
+      "artifacts": {
+        "mesh": "$SATNAV_HUGE3DGS_ASSET_ROOT/data_3d/3_road/terra_ply/simplified_mesh.obj",
+        "mesh_sha256": "76d1c726d22b945ec956d96bf6c8d10411ea8797f600b6b0e9a09bd74653156a"
+      }
+    },
+    {
+      "scene_id": "huge/4_lake",
+      "source": {
+        "name": "HUGE-Bench 4_lake",
+        "url": "https://huggingface.co/datasets/yu781986168/3DGS_Mesh_Envs",
+        "license": "MIT",
+        "archive_sha256": "242e17c2b70c2bb91822a73fcfbb0c3a7eba46fcb8d76f8d866e11c2f013c722"
+      },
+      "asset": {
+        "type": "3dgs",
+        "path": "$SATNAV_HUGE3DGS_ASSET_ROOT/data_3d/4_lake/3dgs_ply/point_cloud_utm50.ply",
+        "sha256": "40937a5f64979920156b29f368f661fcc7d1e23c12cef0cc3daa51c731770d20"
+      },
+      "coordinate_frame": {
+        "type": "local_enu",
+        "units": "meters",
+        "axes": "east_north_up",
+        "original_crs": "HUGE local metric survey frame derived from UTM50",
+        "vertical_datum": {
+          "method": "frozen_mesh_vertex_median",
+          "asset_ground_up_m": -74.5324
+        },
+        "asset_to_enu": [
+          [1, 0, 0, 0],
+          [0, 1, 0, 0],
+          [0, 0, 1, 74.5324],
+          [0, 0, 0, 1]
+        ]
+      },
+      "bounds": [-1230.868896484375, -224.1978759765625, 975.2825317382812, 593.6720581054688],
+      "camera": {
+        "width": 448,
+        "height": 448,
+        "hfov": 90,
+        "altitude_mode": "fixed",
+        "fixed_height_m": 50,
+        "heading_zero": "north",
+        "image_up": "heading"
+      },
+      "renderer": {
+        "name": "gsplat",
+        "version": "1.5.3"
+      },
+      "artifacts": {
+        "mesh": "$SATNAV_HUGE3DGS_ASSET_ROOT/data_3d/4_lake/terra_ply/simplified_mesh.obj",
+        "mesh_sha256": "a8401d0fc4ed07f2ac36a7e6ad7548684a5901f2c146ff1ec0f82524244bfd95"
+      }
+    }
+  ]
+}

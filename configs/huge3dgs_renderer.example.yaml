@@ -1,0 +1,15 @@
+# Public template. Asset paths are resolved from SATNAV_HUGE3DGS_ASSET_ROOT.
+SIMULATOR:
+  RENDERER:
+    ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
+    AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY,satnav-huge3dgs}
+    BACKEND_CLASS: applications.huge3dgs_renderer.gsplat_backend.GsplatRendererBackend
+    DEVICE: cuda
+    NEAR_PLANE: 0.1
+    FAR_PLANE: 10000.0
+    RADIUS_CLIP: 0.0
+    RASTERIZE_MODE: antialiased
+    VALID_ALPHA_THRESHOLD: 0.5
+
+DATASET:
+  SCENE_MANIFEST: huge3dgs_renderer_scenes.example.json

@@ -1,0 +1,40 @@
+# Public SatNav Dataset+Env configuration for HUGE 3DGS episodes.
+ENVIRONMENT:
+  MAX_EPISODE_STEPS: 500
+
+SIMULATOR:
+  TYPE: huge_3dgs
+  CLASS: satnav.sims.huge3dgs_wrapper.Huge3DGSSimWrapper
+  FORWARD_STEP_SIZE: 10
+  TURN_ANGLE: 15
+  SCENE_ADAPTER_MANIFEST: configs/huge3dgs_scene_adapter.example.yaml
+  RGB_SENSOR:
+    WIDTH: 448
+    HEIGHT: 448
+    HFOV: 90
+  RENDERER:
+    ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
+    AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY,satnav-huge3dgs}
+    FIXED_HEIGHT_M: 50
+    PING_ON_INIT: true
+    REQUIRE_GEOMETRY_CLEARANCE: true
+    MIN_GEOMETRY_CLEARANCE_M: 10
+    REQUIRE_RENDER_COMPLETE: true
+    MAX_INVALID_FRACTION: 0.02
+
+TASK:
+  TYPE: VLN
+  SUCCESS_DISTANCE:
+    DEFAULT: 10.0
+    Boundary: 10.0
+    LandmarkSet: 30.0
+    Road: 10.0
+    Route: 10.0
+  POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, ORACLE_SUCCESS, SPL, PATH_LENGTH]
+
+DATASET:
+  TYPE: SatNav
+  VERSION: SatNav-S2R-v1
+  SPLIT: val_s2r_unseen
+  DATA_PATH: ${oc.env:SATNAV_HUGE3DGS_EPISODES}

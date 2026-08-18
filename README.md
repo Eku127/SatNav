@@ -16,6 +16,10 @@ Documentation: [English](docs/en-US/README.md) ·
 
 - Continuous navigation in WGS84 geographic coordinates.
 - Configurable RGB rendering from local satellite GeoTIFFs.
+- Dynamically loaded external simulators, including a lightweight HUGE 3DGS
+  wrapper that keeps GPU rendering behind a same-host IPC service.
+- A dedicated `applications.huge3dgs_renderer` process for loading gsplat and
+  large scene assets outside the framework/evaluation environment.
 - Episode loading, scene resolution, task sensors, actions, and navigation
   metrics.
 - Map preparation, episode inspection, and offline expert-trajectory generation.
