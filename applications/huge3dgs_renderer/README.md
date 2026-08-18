@@ -168,6 +168,26 @@ position must carry the same altitude as the configured value. A missing
 renderer, coordinate record, scene, clearance result, or complete RGB frame is
 an explicit error. There is no fallback to SatSim or GeoTIFF cropping.
 
+## Interactive task viewer
+
+After starting the renderer, the existing task viewer can display live 3DGS
+RGB and automatically run SatNav's `ReferencePathFollower`:
+
+```bash
+export SATNAV_HUGE3DGS_EPISODES=/absolute/path/to/VLN_episodes.json
+python -m applications.satsim_viewer task \
+  --config configs/huge3dgs_eval.example.yaml \
+  --topdown auto \
+  --autoplay-reference
+```
+
+For this external simulator, `--topdown auto` selects a renderer-independent
+vector path view and does not instantiate the SatSim-only `TOP_DOWN_MAP`
+measure. The left panel is the real 3DGS RGB observation; the right panel is a
+debug drawing of the reference and executed paths. Press `p` to pause/resume,
+`n` to execute one action while paused, and `Esc` to quit. OpenCV requires a
+graphical desktop or X11 forwarding with a non-empty `DISPLAY`.
+
 ## Minimal integration smoke
 
 Set the generated episode file and run one step through the existing

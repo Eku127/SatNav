@@ -1,7 +1,8 @@
 # SatSim Viewer
 
 Use `applications/satsim_viewer` to inspect GeoTIFF scenes and SatNav VLN
-episodes interactively.
+episodes interactively. Task mode supports both SatSim and external simulator
+classes.
 
 | Mode | Purpose |
 | --- | --- |
@@ -40,6 +41,14 @@ View VLN episodes:
 
 ```bash
 python -m applications.satsim_viewer task
+```
+
+Automatically execute the episode reference path:
+
+```bash
+python -m applications.satsim_viewer task \
+  --config applications/resources/satnav_example_task.yaml \
+  --autoplay-reference
 ```
 
 ![Task viewer showing RGB, top-down map, and task state](../../assets/viewer/task_viewer.png)
@@ -133,6 +142,15 @@ Scene files must be named `<scene_id>.tif`. Task viewer displays the current
 instruction, distance, RGB, and top-down map. After `STOP`, it shows Success,
 SPL, Distance to Goal, and Path Length before loading the next episode.
 
+### Top-down compatibility
+
+Use `--topdown auto|satellite|vector|off`. The default `auto` mode retains the
+original GeoTIFF-backed `TOP_DOWN_MAP` for SatSim and selects a local vector
+path view for external simulators. The vector view draws the reference path,
+executed path, current waypoint radius, and agent heading without accessing
+SatSim private state. It is a debug visualization and is not rendered or
+satellite imagery. `--no-topdown` aliases `--topdown off`.
+
 ## 5. Keyboard controls
 
 ### Free viewer
@@ -152,6 +170,8 @@ SPL, Distance to Goal, and Path Length before loading the next episode.
 | `W` | Move forward |
 | `A` / `D` | Turn left / right |
 | `T` | Toggle the top-down map |
+| `P` | Pause/resume reference autoplay when enabled |
+| `N` | Execute one reference action while autoplay is paused |
 | `Space` | Execute `STOP` and show episode metrics |
 | `Esc` | Exit |
 
@@ -190,6 +210,10 @@ larger ground footprint.
 
 `SCENES_DIR` must contain a GeoTIFF named for the logical `scene_id`, for
 example `Amsterdam-1.tif` for `scene_id: Amsterdam-1`.
+
+External simulators should use the default `--topdown auto` or explicit
+`--topdown vector`. They do not need `SCENES_DIR` or a GeoTIFF for the debug
+path panel.
 
 SatSim stores agent state in WGS84 and renders observations from EPSG:3857
 GeoTIFFs.
