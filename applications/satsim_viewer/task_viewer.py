@@ -6,6 +6,8 @@ This application allows users to navigate through VLN tasks using keyboard contr
 - 'a': Turn left
 - 'd': Turn right
 - 't': Toggle topdown view
+- 'p': Pause/resume reference-path autoplay
+- 'n': Execute one reference-path action while paused
 - 'SPACE': Stop and show metrics
 - 'ESC': Quit
 
@@ -29,10 +31,11 @@ import numpy as np
 from omegaconf import OmegaConf
 
 from satnav.core.env import Env
-from satnav.core.utils import geodesic_distance
+from satnav.navigation import ReferencePathFollower
 from satnav.task.config import get_episode_success_distance
 from satnav.utils.maps import annotate_topdown_map
 from satnav.utils.examples import prepare_waypoints, print_metrics
+from applications.satsim_viewer.vector_topdown import render_vector_topdown
 
 
 # Constants
@@ -44,17 +47,28 @@ POSITION_TOLERANCE = 1e-6
 class TaskViewer:
     """Interactive viewer for VLN tasks."""
     
-    def __init__(self, config_path: str):
+    def __init__(
+        self,
+        config_path: str,
+        topdown_mode: str = "auto",
+        autoplay_reference: bool = False,
+        autoplay_delay_ms: int = 250,
+    ):
         """Initialize the task viewer.
         
         Args:
             config_path: Path to the task configuration YAML file.
+            topdown_mode: One of auto, satellite, vector, or off.
+            autoplay_reference: Automatically execute ReferencePathFollower.
+            autoplay_delay_ms: Delay between automatic actions.
         """
         # Load configuration
         self.config = OmegaConf.load(config_path)
         
-        # Ensure TOP_DOWN_MAP is enabled in measurements
-        self._ensure_topdown_map_enabled()
+        self.topdown_mode = self._configure_topdown(topdown_mode)
+        self.autoplay_reference = bool(autoplay_reference)
+        self.autoplay_paused = False
+        self.autoplay_delay_ms = max(1, int(autoplay_delay_ms))
         
         # Create environment
         self.env = Env(self.config)
@@ -69,7 +83,7 @@ class TaskViewer:
         
         # Display configuration
         self.window_name = "SatNav Task Viewer"
-        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        self._create_window()
         # Set initial window size (width, height) - larger for task viewer with multiple panels
         cv2.resizeWindow(self.window_name, 1600, 900)
         
@@ -79,7 +93,8 @@ class TaskViewer:
         self.step_count = 0
         self.action_history = []
         self.last_action = None
-        self.show_topdown = True
+        self.show_topdown = self.topdown_mode != "off"
+        self.agent_path = [list(self.env.agent_state.position)]
         
         # Navigation state
         self.waypoints = prepare_waypoints(self.episode)
@@ -88,25 +103,120 @@ class TaskViewer:
             self.config,
             getattr(self.episode, "trajectory_type", None),
         )
+        self.reference_follower = ReferencePathFollower(
+            goal_radius=self.goal_radius,
+            turn_angle=float(self.config.SIMULATOR.TURN_ANGLE),
+        )
+        self._reset_reference_follower()
         
         print(f"  Waypoints: {len(self.waypoints)}")
         print(f"  Goal radius: {self.goal_radius}m")
+        print(f"  Top-down mode: {self.topdown_mode}")
+        print(f"  Reference autoplay: {'ON' if self.autoplay_reference else 'OFF'}")
+
+    def _create_window(self):
+        """Create HighGUI window with an actionable headless-build error."""
+        try:
+            cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        except cv2.error as error:
+            gui_line = next(
+                (
+                    line.strip()
+                    for line in cv2.getBuildInformation().splitlines()
+                    if line.strip().startswith("GUI:")
+                ),
+                "GUI: unknown",
+            )
+            if gui_line.upper().endswith("NONE"):
+                raise RuntimeError(
+                    "SatNav Task Viewer requires an OpenCV build with HighGUI "
+                    "support, but the active environment reports GUI: NONE. "
+                    "Remove opencv-python-headless and install opencv-python "
+                    "in the viewer environment."
+                ) from error
+            raise
     
-    def _ensure_topdown_map_enabled(self):
-        """Ensure TOP_DOWN_MAP is enabled in measurements."""
+    def _configure_topdown(self, requested_mode: str) -> str:
+        """Select a compatible top-down source before constructing the Env."""
+        mode = str(requested_mode).strip().lower()
+        if mode not in {"auto", "satellite", "vector", "off"}:
+            raise ValueError(f"unsupported top-down mode: {requested_mode!r}")
+
+        simulator_type = str(
+            getattr(self.config.SIMULATOR, "TYPE", "satsim")
+        ).strip().lower()
+        if mode == "auto":
+            mode = (
+                "satellite"
+                if simulator_type in {"", "satsim", "sat_sim"}
+                else "vector"
+            )
+
         if isinstance(self.config.TASK, dict):
             measurements = self.config.TASK.get("MEASUREMENTS", [])
         else:
             measurements = getattr(self.config.TASK, "MEASUREMENTS", [])
-        
-        if "TOP_DOWN_MAP" not in measurements:
+
+        updated = list(measurements)
+        if mode == "satellite" and "TOP_DOWN_MAP" not in updated:
             print("Warning: TOP_DOWN_MAP not in MEASUREMENTS. Adding it...")
-            if isinstance(self.config.TASK, dict):
-                self.config.TASK["MEASUREMENTS"] = list(measurements) + ["TOP_DOWN_MAP"]
-            else:
-                measurements_list = list(measurements)
-                measurements_list.append("TOP_DOWN_MAP")
-                self.config.TASK.MEASUREMENTS = measurements_list
+            updated.append("TOP_DOWN_MAP")
+        elif mode != "satellite" and "TOP_DOWN_MAP" in updated:
+            print(
+                f"Warning: removing SatSim-only TOP_DOWN_MAP measure for {mode} viewer mode."
+            )
+            updated = [name for name in updated if name != "TOP_DOWN_MAP"]
+
+        if isinstance(self.config.TASK, dict):
+            self.config.TASK["MEASUREMENTS"] = updated
+        else:
+            self.config.TASK.MEASUREMENTS = updated
+
+        if mode == "vector" and simulator_type not in {"", "satsim", "sat_sim"}:
+            print(
+                f"Using renderer-independent vector top-down for simulator TYPE={simulator_type}."
+            )
+        return mode
+
+    def _distance(self, position_a, position_b) -> float:
+        """Use the active simulator's public geometry contract."""
+        return float(self.env.simulator.geodesic_distance(position_a, position_b))
+
+    def _reference_path(self):
+        """Build a follower path that always starts and ends explicitly."""
+        path = [list(point) for point in (self.episode.reference_path or [])]
+        start = list(self.episode.start_position)
+        goal = list(self.episode.goals[0].position)
+        if not path or not np.allclose(path[0], start, atol=1e-9, rtol=0):
+            path.insert(0, start)
+        if not np.allclose(path[-1], goal, atol=1e-9, rtol=0):
+            path.append(goal)
+        return path
+
+    def _reset_reference_follower(self):
+        self.reference_follower.goal_radius = self.goal_radius
+        self.reference_follower.reset(self._reference_path())
+
+    def _sync_reference_progress(self):
+        if not self.waypoints:
+            self.current_waypoint_idx = 0
+            return
+        path_index = self.reference_follower.get_current_waypoint_index()
+        self.current_waypoint_idx = min(max(path_index - 1, 0), len(self.waypoints) - 1)
+
+    def _coordinate_frame(self):
+        value = getattr(self.episode, "coordinate_frame", None)
+        if value is None:
+            value = getattr(self.episode, "extras", {}).get(
+                "coordinate_frame",
+                "wgs84",
+            )
+        return value
+
+    def _pause_autoplay_for_manual_action(self):
+        if self.autoplay_reference and not self.autoplay_paused:
+            self.autoplay_paused = True
+            print("  Reference autoplay: PAUSED (manual action)")
     
     def _check_waypoint_reached(self):
         """Check if current waypoint has been reached and update index."""
@@ -116,7 +226,7 @@ class TaskViewer:
         agent_state = self.env.agent_state
         current_waypoint = self.waypoints[self.current_waypoint_idx]
         
-        current_distance = geodesic_distance(
+        current_distance = self._distance(
             agent_state.position,
             current_waypoint
         )
@@ -149,6 +259,7 @@ class TaskViewer:
                 self.step_count += 1
                 self.action_history.append(action)
                 self.last_action = action
+                self.agent_path.append(list(position_after))
                 self._check_waypoint_reached()
             else:
                 self.at_boundary = True
@@ -213,6 +324,8 @@ class TaskViewer:
                 self.config,
                 getattr(self.episode, "trajectory_type", None),
             )
+            self.agent_path = [list(self.env.agent_state.position)]
+            self._reset_reference_follower()
             
             print(f"\nLoaded next episode: {self.episode.episode_id}")
             print(f"Scene: {self.episode.scene_id}")
@@ -242,14 +355,26 @@ class TaskViewer:
         key_char = chr(key & 0xFF).lower()
         
         if key_char == 'w':
+            self._pause_autoplay_for_manual_action()
             self._handle_move_forward()
         elif key_char == 'a':
+            self._pause_autoplay_for_manual_action()
             self._handle_turn_action("TURN_LEFT")
         elif key_char == 'd':
+            self._pause_autoplay_for_manual_action()
             self._handle_turn_action("TURN_RIGHT")
         elif key_char == 't':
-            self.show_topdown = not self.show_topdown
-            print(f"  Topdown view: {'ON' if self.show_topdown else 'OFF'}")
+            if self.topdown_mode == "off":
+                print("  Topdown view is disabled by --topdown off")
+            else:
+                self.show_topdown = not self.show_topdown
+                print(f"  Topdown view: {'ON' if self.show_topdown else 'OFF'}")
+        elif key_char == 'p' and self.autoplay_reference:
+            self.autoplay_paused = not self.autoplay_paused
+            print(f"  Reference autoplay: {'PAUSED' if self.autoplay_paused else 'RUNNING'}")
+        elif key_char == 'n' and self.autoplay_reference:
+            self.autoplay_paused = True
+            return self._autoplay_step()
         elif key == SPACE_KEY:
             return self._handle_stop_action()
         
@@ -351,6 +476,17 @@ class TaskViewer:
         Returns:
             Annotated top-down map image (RGB format).
         """
+        if self.topdown_mode == "vector":
+            return render_vector_topdown(
+                reference_path=self._reference_path(),
+                agent_path=self.agent_path,
+                agent_position=agent_state.position,
+                agent_heading=agent_state.rotation,
+                current_waypoint_index=self.current_waypoint_idx,
+                goal_radius=self.goal_radius,
+                coordinate_frame=self._coordinate_frame(),
+            )
+
         metrics = self.env.get_metrics()
         topdown_info = metrics.get("top_down_map", {})
         
@@ -362,7 +498,7 @@ class TaskViewer:
         
         # Calculate distance to current waypoint
         if self.waypoints and self.current_waypoint_idx < len(self.waypoints):
-            current_distance = geodesic_distance(
+            current_distance = self._distance(
                 agent_state.position,
                 self.waypoints[self.current_waypoint_idx]
             )
@@ -472,14 +608,14 @@ class TaskViewer:
             # Calculate distances
             dist_to_next_waypoint = 0.0
             if self.waypoints and self.current_waypoint_idx < len(self.waypoints):
-                dist_to_next_waypoint = geodesic_distance(
+                dist_to_next_waypoint = self._distance(
                     agent_state.position,
                     self.waypoints[self.current_waypoint_idx]
                 )
             
             dist_to_goal = 0.0
             if self.waypoints and len(self.waypoints) > 0:
-                dist_to_goal = geodesic_distance(
+                dist_to_goal = self._distance(
                     agent_state.position,
                     self.waypoints[-1]
                 )
@@ -545,6 +681,22 @@ class TaskViewer:
                        (50, img_height // 2 + 20), font, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
             
             cv2.imshow(self.window_name, error_image_bgr)
+
+    def _autoplay_step(self) -> bool:
+        """Execute one ReferencePathFollower action through the public Env API."""
+        action = self.reference_follower.get_next_action(self.env.simulator)
+        if action == "STOP":
+            return self._handle_stop_action()
+        if action == "MOVE_FORWARD":
+            self._handle_move_forward()
+        elif action in {"TURN_LEFT", "TURN_RIGHT"}:
+            self._handle_turn_action(action)
+        else:
+            raise RuntimeError(
+                f"ReferencePathFollower returned unsupported action {action!r}"
+            )
+        self._sync_reference_progress()
+        return True
     
     def run(self):
         """Run the interactive viewer main loop."""
@@ -556,6 +708,9 @@ class TaskViewer:
         print("  'a' - Turn left")
         print("  'd' - Turn right")
         print("  't' - Toggle topdown view")
+        if self.autoplay_reference:
+            print("  'p' - Pause/resume reference autoplay")
+            print("  'n' - Execute one reference action while paused")
         print("  'SPACE' - Stop and show metrics")
         print("  'ESC' - Quit")
         print("=" * 60 + "\n")
@@ -566,12 +721,22 @@ class TaskViewer:
         # Event-driven loop
         while self.running:
             try:
-                key = cv2.waitKey(0) & 0xFF
+                wait_ms = (
+                    self.autoplay_delay_ms
+                    if self.autoplay_reference and not self.autoplay_paused
+                    else 0
+                )
+                key = cv2.waitKey(wait_ms) & 0xFF
                 
                 if key == ESC_KEY:
                     break
                 elif key != 255:
                     should_continue = self.handle_keyboard(key)
+                    if not should_continue:
+                        break
+                    self._render_and_display()
+                elif self.autoplay_reference and not self.autoplay_paused:
+                    should_continue = self._autoplay_step()
                     if not should_continue:
                         break
                     self._render_and_display()
@@ -606,6 +771,33 @@ def main():
         ),
         help="Path to task configuration YAML file"
     )
+    parser.add_argument(
+        "--topdown",
+        choices=("auto", "satellite", "vector", "off"),
+        default="auto",
+        help=(
+            "Top-down source: auto keeps SatSim satellite maps and uses a "
+            "renderer-independent vector map for external simulators"
+        ),
+    )
+    parser.add_argument(
+        "--no-topdown",
+        action="store_const",
+        const="off",
+        dest="topdown",
+        help="Compatibility alias for --topdown off",
+    )
+    parser.add_argument(
+        "--autoplay-reference",
+        action="store_true",
+        help="Run ReferencePathFollower automatically through Env.step()",
+    )
+    parser.add_argument(
+        "--autoplay-delay-ms",
+        type=int,
+        default=250,
+        help="Delay between automatic actions (default: 250 ms)",
+    )
     
     args = parser.parse_args()
     
@@ -614,7 +806,12 @@ def main():
         print(f"Error: Configuration file not found: {config_path}")
         sys.exit(1)
     
-    viewer = TaskViewer(str(config_path))
+    viewer = TaskViewer(
+        str(config_path),
+        topdown_mode=args.topdown,
+        autoplay_reference=args.autoplay_reference,
+        autoplay_delay_ms=args.autoplay_delay_ms,
+    )
     viewer.run()
 
 

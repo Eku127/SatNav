@@ -559,6 +559,72 @@ class MySimulator(Simulator):
         ...
 ```
 
+### 14.1 HUGE 3DGS wrapper
+
+`satnav.sims.huge3dgs_wrapper.Huge3DGSSimWrapper` is the maintained external
+backend for SatNav-authored HUGE-Bench episodes. It preserves their synthetic
+WGS84 coordinates at the public API while converting each pose to the source
+scene's local ENU frame before rendering:
+
+```yaml
+SIMULATOR:
+  TYPE: huge_3dgs
+  CLASS: satnav.sims.huge3dgs_wrapper.Huge3DGSSimWrapper
+  FORWARD_STEP_SIZE: 10
+  TURN_ANGLE: 15
+  SCENE_ADAPTER_MANIFEST: configs/huge3dgs_scene_adapter.example.yaml
+  RGB_SENSOR:
+    WIDTH: 448
+    HEIGHT: 448
+    HFOV: 90
+  RENDERER:
+    ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
+    AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY}
+    FIXED_HEIGHT_M: ${oc.env:SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M}
+    REQUIRE_GEOMETRY_CLEARANCE: true
+    REQUIRE_RENDER_COMPLETE: true
+    MAX_INVALID_FRACTION: 0.02
+```
+
+The wrapper talks to one persistent same-host GPU renderer over a local Unix
+socket. This keeps Torch, gsplat, and large PLY assets out of the SatNav process
+and prevents every evaluation rank from loading a separate copy of a scene.
+The transport is implemented by `satnav.sims.huge3dgs_ipc` and is not a second
+simulator or a remote cloud service.
+
+The public adapter manifest contains only logical scene IDs, synthetic
+Web-Mercator origins, and ENU bounds. The public renderer-scene manifest uses
+an asset-root environment variable and records checksums plus a frozen vertical
+datum. It normalizes that datum to ENU up=0. The configurable
+`FIXED_HEIGHT_M` then selects one absolute flight plane and the camera remains
+on it for the full episode. Mesh height is never added per frame; the full mesh
+is used only for clearance checks. Renderer credentials belong in ignored
+local runtime configuration. A renderer failure,
+missing scene, incomplete frame, or insufficient geometry clearance raises an
+explicit error; this backend never falls back to GeoTIFF cropping.
+
+Start the application in the dedicated renderer environment. A prebuilt
+extension is optional and can be loaded directly by the application:
+
+```bash
+export SATNAV_HUGE3DGS_ASSET_ROOT=/path/to/extracted/HUGE/assets
+export SATNAV_GSPLAT_EXTENSION=/path/to/gsplat_cuda.so
+export SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M=50
+python -m applications.huge3dgs_renderer render-server \
+  --config configs/local_huge3dgs_renderer.yaml
+```
+
+Copy `configs/huge3dgs_renderer.example.yaml` to the ignored local config and
+set its endpoint and auth key environment variables. No project-specific
+launcher or validation script is required; use the existing classic evaluator
+with `configs/huge3dgs_eval.example.yaml` for an integration smoke.
+RGB arrays are encoded as bytes on the renderer side and reconstructed on the
+client side, so the two isolated environments do not need the same NumPy
+version. Formal evaluation must keep completeness enforcement enabled.
+The wrapper caches the current pose's RGB frame because the task reads the
+simulator observation after `step()`; the cache avoids rendering that pose
+twice.
+
 Unknown `TYPE` values do not fall back to SatSim. Missing `SIMULATOR.CLASS`,
 failed imports, or classes not derived from `Simulator` fail immediately.
 

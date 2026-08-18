@@ -16,6 +16,10 @@ Documentation: [English](docs/en-US/README.md) ·
 
 - Continuous navigation in WGS84 geographic coordinates.
 - Configurable RGB rendering from local satellite GeoTIFFs.
+- Dynamically loaded external simulators, including a lightweight HUGE 3DGS
+  wrapper that keeps GPU rendering behind a same-host IPC service.
+- A dedicated `applications.huge3dgs_renderer` process for loading gsplat and
+  large scene assets outside the framework/evaluation environment.
 - Episode loading, scene resolution, task sensors, actions, and navigation
   metrics.
 - Map preparation, episode inspection, and offline expert-trajectory generation.
@@ -90,6 +94,7 @@ available in the
 | Use the environment and simulator API | [Core API](docs/en-US/core/CORE_API.md) |
 | Download and prepare the dataset | [Dataset](docs/en-US/dataset/DATA_DOWNLOAD.md) |
 | Inspect scenes and episodes | [SatSim Viewer](docs/en-US/applications/VIEWER.md) |
+| Render HUGE-Bench episodes with 3DGS | [HUGE 3DGS backend](applications/huge3dgs_renderer/README.md) |
 | Train a model | [Training](docs/en-US/training/README.md) |
 | Evaluate a model | [Evaluation](docs/en-US/evaluation/README.md) |
 | Integrate a new model | [Model Integration](docs/en-US/development/MODEL_INTEGRATION.md) |

@@ -537,6 +537,62 @@ class MySimulator(Simulator):
         ...
 ```
 
+### 14.1 HUGE 3DGS wrapper
+
+`satnav.sims.huge3dgs_wrapper.Huge3DGSSimWrapper` 是 SatNav 制作的
+HUGE-Bench Episode 所使用的外部 backend。它在公共 API 中保留 Episode 的模拟
+WGS84 坐标，在渲染前才将 pose 转换到源场景的 local ENU：
+
+```yaml
+SIMULATOR:
+  TYPE: huge_3dgs
+  CLASS: satnav.sims.huge3dgs_wrapper.Huge3DGSSimWrapper
+  FORWARD_STEP_SIZE: 10
+  TURN_ANGLE: 15
+  SCENE_ADAPTER_MANIFEST: configs/huge3dgs_scene_adapter.example.yaml
+  RGB_SENSOR:
+    WIDTH: 448
+    HEIGHT: 448
+    HFOV: 90
+  RENDERER:
+    ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
+    AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY}
+    FIXED_HEIGHT_M: ${oc.env:SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M}
+    REQUIRE_GEOMETRY_CLEARANCE: true
+    REQUIRE_RENDER_COMPLETE: true
+    MAX_INVALID_FRACTION: 0.02
+```
+
+wrapper 通过本机 Unix socket 连接一个常驻 GPU renderer。这样 SatNav 进程不需要
+导入 Torch、gsplat 或加载大型 PLY，也不会让每个评测 rank 分别复制一份场景。
+通信层位于 `satnav.sims.huge3dgs_ipc`；它不是第二个 simulator，也不是远程云服务。
+
+公开 adapter manifest 只记录 logical scene ID、模拟 Web-Mercator 原点和 ENU
+bounds。公开 renderer scene manifest 通过 asset-root 环境变量引用资产，并记录校验和
+与冻结的垂直基准；该基准会被归一化到 ENU up=0。可配置的 `FIXED_HEIGHT_M` 选择一个
+绝对飞行平面，相机在整个 Episode 中保持该高度。renderer 不会逐帧叠加 mesh 高程，
+完整 mesh 只用于净空检查。
+renderer credential 必须放在 ignored local runtime 配置中。renderer 连接失败、场景缺失、帧不完整或几何净空不足时都会明确报错，
+不会回退到 GeoTIFF crop。
+
+在独立 renderer 环境直接启动 application；可选的预编译 gsplat extension 会由
+application 自身加载：
+
+```bash
+export SATNAV_HUGE3DGS_ASSET_ROOT=/path/to/extracted/HUGE/assets
+export SATNAV_GSPLAT_EXTENSION=/path/to/gsplat_cuda.so
+export SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M=50
+python -m applications.huge3dgs_renderer render-server \
+  --config configs/local_huge3dgs_renderer.yaml
+```
+
+先将 `configs/huge3dgs_renderer.example.yaml` 复制为 ignored local config，再通过
+环境变量设置 endpoint 和 auth key。无需项目专用 launcher 或 validation 脚本；可直接用
+现有 classic evaluator 配合 `configs/huge3dgs_eval.example.yaml` 做集成冒烟。
+renderer 端会把 RGB 数组编码为 bytes，client 再进行重建，因此两个隔离环境不要求使用
+相同版本的 NumPy。正式评测必须启用完整性检查。由于 task 会在 `step()` 后再次
+读取 simulator observation，wrapper 会缓存当前 pose 的 RGB，避免同一姿态重复渲染。
+
 未知 `TYPE` 不会自动回退到 SatSim。未配置 `SIMULATOR.CLASS`、类无法导入或没有继承 `Simulator` 时，factory 会直接报错。
 
 ## 15. 常见问题
