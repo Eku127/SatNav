@@ -9,9 +9,11 @@ SIMULATOR:
   TURN_ANGLE: 15
   SCENE_ADAPTER_MANIFEST: configs/huge3dgs_scene_adapter.example.yaml
   RGB_SENSOR:
-    WIDTH: 448
-    HEIGHT: 448
-    HFOV: 90
+    # Camera parameters are runtime-configurable; at 100 m, HFOV=53.130102...
+    # retains the same ~100 m flat-ground footprint as 50 m with HFOV=90.
+    WIDTH: ${oc.env:SATNAV_HUGE3DGS_RGB_WIDTH,448}
+    HEIGHT: ${oc.env:SATNAV_HUGE3DGS_RGB_HEIGHT,448}
+    HFOV: ${oc.env:SATNAV_HUGE3DGS_HFOV,90}
   RENDERER:
     ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
     AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY,satnav-huge3dgs}
@@ -27,7 +29,8 @@ TASK:
   SUCCESS_DISTANCE:
     DEFAULT: 10.0
     Boundary: 10.0
-    LandmarkSet: 30.0
+    # Metric task/follower/viewer radius, not a display-only pixel radius.
+    LandmarkSet: ${oc.env:SATNAV_HUGE3DGS_LANDMARK_SUCCESS_DISTANCE_M,3.0}
     Road: 10.0
     Route: 10.0
   POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]

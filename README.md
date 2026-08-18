@@ -94,6 +94,7 @@ available in the
 | Use the environment and simulator API | [Core API](docs/en-US/core/CORE_API.md) |
 | Download and prepare the dataset | [Dataset](docs/en-US/dataset/DATA_DOWNLOAD.md) |
 | Inspect scenes and episodes | [SatSim Viewer](docs/en-US/applications/VIEWER.md) |
+| Render HUGE-Bench episodes with 3DGS | [HUGE 3DGS backend](applications/huge3dgs_renderer/README.md) |
 | Train a model | [Training](docs/en-US/training/README.md) |
 | Evaluate a model | [Evaluation](docs/en-US/evaluation/README.md) |
 | Integrate a new model | [Model Integration](docs/en-US/development/MODEL_INTEGRATION.md) |

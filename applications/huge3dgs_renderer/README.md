@@ -111,7 +111,29 @@ tar -xf archives/3DGS_Mesh_Envs_4_lake.tar
 The assets, socket, auth key, optional platform-specific prebuilt extension,
 render cache, and review videos remain outside Git.
 
-Create an ignored renderer config from the public template and set:
+## Runtime configuration
+
+The release does not bake the review-run camera or task parameters into
+Python. `Huge3DGSSimWrapper` resolves them from the SatNav config, and the
+public example config exposes the values below as environment overrides.
+
+| Purpose | Environment variable | SatNav config key | Default | Contract |
+| --- | --- | --- | --- | --- |
+| Absolute flight plane | `SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M` | `SIMULATOR.RENDERER.FIXED_HEIGHT_M` | required | Metres in normalized scene ENU; never `mesh height + offset` |
+| RGB width | `SATNAV_HUGE3DGS_RGB_WIDTH` | `SIMULATOR.RGB_SENSOR.WIDTH` | `448` | Positive pixels |
+| RGB height | `SATNAV_HUGE3DGS_RGB_HEIGHT` | `SIMULATOR.RGB_SENSOR.HEIGHT` | `448` | Positive pixels |
+| Horizontal FOV | `SATNAV_HUGE3DGS_HFOV` | `SIMULATOR.RGB_SENSOR.HFOV` | `90` | Degrees in `(0, 180)` |
+| Landmark arrival radius | `SATNAV_HUGE3DGS_LANDMARK_SUCCESS_DISTANCE_M` | `TASK.SUCCESS_DISTANCE.LandmarkSet` | `3` | Metres; shared by metrics, the reference follower, and the viewer ring |
+| Renderer endpoint | `SATNAV_HUGE3DGS_ENDPOINT` | `SIMULATOR.RENDERER.ENDPOINT` | required | Local Unix socket path |
+| Renderer auth key | `SATNAV_HUGE3DGS_AUTHKEY` | `SIMULATOR.RENDERER.AUTHKEY` | `satnav-huge3dgs` | Must match both processes |
+
+`FORWARD_STEP_SIZE`, `TURN_ANGLE`, the other task-specific success distances,
+clearance, and completeness thresholds remain ordinary YAML settings in
+`configs/huge3dgs_eval.example.yaml`. Change the config or compose an override;
+do not edit wrapper or renderer source for an experiment.
+
+Create an ignored renderer config from the public template and set the runtime
+environment:
 
 ```bash
 cp configs/huge3dgs_renderer.example.yaml \
@@ -122,7 +144,40 @@ export SATNAV_HUGE3DGS_AUTHKEY=choose-a-local-auth-key
 export SATNAV_HUGE3DGS_ASSET_ROOT=/absolute/path/to/extracted/HUGE/assets
 export SATNAV_GSPLAT_EXTENSION=/absolute/path/to/gsplat_cuda.so
 export SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M=50
+export SATNAV_HUGE3DGS_RGB_WIDTH=448
+export SATNAV_HUGE3DGS_RGB_HEIGHT=448
+export SATNAV_HUGE3DGS_HFOV=90
+export SATNAV_HUGE3DGS_LANDMARK_SUCCESS_DISTANCE_M=3
 ```
+
+Flight height and HFOV are independent configuration inputs. For a square
+nadir image, the flat-ground horizontal footprint is
+`2 * flight_height * tan(HFOV / 2)`. The following two configurations both
+produce an approximately 100 m by 100 m footprint on the normalized flat-ground
+plane:
+
+```bash
+# 50 m plane: 2 * 50 * tan(90 deg / 2) = 100 m
+export SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M=50
+export SATNAV_HUGE3DGS_HFOV=90
+
+# 100 m plane: 2 * 100 * tan(53.130102 deg / 2) = 100 m
+export SATNAV_HUGE3DGS_FLIGHT_HEIGHT_M=100
+export SATNAV_HUGE3DGS_HFOV=53.13010235415598
+```
+
+For a target footprint width `W` and flight height `H`, compute
+`HFOV = 2 * atan(W / (2 * H))`. Episode `start_position`, `goals`, and reference
+path altitude values must all equal the configured flight plane. The footprint
+above is defined on the normalized ground plane; elevated geometry naturally
+occupies a larger fraction of the image. Changing only the environment variable
+does not rewrite episode JSON.
+
+The LandmarkSet radius is a metric distance, not a display-only pixel size.
+Setting it to 3 m makes the reference follower continue until it is within 3 m
+of the active landmark/goal, and the vector viewer draws that same 3 m area.
+Using a 30 m evaluation radius would therefore both enlarge the ring and allow
+the follower to stop earlier.
 
 ## Start and validate the renderer
 
@@ -148,9 +203,9 @@ SIMULATOR:
   TURN_ANGLE: 15
   SCENE_ADAPTER_MANIFEST: configs/huge3dgs_scene_adapter.example.yaml
   RGB_SENSOR:
-    WIDTH: 448
-    HEIGHT: 448
-    HFOV: 90
+    WIDTH: ${oc.env:SATNAV_HUGE3DGS_RGB_WIDTH,448}
+    HEIGHT: ${oc.env:SATNAV_HUGE3DGS_RGB_HEIGHT,448}
+    HFOV: ${oc.env:SATNAV_HUGE3DGS_HFOV,90}
   RENDERER:
     ENDPOINT: ${oc.env:SATNAV_HUGE3DGS_ENDPOINT}
     AUTHKEY: ${oc.env:SATNAV_HUGE3DGS_AUTHKEY}
@@ -160,6 +215,11 @@ SIMULATOR:
     REQUIRE_RENDER_COMPLETE: true
     MAX_INVALID_FRACTION: 0.02
 ```
+
+`TASK.SUCCESS_DISTANCE.LandmarkSet` is likewise supplied by
+`SATNAV_HUGE3DGS_LANDMARK_SUCCESS_DISTANCE_M` (3 m by default). The task
+viewer and reference follower consume the resolved task value; neither the
+viewer marker nor the follower uses a HUGE-specific hard-coded radius.
 
 The wrapper preserves episode coordinates at the public API and converts them
 to local ENU only for renderer requests. `FIXED_HEIGHT_M` is configurable; it
