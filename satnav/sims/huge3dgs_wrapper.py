@@ -196,14 +196,18 @@ class Huge3DGSSimWrapper(Simulator):
         self._max_invalid_fraction = float(
             _value(renderer_config, "MAX_INVALID_FRACTION", 0.02)
         )
-        self._fixed_height_m = float(
-            _value(renderer_config, "FIXED_HEIGHT_M", 50.0)
-        )
+        raw_fixed_height = _value(renderer_config, "FIXED_HEIGHT_M", None)
+        if raw_fixed_height is None or str(raw_fixed_height).strip() == "":
+            raise ValueError("SIMULATOR.RENDERER.FIXED_HEIGHT_M is required")
+        self._configured_flight_height_m = float(raw_fixed_height)
         if self._min_geometry_clearance_m < 0.0:
             raise ValueError("MIN_GEOMETRY_CLEARANCE_M must be non-negative")
         if not 0.0 <= self._max_invalid_fraction <= 1.0:
             raise ValueError("MAX_INVALID_FRACTION must be in [0, 1]")
-        if not math.isfinite(self._fixed_height_m) or self._fixed_height_m <= 0.0:
+        if (
+            not math.isfinite(self._configured_flight_height_m)
+            or self._configured_flight_height_m <= 0.0
+        ):
             raise ValueError("FIXED_HEIGHT_M must be finite and positive")
         self._renderer = Huge3DGSIPCClient(
             endpoint=str(endpoint),
@@ -222,6 +226,7 @@ class Huge3DGSSimWrapper(Simulator):
         self._scene: Optional[Huge3DGSSceneAdapter] = None
         self._position_enu: Optional[Tuple[float, float, float]] = None
         self._rotation: Optional[float] = None
+        self._flight_height_m: Optional[float] = self._configured_flight_height_m
         self._cached_render_key: Optional[Tuple[Any, ...]] = None
         self._cached_rgb: Optional[np.ndarray] = None
         self._last_render_audit: Dict[str, Any] = {}
@@ -254,6 +259,7 @@ class Huge3DGSSimWrapper(Simulator):
         self._scene = scene
         self._position_enu = None
         self._rotation = None
+        self._flight_height_m = self._configured_flight_height_m
         self._invalidate_render_cache()
         return {}
 
@@ -271,11 +277,6 @@ class Huge3DGSSimWrapper(Simulator):
         values = tuple(float(value) for value in position)
         if not all(math.isfinite(value) for value in values):
             raise ValueError("Position values must be finite")
-        if not math.isclose(values[2], self._fixed_height_m, abs_tol=1e-6):
-            raise ValueError(
-                "HUGE 3DGS episodes use a fixed flight plane at "
-                f"{self._fixed_height_m} m; got altitude={values[2]}"
-            )
         x, y = self._wgs84_to_mercator.transform(values[0], values[1])
         return (
             float(x) - scene.synthetic_origin_3857[0],
@@ -298,6 +299,10 @@ class Huge3DGSSimWrapper(Simulator):
         min_east, min_north, max_east, max_north = scene.bounds_enu
         return (
             agl > 0.0
+            and (
+                self._flight_height_m is None
+                or math.isclose(agl, self._flight_height_m, abs_tol=1e-6)
+            )
             and min_east <= east <= max_east
             and min_north <= north <= max_north
         )
@@ -327,6 +332,21 @@ class Huge3DGSSimWrapper(Simulator):
 
     def set_agent_state(self, position: List[float], rotation: float) -> None:
         position_enu = self._wgs84_position_to_enu(position)
+        requested_height = float(position_enu[2])
+        if requested_height <= 0.0:
+            raise ValueError("Episode flight height must be positive")
+        if self._flight_height_m is None:
+            self._flight_height_m = requested_height
+        elif not math.isclose(
+            requested_height,
+            self._flight_height_m,
+            abs_tol=1e-6,
+        ):
+            raise ValueError(
+                "Episode altitude does not match the configured fixed flight "
+                f"height: expected {self._flight_height_m} m, got "
+                f"{requested_height} m"
+            )
         if not self._enu_is_navigable(position_enu):
             raise ValueError(
                 "Initial position is outside HUGE scene bounds or violates "
@@ -499,12 +519,18 @@ class Huge3DGSSimWrapper(Simulator):
     def last_render_audit(self) -> Mapping[str, Any]:
         return dict(self._last_render_audit)
 
+    @property
+    def flight_height_m(self) -> Optional[float]:
+        """Absolute normalized-ENU height locked for the current episode."""
+        return self._flight_height_m
+
     def close(self) -> None:
         self._renderer.close()
         self._scene_id = None
         self._scene = None
         self._position_enu = None
         self._rotation = None
+        self._flight_height_m = self._configured_flight_height_m
         self._invalidate_render_cache()
 
 

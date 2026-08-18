@@ -36,8 +36,8 @@
         "width": 448,
         "height": 448,
         "hfov": 90,
-        "altitude_mode": "fixed",
-        "fixed_height_m": 50,
+        "altitude_mode": "fixed_per_episode",
+        "height_reference": "normalized_enu_up",
         "heading_zero": "north",
         "image_up": "heading"
       },
@@ -84,8 +84,8 @@
         "width": 448,
         "height": 448,
         "hfov": 90,
-        "altitude_mode": "fixed",
-        "fixed_height_m": 50,
+        "altitude_mode": "fixed_per_episode",
+        "height_reference": "normalized_enu_up",
         "heading_zero": "north",
         "image_up": "heading"
       },
@@ -132,8 +132,8 @@
         "width": 448,
         "height": 448,
         "hfov": 90,
-        "altitude_mode": "fixed",
-        "fixed_height_m": 50,
+        "altitude_mode": "fixed_per_episode",
+        "height_reference": "normalized_enu_up",
         "heading_zero": "north",
         "image_up": "heading"
       },

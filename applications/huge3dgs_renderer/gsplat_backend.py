@@ -292,10 +292,18 @@ class GsplatRendererBackend(RendererBackend):
         self.max_invalid_fraction = float(
             self._setting("MAX_INVALID_FRACTION", 0.02)
         )
+        raw_fixed_height = self._setting("FIXED_HEIGHT_M", None)
+        if raw_fixed_height is None or str(raw_fixed_height).strip() == "":
+            raise ValueError("renderer FIXED_HEIGHT_M is required")
+        self.fixed_height_m = float(raw_fixed_height)
         if not 0.0 <= self.valid_alpha_threshold <= 1.0:
             raise ValueError("VALID_ALPHA_THRESHOLD must be in [0, 1]")
         if not 0.0 <= self.max_invalid_fraction <= 1.0:
             raise ValueError("MAX_INVALID_FRACTION must be in [0, 1]")
+        if (
+            not math.isfinite(self.fixed_height_m) or self.fixed_height_m <= 0.0
+        ):
+            raise ValueError("FIXED_HEIGHT_M must be finite and positive")
         self.scene_id: Optional[str] = None
         self.record: Optional[Dict[str, Any]] = None
         self.tensors: Dict[str, Any] = {}
@@ -391,18 +399,24 @@ class GsplatRendererBackend(RendererBackend):
             raise RuntimeError("renderer scene is not loaded")
         camera = self.record.get("camera") or {}
         altitude_mode = str(camera.get("altitude_mode", "")).lower()
-        if altitude_mode != "fixed":
+        if altitude_mode != "fixed_per_episode":
             raise SceneManifestError(
-                f"scene {self.scene_id} camera.altitude_mode must be 'fixed'"
+                f"scene {self.scene_id} camera.altitude_mode must be "
+                "'fixed_per_episode'"
             )
-        fixed_height = float(camera.get("fixed_height_m", 50.0))
         requested_height = float(request["agl"])
-        if not math.isclose(requested_height, fixed_height, abs_tol=1e-6):
+        if not math.isfinite(requested_height) or requested_height <= 0.0:
+            raise ValueError("requested fixed flight height must be positive")
+        if not math.isclose(
+            requested_height,
+            self.fixed_height_m,
+            abs_tol=1e-6,
+        ):
             raise ValueError(
-                f"scene {self.scene_id} requires fixed height {fixed_height} m, "
+                f"renderer requires configured fixed height {self.fixed_height_m} m, "
                 f"got {requested_height} m"
             )
-        return fixed_height
+        return requested_height
 
     def _request_tensors(self, request: Mapping[str, Any]):
         width = int(request["width"])
@@ -479,8 +493,9 @@ class GsplatRendererBackend(RendererBackend):
             "invalid_fraction": invalid_fraction,
             "render_complete": invalid_fraction <= self.max_invalid_fraction,
             "valid_alpha_threshold": self.valid_alpha_threshold,
-            "camera_height_mode": "fixed",
+            "camera_height_mode": "fixed_per_episode",
             "camera_up_m": self._fixed_camera_up(request),
+            "configured_flight_height_m": self.fixed_height_m,
         }
 
     def is_navigable(self, request: Mapping[str, Any]) -> Mapping[str, Any]:
