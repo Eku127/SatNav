@@ -1,0 +1,11 @@
+{% extends "!layout.html" %}
+{% block sidebartitle %}
+{{ super() }}
+<div class="satnav-links">
+  <a href="{{ satnav_language_url }}" lang="{{ 'en' if language == 'zh_CN' else 'zh-CN' }}">{{ satnav_other_language }}</a>
+  <span aria-hidden="true">·</span>
+  <a href="https://github.com/Eku127/SatNav">GitHub</a>
+  <span aria-hidden="true">·</span>
+  <a href="https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1">Dataset</a>
+</div>
+{% endblock %}

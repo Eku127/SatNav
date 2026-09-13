@@ -1,0 +1,18 @@
+/* Keep the Read the Docs layout, with room for diagrams and API tables. */
+.wy-nav-content { max-width: 1060px; }
+.wy-side-nav-search { padding-bottom: 1rem; }
+.satnav-links { display: flex; justify-content: center; align-items: center; gap: .7rem; margin-top: .8rem; font-size: .875rem; }
+.satnav-links a { display: inline; padding: 0; color: #fff; }
+.satnav-links span { color: #d5e7f1; }
+.wy-menu-vertical a { font-size: .9rem; line-height: 1.5; }
+.wy-menu-vertical p.caption { color: #7bc7f1; font-size: .875rem; }
+.rst-content p, .rst-content li { line-height: 1.65; }
+.rst-content h1, .rst-content h2, .rst-content h3 { color: #20364c; }
+.rst-content img, .rst-content video { max-width: 100%; height: auto; }
+.rst-content .docutils td { white-space: normal; vertical-align: top; }
+.rst-content .wy-table-responsive { margin-bottom: 1.5rem; }
+.rst-content pre { overflow-x: auto; }
+@media (max-width: 768px) {
+  .wy-nav-content { padding: 1.5rem; }
+  .rst-content h1 { font-size: 1.8rem; }
+}
