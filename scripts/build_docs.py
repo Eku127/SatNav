@@ -2,6 +2,8 @@
 """Build both documentation languages from the repository's Markdown files."""
 
 import os
+import json
+from html import escape
 from pathlib import Path
 import re
 import shutil
@@ -14,6 +16,17 @@ DOCS = ROOT / "docs"
 BUILD = DOCS / "_build"
 SITE = BUILD / "html"
 LANGUAGES = {"en-US": "en", "zh-CN": "zh_CN"}
+
+
+def write_redirect(path, target):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        f'<meta http-equiv="refresh" content="0; url={escape(target, quote=True)}">'
+        '<title>SatNav Documentation</title>'
+        f'<script>location.replace({json.dumps(target)} + location.search + location.hash);</script>'
+        f'</head><body><a href="{escape(target, quote=True)}">SatNav Wiki</a></body></html>'
+    )
 
 
 def prepare_markdown(text, source, locale):
@@ -44,10 +57,12 @@ def prepare_markdown(text, source, locale):
 
 
 def main():
+    if SITE.exists():
+        shutil.rmtree(SITE)
     SITE.mkdir(parents=True, exist_ok=True)
     for locale, language in LANGUAGES.items():
         source_dir = BUILD / "sources" / locale
-        output_dir = SITE / locale
+        output_dir = SITE / "wiki" / locale
         if source_dir.exists():
             shutil.rmtree(source_dir)
         if output_dir.exists():
@@ -65,13 +80,11 @@ def main():
         ], check=True)
         # Raw HTML video elements need the original asset paths as well.
         shutil.copytree(DOCS / "assets", output_dir / "assets", dirs_exist_ok=True)
-    (SITE / "index.html").write_text(
-        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-        '<meta http-equiv="refresh" content="0; url=en-US/index.html">'
-        '<title>SatNav Documentation</title></head><body>'
-        '<a href="en-US/index.html">English</a> · '
-        '<a href="zh-CN/index.html">简体中文</a></body></html>'
-    )
+        for page in output_dir.rglob("*.html"):
+            old_path = SITE / locale / page.relative_to(output_dir)
+            write_redirect(old_path, os.path.relpath(page, old_path.parent))
+    write_redirect(SITE / "wiki" / "index.html", "en-US/index.html")
+    write_redirect(SITE / "index.html", "wiki/")
     print(f"\nDocumentation ready: {SITE}")
 
 

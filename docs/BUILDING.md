@@ -13,8 +13,8 @@ python3 -m venv .local/docs-venv
 .local/docs-venv/bin/python -m http.server 8000 --bind 127.0.0.1 --directory docs/_build/html
 ```
 
-Open <http://localhost:8000/>. English and Chinese builds live at
-`/en-US/index.html` and `/zh-CN/index.html`. The language link opens the same
+Open <http://localhost:8000/wiki/>. English and Chinese builds live at
+`/wiki/en-US/index.html` and `/wiki/zh-CN/index.html`. The language link opens the same
 page in the other language.
 
 ## Edit pages
@@ -46,8 +46,9 @@ To publish again without changing files, open **Actions → Deploy documentation
 
 Repository setup: **Settings → Pages → Build and deployment → Source** must be
 set to **GitHub Actions**. The Pages settings and deployment result show the
-published URL. For `Eku127/SatNav` without a custom domain, the default is
-<https://eku127.github.io/SatNav/>.
+published base URL. The documentation lives under `wiki/`:
+<https://eku127.github.io/SatNav/wiki/>. The old root and language-page URLs
+redirect to the new location.
 
 The output is a complete static site, including both languages, search indexes,
 styles, images, and videos. It can also be served by another static host at a
