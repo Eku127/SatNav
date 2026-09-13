@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="585" viewBox="0 0 1080 585" role="img" aria-labelledby="title desc">
+  <title id="title">SatNav training and evaluation workflow</title>
+  <desc id="desc">Scenes and episodes feed SatSim. Expert rollouts supply model training, producing a navigation policy. SatSim sends observations to the policy and receives actions. Episode results are aggregated for evaluation.</desc>
+  <defs>
+    <marker id="blue" markerWidth="11" markerHeight="11" refX="10" refY="5.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L11 5.5 L0 11 Z" fill="#2563EB" />
+    </marker>
+    <marker id="green" markerWidth="11" markerHeight="11" refX="10" refY="5.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L11 5.5 L0 11 Z" fill="#27834B" />
+    </marker>
+    <marker id="yellow" markerWidth="11" markerHeight="11" refX="10" refY="5.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L11 5.5 L0 11 Z" fill="#D69A12" />
+    </marker>
+  </defs>
+  <rect width="1080" height="585" rx="20" fill="#FFFFFF" />
+  <g font-family="Arial, Helvetica, sans-serif" transform="translate(0 -105)">
+    <path d="M290 386 L350 386" fill="none" stroke="#2563EB" stroke-width="3" stroke-linejoin="round" marker-end="url(#blue)" />
+    <path d="M480 330 L480 247" fill="none" stroke="#27834B" stroke-width="3" stroke-linejoin="round" marker-end="url(#green)" />
+    <text x="491" y="285" text-anchor="start" font-size="13" fill="#64748B">Expert rollout</text>
+    <path d="M610 191 L750 191" fill="none" stroke="#27834B" stroke-width="3" stroke-linejoin="round" marker-end="url(#green)" />
+    <text x="680" y="177" text-anchor="middle" font-size="13" fill="#64748B">Offline data</text>
+    <path d="M880 247 L880 330" fill="none" stroke="#27834B" stroke-width="3" stroke-linejoin="round" marker-end="url(#green)" />
+    <text x="890" y="287" text-anchor="start" font-size="13" fill="#64748B">Trained weights</text>
+    <path d="M610 363 L750 363" fill="none" stroke="#2563EB" stroke-width="3" stroke-linejoin="round" marker-end="url(#blue)" />
+    <text x="680" y="350" text-anchor="middle" font-size="13" fill="#64748B">Observations</text>
+    <path d="M750 411 L610 411" fill="none" stroke="#2563EB" stroke-width="3" stroke-linejoin="round" marker-end="url(#blue)" />
+    <text x="680" y="432" text-anchor="middle" font-size="13" fill="#64748B">Actions</text>
+    <path d="M480 442 L480 591 L750 591" fill="none" stroke="#D69A12" stroke-width="3" stroke-linejoin="round" marker-end="url(#yellow)" />
+    <text x="607" y="578" text-anchor="middle" font-size="13" fill="#64748B">Episode metrics</text>
+    <rect x="40" y="330" width="250" height="112" rx="13" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5" />
+    <rect x="58" y="350" width="4" height="22" rx="2" fill="#475569" />
+    <text x="74" y="368" font-size="19" font-weight="700" fill="#172A42">Scene &amp; episode data</text>
+    <text x="60" y="398" font-size="14" fill="#52647B">GeoTIFF satellite maps</text>
+    <text x="60" y="420" font-size="14" fill="#52647B">Instructions, poses &amp; paths</text>
+    <rect x="350" y="330" width="260" height="112" rx="13" fill="#EFF6FF" stroke="#60A5FA" stroke-width="1.5" />
+    <rect x="368" y="350" width="4" height="22" rx="2" fill="#2563EB" />
+    <text x="384" y="368" font-size="19" font-weight="700" fill="#172A42">SatSim environment</text>
+    <text x="370" y="398" font-size="14" fill="#52647B">Render RGB observations</text>
+    <text x="370" y="420" font-size="14" fill="#52647B">Update geographic state</text>
+    <rect x="350" y="135" width="260" height="112" rx="13" fill="#F0FDF4" stroke="#86C89A" stroke-width="1.5" />
+    <rect x="368" y="155" width="4" height="22" rx="2" fill="#27834B" />
+    <text x="384" y="173" font-size="19" font-weight="700" fill="#172A42">Expert trajectories</text>
+    <text x="370" y="203" font-size="14" fill="#52647B">Reference-path rollouts</text>
+    <text x="370" y="225" font-size="14" fill="#52647B">Observation–action pairs</text>
+    <rect x="750" y="135" width="260" height="112" rx="13" fill="#F0FDF4" stroke="#86C89A" stroke-width="1.5" />
+    <rect x="768" y="155" width="4" height="22" rx="2" fill="#27834B" />
+    <text x="784" y="173" font-size="19" font-weight="700" fill="#172A42">Model training</text>
+    <text x="770" y="203" font-size="14" fill="#52647B">Learn from offline trajectories</text>
+    <text x="770" y="225" font-size="14" fill="#52647B">Classic policies &amp; VLMs</text>
+    <rect x="750" y="330" width="260" height="112" rx="13" fill="#EFF6FF" stroke="#60A5FA" stroke-width="1.5" />
+    <rect x="768" y="350" width="4" height="22" rx="2" fill="#2563EB" />
+    <text x="784" y="368" font-size="19" font-weight="700" fill="#172A42">Navigation policy</text>
+    <text x="770" y="398" font-size="14" fill="#52647B">Instruction + visual history</text>
+    <text x="770" y="420" font-size="14" fill="#52647B">Predict the next actions</text>
+    <rect x="750" y="535" width="260" height="112" rx="13" fill="#FFFBEB" stroke="#E9BD57" stroke-width="1.5" />
+    <rect x="768" y="555" width="4" height="22" rx="2" fill="#AF790C" />
+    <text x="784" y="573" font-size="19" font-weight="700" fill="#172A42">Evaluation results</text>
+    <text x="770" y="603" font-size="14" fill="#52647B">Success · SPL · distance</text>
+    <text x="770" y="625" font-size="14" fill="#52647B">Aggregate across episodes</text>
+    <text font-size="16" font-weight="600" fill="#27834B" x="40" y="625">Green: offline training</text>
+    <text font-size="16" font-weight="600" fill="#2563EB" x="40" y="650">Blue: online navigation</text>
+    <text font-size="16" font-weight="600" fill="#B47F0D" x="40" y="675">Yellow: evaluation</text>
+  </g>
+</svg>
