@@ -1,8 +1,4 @@
-<h1 align="center">SatNav</h1>
-
-<p align="center">
-  <strong>Continuous-State Vision-and-Language Navigation via Satellite Maps</strong>
-</p>
+<h1 align="center">SatNav: Continuous-State Vision-and-Language Navigation via Satellite Maps</h1>
 
 <p align="center">
   An open-source platform for language-guided navigation over satellite maps.
@@ -16,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/Code-MIT-2878D0" alt="Code license: MIT"></a>
+  <a href="https://eku127.github.io/SatNav/wiki/"><img src="https://img.shields.io/badge/Wiki-Documentation-2878D0" alt="SatNav Wiki"></a>
   <a href="https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1"><img src="https://img.shields.io/badge/Dataset-Hugging%20Face-FFD21E" alt="Dataset on Hugging Face"></a>
   <a href="https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo"><img src="https://img.shields.io/badge/Models-Hugging%20Face-FFD21E" alt="Models on Hugging Face"></a>
 </p>
