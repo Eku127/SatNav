@@ -6,7 +6,7 @@
 
 | 名称 | 数据 | 获取方式 | 内容 |
 | --- | --- | --- | --- |
-| SatNav-Episodes-v0.1 | Episode 元数据 | [Kaggle](https://www.kaggle.com/datasets/07af1ab653c3d8d0518027b41d05dfa677d6a414131b27c4b024b887d74c6a68) | 指令、起点、目标、waypoint、reference path 和数据划分 |
+| SatNav-Episodes-v0.1 | Episode 元数据 | [Hugging Face](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1) | 指令、起点、目标、waypoint、reference path 和数据划分 |
 
 数据集包含 Episode JSON、train/evaluation 划分、`scenes_list.yaml` 和数据说明。`scenes_list.yaml` 仅记录场景范围，不包含卫星影像。
 
@@ -14,7 +14,17 @@
 
 ## 2. 下载与配置
 
-从上方 Kaggle 页面下载并解压数据，将数据根目录命名为 `SatNav-v0.1`。关键文件结构如下：
+从 Hugging Face 下载到本地数据目录：
+
+```bash
+pip install -U huggingface_hub
+hf download Eku127/SatNav-Episodes-v0.1 --repo-type dataset \
+  --local-dir data/satnav_datasets/SatNav-v0.1
+```
+
+访问私有仓库前，先运行 `hf auth login`，并使用已获授权的账户登录。
+SatNav 读取 `episodes/` 下的 JSON；`data/` 下的 Parquet 用于 Hugging Face 数据预览。
+关键文件结构如下：
 
 ```text
 data/satnav_datasets/SatNav-v0.1/

@@ -8,7 +8,7 @@ metadata. Satellite scenes are prepared separately; see
 
 | Name | Data | Source | Contents |
 | --- | --- | --- | --- |
-| SatNav-Episodes-v0.1 | Episode metadata | [Kaggle](https://www.kaggle.com/datasets/07af1ab653c3d8d0518027b41d05dfa677d6a414131b27c4b024b887d74c6a68) | Instructions, starts, goals, waypoints, reference paths, and splits |
+| SatNav-Episodes-v0.1 | Episode metadata | [Hugging Face](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1) | Instructions, starts, goals, waypoints, reference paths, and splits |
 
 The dataset contains episode JSON files, train/evaluation splits,
 `scenes_list.yaml`, and documentation. The scene list records geographic
@@ -19,8 +19,17 @@ tiles, GeoTIFF scenes, or offline training trajectories.
 
 ## 2. Download and configure
 
-Download the archive from Kaggle, extract it, and name the root
-`SatNav-v0.1`. The important layout is:
+Download the release from Hugging Face into your local dataset directory:
+
+```bash
+pip install -U huggingface_hub
+hf download Eku127/SatNav-Episodes-v0.1 --repo-type dataset \
+  --local-dir data/satnav_datasets/SatNav-v0.1
+```
+
+For private access, first run `hf auth login` with an authorized account.
+SatNav reads the JSON files under `episodes/`; Parquet files under `data/`
+support the Hugging Face Dataset Viewer. The important layout is:
 
 ```text
 data/satnav_datasets/SatNav-v0.1/

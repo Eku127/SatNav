@@ -1,33 +1,42 @@
-# SatNav: Continuous-State Vision-and-Language Navigation via Satellite Maps
+<h1 align="center">SatNav</h1>
 
-SatNav is an open-source platform for vision-and-language navigation in
-continuous geographic space. Agents follow language instructions over satellite
-maps while moving with longitude, latitude, altitude, and heading.
+<p align="center">
+  <strong>
+    A Scalable Benchmark for Long-Horizon UAV<br>
+    Vision-Language Navigation from Satellite Imagery
+  </strong>
+</p>
 
-The platform is built around **SatSim**, a 2D simulator that renders RGB
-observations from local GeoTIFF scenes. SatNav also provides dataset tools,
-offline trajectory generation, model training, and a shared online evaluation
-interface.
+<p align="center">
+  <a href="https://openreview.net/forum?id=hOEniyN6hl"><img src="https://img.shields.io/badge/Paper-OpenReview-B31B1B" alt="Paper on OpenReview"></a>
+  <a href="https://eku127.github.io/SatNav/wiki/"><img src="https://img.shields.io/badge/Wiki-Documentation-2878D0" alt="SatNav Wiki"></a>
+  <a href="https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1"><img src="https://img.shields.io/badge/Dataset-Hugging%20Face-FFD21E" alt="Dataset on Hugging Face"></a>
+  <a href="https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo"><img src="https://img.shields.io/badge/Models-Hugging%20Face-FFD21E" alt="Models on Hugging Face"></a>
+</p>
 
-Documentation: [English](docs/en-US/README.md) ·
-[简体中文](docs/zh-CN/README.md)
+<p align="center">
+  <a href="docs/en-US/README.md">English</a> &nbsp;|&nbsp;
+  <a href="docs/zh-CN/README.md">简体中文</a>
+</p>
 
-## Features
+<p align="center">
+  <a href="docs/assets/readme/overview-final.png">
+    <img src="docs/assets/readme/overview-final.png" width="100%" alt="SatNav overview: boundary, landmark, and route navigation tasks on satellite imagery, with a stadium navigation episode showing the instruction, trajectory, and agent observation.">
+  </a>
+</p>
 
-- Continuous navigation in WGS84 geographic coordinates.
-- Configurable RGB rendering from local satellite GeoTIFFs.
-- Episode loading, scene resolution, task sensors, actions, and navigation
-  metrics.
-- Map preparation, episode inspection, and offline expert-trajectory generation.
-- Framework-independent online evaluation with deterministic episode selection,
-  multi-rank sharding, resume, and result aggregation.
-- Classic baselines: Random, ReferenceFollower, Seq2Seq, and CMA.
-- VLM integrations: StreamVLN, NaVILA, Uni-NaVid, and OpenFly.
-- A public `Env` and `PolicyAdapter` contract for integrating new models.
+<p align="center">
+  <em>Follow boundaries, navigate between landmarks, and trace routes through satellite scenes.</em>
+</p>
+
+SatNav brings scene preparation, trajectory generation, model training, and online evaluation into one navigation platform. At its core, **SatSim** renders RGB observations from local GeoTIFF scenes as agents move through continuous geographic space with longitude, latitude, altitude, and heading.
+
 
 ## Quick Start
 
-Clone SatNav and create the core environment:
+**Run your first episode with the bundled synthetic scene.** The example includes its own map and episodes, so you can start without downloading the full dataset or a model checkpoint.
+
+Create the core environment and install SatNav:
 
 ```bash
 git clone https://github.com/Eku127/SatNav.git
@@ -38,67 +47,74 @@ conda activate satnav
 python -m pip install -e .
 ```
 
-Run the bundled synthetic example:
+Run the reference path follower:
 
 ```bash
 python examples/reference_follower_example.py
 ```
 
-The example includes its own episodes and GeoTIFF scene, so it does not require
-the SatNav-v0.1 dataset, downloaded satellite imagery, or a model checkpoint.
-See [Installation](docs/en-US/getting-started/INSTALLATION.md) and
-[Examples](docs/en-US/getting-started/EXAMPLES.md) for the complete setup and
-outputs.
+The example follows a recorded path, prints navigation metrics, and saves the final RGB observation and top-down trajectory map to `output/examples/reference_follower/`.
 
-## Dataset and Models
+Continue with the [installation guide](docs/en-US/getting-started/INSTALLATION.md) or explore [more examples](docs/en-US/getting-started/EXAMPLES.md), including multi-episode navigation and video output.
 
-[SatNav-Episodes-v0.1](https://www.kaggle.com/datasets/07af1ab653c3d8d0518027b41d05dfa677d6a414131b27c4b024b887d74c6a68)
-provides train, `val_seen`, and `val_unseen` episodes together with the scene
-list. Prepare local GeoTIFF scenes separately before running full training or
-evaluation.
+## From satellite maps to navigation evaluation
 
-- [Download episodes](docs/en-US/dataset/DATA_DOWNLOAD.md)
-- [Prepare satellite scenes](docs/en-US/applications/MAP_DOWNLOAD.md)
-- [Generate offline trajectories](docs/en-US/applications/TRAJECTORY_GENERATION.md)
-- [Understand the dataset format](docs/en-US/dataset/DATASET_FORMAT.md)
-- [Download released VLM checkpoints](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo)
+[![SatNav training and evaluation workflow](docs/assets/readme/workflow.svg)](docs/assets/readme/workflow.svg)
+
+Start with local scenes and episodes, generate training trajectories, and evaluate a policy through the same environment interface. The viewer lets you inspect instructions, RGB observations, and map trajectories together.
+
+[Watch a Path Follower episode](docs/assets/examples/episode_1602_video.mp4) · [Open the viewer guide](docs/en-US/applications/VIEWER.md)
+
+## Dataset & Model Zoo
+
+**[SatNav-Episodes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1)** provides **118,494 VLN episodes across 59 scenes**, covering boundary, landmark, and route navigation. Each episode pairs a language instruction with a scene, starting pose, goals, waypoints, and a reference path. The release includes `train`, `val_seen`, and `val_unseen` splits.
+
+Use the JSON files under `episodes/` with SatNav, or explore the same annotations through the Hugging Face Dataset Viewer and Parquet files under `data/`. Prepare the corresponding GeoTIFF scenes with the map tools below.
+
+| Resource | Where to start |
+| --- | --- |
+| Episodes and splits | [Download on Hugging Face](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1/tree/main/episodes) |
+| Dataset preview and loading | [Dataset Card](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1) |
+| Satellite scenes | [Prepare GeoTIFF maps](docs/en-US/applications/MAP_DOWNLOAD.md) |
+| Training trajectories | [Generate observation-action data](docs/en-US/applications/TRAJECTORY_GENERATION.md) |
+| Episode format | [Read the dataset specification](docs/en-US/dataset/DATASET_FORMAT.md) |
+| Released VLM checkpoints | [Browse the SatNav Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo) |
 
 ## Baselines
 
-All baselines interact with the public SatNav environment and write results
-through the shared evaluation contract.
+SatNav supports classic navigation policies and four VLM integrations. Each uses the shared online evaluation interface.
 
-| Category | Models | Guide |
-| --- | --- | --- |
-| Classic | Random, ReferenceFollower, Seq2Seq, CMA | [Classic Baselines](docs/en-US/training/CLASSIC.md) |
-| VLM | StreamVLN | [StreamVLN](docs/en-US/training/vlm/STREAMVLN.md) |
-| VLM | NaVILA | [NaVILA](docs/en-US/training/vlm/NAVILA.md) |
-| VLM | Uni-NaVid | [Uni-NaVid](docs/en-US/training/vlm/UNINAVID.md) |
-| VLM | OpenFly | [OpenFly](docs/en-US/training/vlm/OPENFLY.md) |
+| Model | Training | Evaluation | Checkpoints | Ref |
+| --- | --- | --- | --- | --- |
+| Seq2Seq | [Guide](docs/en-US/training/CLASSIC.md#5-train-seq2seq) | [Guide](docs/en-US/training/CLASSIC.md#8-configure-shared-evaluation) | [Use training outputs](docs/en-US/training/CLASSIC.md#7-checkpoints-and-continued-training) | [GitHub](https://github.com/jacobkrantz/VLN-CE) |
+| CMA | [Guide](docs/en-US/training/CLASSIC.md#6-train-cma) | [Guide](docs/en-US/training/CLASSIC.md#8-configure-shared-evaluation) | [Use training outputs](docs/en-US/training/CLASSIC.md#7-checkpoints-and-continued-training) | [GitHub](https://github.com/jacobkrantz/VLN-CE) |
+| StreamVLN | [Guide](docs/en-US/training/vlm/STREAMVLN.md#9-full-training) | [Guide](docs/en-US/training/vlm/STREAMVLN.md#10-configure-online-evaluation) | [Download](docs/en-US/training/vlm/STREAMVLN.md#51-released-satnav-checkpoints) | [GitHub](https://github.com/InternRobotics/StreamVLN) |
+| NaVILA | [Guide](docs/en-US/training/vlm/NAVILA.md#9-full-training) | [Guide](docs/en-US/training/vlm/NAVILA.md#10-configure-online-evaluation) | [Download](docs/en-US/training/vlm/NAVILA.md#51-released-satnav-checkpoints) | [GitHub](https://github.com/AnjieCheng/NaVILA) |
+| Uni-NaVid | [Guide](docs/en-US/training/vlm/UNINAVID.md#9-full-training-and-resume) | [Guide](docs/en-US/training/vlm/UNINAVID.md#10-configure-online-evaluation) | [Download](docs/en-US/training/vlm/UNINAVID.md#51-released-satnav-checkpoints) | [GitHub](https://github.com/jzhzhang/Uni-NaVid) |
+| OpenFly | [Guide](docs/en-US/training/vlm/OPENFLY.md#9-full-training-and-resume) | [Guide](docs/en-US/training/vlm/OPENFLY.md#10-configure-online-evaluation) | [Download](docs/en-US/training/vlm/OPENFLY.md#51-released-satnav-checkpoints) | [GitHub](https://github.com/SHAILAB-IPEC/OpenFly-Platform) |
+| SwiftVLN | — | — | — | [GitHub](https://github.com/Eku127/SwiftVLN) |
 
-Each VLM uses an isolated environment because its PyTorch, Transformers, and
-FlashAttention requirements differ. Released SatNav VLM checkpoints are
-available in the
-[SatNav Baseline Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo).
+For SwiftVLN setup on SatNav, see the [SwiftVLN repository](https://github.com/Eku127/SwiftVLN).
+
+**Random** and **ReferenceFollower** are also available as lightweight baselines; see the [classic baseline guide](docs/en-US/training/CLASSIC.md).
+
+Each VLM has its own environment to accommodate its PyTorch, Transformers, and FlashAttention dependencies. Follow the model's setup guide before training or evaluation.
+
 
 ## Documentation
 
-| Goal | Guide |
+| I want to… | Guide |
 | --- | --- |
-| Install SatNav | [Installation](docs/en-US/getting-started/INSTALLATION.md) |
-| Run the included examples | [Examples](docs/en-US/getting-started/EXAMPLES.md) |
-| Use the environment and simulator API | [Core API](docs/en-US/core/CORE_API.md) |
-| Download and prepare the dataset | [Dataset](docs/en-US/dataset/DATA_DOWNLOAD.md) |
-| Inspect scenes and episodes | [SatSim Viewer](docs/en-US/applications/VIEWER.md) |
-| Train a model | [Training](docs/en-US/training/README.md) |
-| Evaluate a model | [Evaluation](docs/en-US/evaluation/README.md) |
-| Integrate a new model | [Model Integration](docs/en-US/development/MODEL_INTEGRATION.md) |
+| Install SatNav and run an example | [Installation](docs/en-US/getting-started/INSTALLATION.md) · [Examples](docs/en-US/getting-started/EXAMPLES.md) |
+| Explore maps and navigation episodes | [SatSim Viewer](docs/en-US/applications/VIEWER.md) |
+| Work with the environment API | [Core API](docs/en-US/core/CORE_API.md) |
+| Train or evaluate a policy | [Training](docs/en-US/training/README.md) · [Evaluation](docs/en-US/evaluation/README.md) |
+| Bring my own navigation model | [Model Integration](docs/en-US/development/MODEL_INTEGRATION.md) |
 
-The complete task-oriented index is available in the
-[English documentation](docs/en-US/README.md) and
-[Chinese documentation](docs/zh-CN/README.md).
+Browse the complete documentation in [English](docs/en-US/README.md) or [简体中文](docs/zh-CN/README.md).
 
-## Repository Structure
+<details>
+<summary><strong>Repository structure</strong></summary>
 
 ```text
 satnav/       Core environment, dataset, simulator, task, and evaluation APIs
@@ -110,24 +126,14 @@ scripts/      Training, evaluation, validation, and utility entry points
 docs/         English and Chinese documentation
 ```
 
+</details>
+
 ## License
 
-SatNav source code is released under the [MIT License](LICENSE). Dataset,
-documentation, map content, and third-party components may use different terms;
-see [DATA_LICENSE.md](DATA_LICENSE.md) and [NOTICE](NOTICE).
+SatNav source code is released under the [MIT License](LICENSE). Dataset, documentation, map content, and third-party components may use different terms; see [DATA_LICENSE.md](DATA_LICENSE.md) and [NOTICE](NOTICE).
 
 ## Acknowledgements
 
-SatNav's overall code architecture is inspired by
-[VLN-CE](https://github.com/jacobkrantz/VLN-CE) and
-[Habitat-Lab](https://github.com/facebookresearch/habitat-lab). We thank their
-authors and contributors for sharing their work with the community.
+SatNav's architecture is inspired by [VLN-CE](https://github.com/jacobkrantz/VLN-CE) and [Habitat-Lab](https://github.com/facebookresearch/habitat-lab).
 
-We also thank the teams behind
-[StreamVLN](https://github.com/InternRobotics/StreamVLN),
-[NaVILA](https://github.com/AnjieCheng/NaVILA),
-[Uni-NaVid](https://github.com/jzhzhang/Uni-NaVid), and
-[OpenFly](https://github.com/SHAILAB-IPEC/OpenFly-Platform) for sharing their
-methods and implementations. We are especially grateful to the StreamVLN team,
-whose training-data processing and trajectory-adaptation design provided
-valuable inspiration for SatNav.
+We thank the teams behind [StreamVLN](https://github.com/InternRobotics/StreamVLN), [NaVILA](https://github.com/AnjieCheng/NaVILA), [Uni-NaVid](https://github.com/jzhzhang/Uni-NaVid), and [OpenFly](https://github.com/SHAILAB-IPEC/OpenFly-Platform) for sharing their methods and implementations. StreamVLN's training-data processing and trajectory-adaptation design provided valuable inspiration for SatNav.
