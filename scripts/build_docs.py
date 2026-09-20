@@ -40,7 +40,7 @@ def prepare_markdown(text, source, locale):
         if target.is_relative_to(DOCS / "assets"):
             # Keep raw HTML media paths relative to each generated page.
             relative = os.path.relpath(Path("assets") / target.relative_to(DOCS / "assets"), source.relative_to(DOCS / locale).parent)
-            return relative + suffix
+            return Path(relative).as_posix() + suffix
         if target.is_relative_to(DOCS / locale):
             return url
         if target.is_relative_to(ROOT):
@@ -71,7 +71,10 @@ def main():
         for source in (DOCS / locale).rglob("*.md"):
             destination = source_dir / source.relative_to(DOCS / locale)
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_text(prepare_markdown(source.read_text(), source, locale))
+            destination.write_text(
+                prepare_markdown(source.read_text(encoding="utf-8"), source, locale),
+                encoding="utf-8",
+            )
         shutil.copytree(DOCS / "assets", source_dir / "assets")
         subprocess.run([
             sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
@@ -82,7 +85,7 @@ def main():
         shutil.copytree(DOCS / "assets", output_dir / "assets", dirs_exist_ok=True)
         for page in output_dir.rglob("*.html"):
             old_path = SITE / locale / page.relative_to(output_dir)
-            write_redirect(old_path, os.path.relpath(page, old_path.parent))
+            write_redirect(old_path, Path(os.path.relpath(page, old_path.parent)).as_posix())
     write_redirect(SITE / "wiki" / "index.html", "en-US/index.html")
     write_redirect(SITE / "index.html", "wiki/")
     print(f"\nDocumentation ready: {SITE}")
