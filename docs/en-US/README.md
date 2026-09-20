@@ -9,6 +9,13 @@ If this is your first time using SatNav, begin with
 Training and full evaluation additionally require SatNav-v0.1 episodes,
 GeoTIFF scenes, and model resources.
 
+## System principles
+
+- [Architecture and navigation loop](concepts/OVERVIEW.md)
+- [SatSim observations](concepts/SATSIM.md)
+- [Tasks and metrics](concepts/TASKS_AND_METRICS.md)
+- [Expert trajectories](concepts/EXPERT_TRAJECTORIES.md)
+
 ## 1. Run SatNav for the first time
 
 Follow these documents in order:

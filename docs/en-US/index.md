@@ -10,6 +10,7 @@ SatNav provides scene preparation, trajectory generation, model training, and on
 
 | Your goal | Guide |
 | --- | --- |
+| Understand the system | [Architecture and navigation loop](concepts/OVERVIEW.md) · [SatSim observations](concepts/SATSIM.md) · [Tasks and metrics](concepts/TASKS_AND_METRICS.md) · [Expert trajectories](concepts/EXPERT_TRAJECTORIES.md) |
 | Run your first navigation episode | [Installation](getting-started/INSTALLATION.md) · [Examples](getting-started/EXAMPLES.md) |
 | Prepare scenes and episodes | [Dataset](dataset/DATA_DOWNLOAD.md) · [Satellite maps](applications/MAP_DOWNLOAD.md) |
 | Train a navigation policy | [Training](training/README.md) |
@@ -35,6 +36,17 @@ Generate expert trajectories for training, then evaluate policies through the sa
 Installation <getting-started/INSTALLATION>
 Examples <getting-started/EXAMPLES>
 Workflow guide <README>
+```
+
+```{toctree}
+:hidden:
+:maxdepth: 2
+:caption: System Principles
+
+Architecture and navigation loop <concepts/OVERVIEW>
+SatSim observations <concepts/SATSIM>
+Tasks and metrics <concepts/TASKS_AND_METRICS>
+Expert trajectories <concepts/EXPERT_TRAJECTORIES>
 ```
 
 ```{toctree}

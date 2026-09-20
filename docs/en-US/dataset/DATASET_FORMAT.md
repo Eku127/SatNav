@@ -4,6 +4,8 @@ This guide describes SatNav-v0.1 episodes, scenes, and offline trajectories.
 The episode release contains navigation metadata only; users prepare satellite
 scenes and offline trajectories separately.
 
+See [tasks and metrics](../concepts/TASKS_AND_METRICS.md) for task families and path relationships, and [expert trajectories](../concepts/EXPERT_TRAJECTORIES.md) for image/action alignment.
+
 ## 1. Data components
 
 | Data | Main files | Description |
@@ -69,8 +71,7 @@ The top level contains an `episodes` list:
 }
 ```
 
-> This simplified example illustrates the schema; it is not a complete
-> published episode.
+This example illustrates the Episode schema.
 
 ## 3. Episode fields
 
@@ -111,8 +112,8 @@ Positions use WGS84 coordinates:
 - altitude is in meters and controls SatSim's observation footprint;
 - heading uses north as `0°` and increases clockwise; `90°` points east.
 
-`scene_id` is a logical name, not a local path. With `DATASET.SCENES_DIR`
-configured, SatNav resolves it at runtime to:
+`scene_id` is a logical scene name. SatNav uses `DATASET.SCENES_DIR` to resolve
+it to a local file path:
 
 ```text
 <SCENES_DIR>/Amsterdam-1.tif
@@ -131,8 +132,7 @@ from normal episode serialization and evaluation results.
 
 `waypoints` are the high-level nodes used during task generation;
 `reference_path` is the dense path used for navigation and evaluation. Expert
-trajectory generation must follow `reference_path`, not reconstruct a route
-from instruction text.
+trajectory generation follows `reference_path`.
 
 ## 6. Offline trajectories
 
@@ -171,7 +171,7 @@ trajectory_data/
 | `id` | Index in the source JSON `episodes` list; not `episode_id` |
 | `trajectory_id` | Route identifier copied from the source episode |
 | `steps` | Executable actions, equal to `len(actions) - 1` |
-| `video` | Relative RGB-frame directory; not an MP4 file |
+| `video` | Relative path to the RGB-frame directory |
 | `instructions` | Instructions associated with the trajectory |
 | `actions` | Discrete actions aligned with observations |
 

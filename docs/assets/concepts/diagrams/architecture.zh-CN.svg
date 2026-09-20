@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="650" viewBox="0 0 1100 650" role="img" aria-labelledby="title desc">
+  <title id="title">从数据到导航闭环</title>
+  <desc id="desc">蓝色：环境运行　绿色：离线训练　紫色：模型接口</desc>
+  <defs>
+    <marker id="2475A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#2475A5" />
+    </marker>
+    <marker id="29836A" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#29836A" />
+    </marker>
+    <marker id="B87623" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#B87623" />
+    </marker>
+    <marker id="7958A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#7958A5" />
+    </marker>
+    <marker id="52677C" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#52677C" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1100" height="650" rx="0" fill="#FFFFFF" stroke="none" stroke-width="2" />
+  <text x="36" y="48.99" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" text-anchor="start">
+    <tspan x="36" dy="0">从数据到导航闭环</tspan>
+  </text>
+  <text x="36" y="89.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="start">
+    <tspan x="36" dy="0">蓝色：环境运行　绿色：离线训练　紫色：模型接口</tspan>
+  </text>
+  <rect x="40" y="130" width="260" height="120" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="170.0" y="162.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="170.0" dy="0">Episode</tspan>
+  </text>
+  <text x="170.0" y="202.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="170.0" dy="0">指令 · 起点 · 目标</tspan>
+    <tspan x="170.0" dy="24.839999999999996">reference_path · scene_id</tspan>
+  </text>
+  <rect x="40" y="300" width="260" height="105" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="170.0" y="332.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="170.0" dy="0">GeoTIFF</tspan>
+  </text>
+  <text x="170.0" y="377.08" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="170.0" dy="0">带地理坐标的卫星影像</tspan>
+  </text>
+  <rect x="390" y="130" width="300" height="120" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="540.0" y="162.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="540.0" dy="0">Env + VLNTask</tspan>
+  </text>
+  <text x="540.0" y="202.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="540.0" dy="0">Episode 生命周期</tspan>
+    <tspan x="540.0" dy="24.839999999999996">传感器 · 动作 · 指标</tspan>
+  </text>
+  <rect x="390" y="300" width="300" height="105" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="540.0" y="332.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="540.0" dy="0">SatSimWrapper → SatSim</tspan>
+  </text>
+  <text x="540.0" y="377.08" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="540.0" dy="0">更新位姿 · 渲染 RGB</tspan>
+  </text>
+  <rect x="800" y="130" width="260" height="120" rx="12" fill="#F5F0FA" stroke="#7958A5" stroke-width="2" />
+  <text x="930.0" y="162.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="930.0" dy="0">PolicyAdapter</tspan>
+  </text>
+  <text x="930.0" y="202.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="930.0" dy="0">预处理 · 历史 · 动作队列</tspan>
+    <tspan x="930.0" dy="24.839999999999996">模型推理</tspan>
+  </text>
+  <rect x="800" y="300" width="260" height="105" rx="12" fill="#F5F0FA" stroke="#7958A5" stroke-width="2" />
+  <text x="930.0" y="332.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="930.0" dy="0">Evaluator</tspan>
+  </text>
+  <text x="930.0" y="364.66" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="930.0" dy="0">选择 Episode · 驱动闭环</tspan>
+    <tspan x="930.0" dy="24.839999999999996">保存与汇总结果</tspan>
+  </text>
+  <polyline points="300,190 390,190" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="300,350 390,350" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="540,250 540,300" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="690,165 800,165" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <text x="745.0" y="142.46" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" font-weight="400" text-anchor="middle">
+    <tspan x="745.0" dy="0">obs</tspan>
+  </text>
+  <polyline points="800,218 690,218" fill="none" stroke="#7958A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#7958A5)" />
+  <text x="745.0" y="241.96" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" font-weight="400" text-anchor="middle">
+    <tspan x="745.0" dy="0">action</tspan>
+  </text>
+  <polyline points="930,300 930,250" fill="none" stroke="#7958A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#7958A5)" />
+  <polyline points="800,350 735,350 735,280 660,280 660,250" fill="none" stroke="#7958A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#7958A5)" stroke-dasharray="7 5" />
+  <rect x="40" y="500" width="310" height="100" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="195.0" y="532.8199999999999" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="195.0" dy="0">专家路径跟随</tspan>
+  </text>
+  <text x="195.0" y="574.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="195.0" dy="0">Episode + SatSim → RGB / 动作</tspan>
+  </text>
+  <rect x="410" y="500" width="280" height="100" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="550.0" y="532.8199999999999" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="550.0" dy="0">离线训练</tspan>
+  </text>
+  <text x="550.0" y="574.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="550.0" dy="0">Classic / VLM</tspan>
+  </text>
+  <rect x="800" y="500" width="260" height="100" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="930.0" y="532.8199999999999" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="930.0" dy="0">Checkpoint</tspan>
+  </text>
+  <text x="930.0" y="574.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="930.0" dy="0">供 PolicyAdapter 加载</tspan>
+  </text>
+  <polyline points="350,550 410,550" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+  <polyline points="690,550 800,550" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+</svg>

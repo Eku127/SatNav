@@ -4,6 +4,8 @@ This guide uses `applications/trajectory_generation` to produce offline
 training data for VLN models. The generator drives SatSim along each episode's
 `reference_path` and saves RGB frames, actions, and instructions.
 
+For the path-following algorithm, waypoint switching, and frame/action alignment, see [expert trajectories](../concepts/EXPERT_TRAJECTORIES.md).
+
 ## 1. Prepare the environment
 
 Complete [Installation](../getting-started/INSTALLATION.md),

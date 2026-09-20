@@ -2,6 +2,8 @@
 
 本文介绍 SatNav-v0.1 的 Episode、场景和离线 trajectory 数据格式。Episode 数据只包含导航元数据；卫星场景和离线 trajectory 需要用户另行准备。
 
+任务类型与路径关系见[任务与评测原理](../concepts/TASKS_AND_METRICS.md)；图像和动作的时间对齐见[专家轨迹原理](../concepts/EXPERT_TRAJECTORIES.md)。
+
 ## 1. 数据组成
 
 | 数据 | 主要文件 | 说明 |
@@ -65,7 +67,7 @@ episodes/
 }
 ```
 
-> 上述内容是用于说明字段结构的简化示例，不对应完整的发布 Episode。
+上述示例展示 Episode 的字段结构。
 
 ## 3. Episode 字段
 
@@ -86,7 +88,7 @@ episodes/
 | `reference_path` | list | 从起点到目标的稠密参考路径 |
 | `aux_info` | object | 任务相关的附加元数据 |
 
-`episode_id` 和 `trajectory_id` 都不应被当作全局唯一标识。跨文件保存或关联结果时，应使用：
+跨文件保存或关联结果时，使用包含 split、场景和 Episode ID 的组合标识：
 
 ```text
 <split>::<scene_id>::<episode_id>
@@ -106,7 +108,7 @@ SatNav loader 会将 ID 转为字符串，并保留 Episode、instruction 和 go
 - `altitude`：米，用于控制 SatSim observation 的覆盖范围；
 - `start_rotation`：以正北为 `0°`，顺时针增加，`90°` 表示正东。
 
-`scene_id` 是逻辑名称，不是本地文件路径。配置 `DATASET.SCENES_DIR` 后，SatNav 会在运行时将其解析到对应场景：
+`scene_id` 是场景的逻辑名称。SatNav 根据 `DATASET.SCENES_DIR` 将其解析为对应的本地文件路径：
 
 ```text
 <SCENES_DIR>/Amsterdam-1.tif
@@ -161,7 +163,7 @@ trajectory_data/
 | `id` | Episode 在源 JSON `episodes` 列表中的索引，不等同于 `episode_id` |
 | `trajectory_id` | 从源 Episode 复制的路线标识 |
 | `steps` | 可执行动作数量，等于 `len(actions) - 1` |
-| `video` | RGB 帧目录的相对路径；该字段不是 MP4 文件 |
+| `video` | RGB 帧目录的相对路径 |
 | `instructions` | 与该 trajectory 对应的指令列表 |
 | `actions` | 与 observation 对齐的离散动作序列 |
 

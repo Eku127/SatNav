@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="560" viewBox="0 0 1100 560" role="img" aria-labelledby="title desc">
+  <title id="title">Stored alignment and next-action supervision</title>
+  <desc id="desc">Example: forward, right, stop; the last frame is the observation after STOP</desc>
+  <defs>
+    <marker id="2475A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#2475A5" />
+    </marker>
+    <marker id="29836A" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#29836A" />
+    </marker>
+    <marker id="B87623" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#B87623" />
+    </marker>
+    <marker id="7958A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#7958A5" />
+    </marker>
+    <marker id="52677C" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#52677C" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1100" height="560" rx="0" fill="#FFFFFF" stroke="none" stroke-width="2" />
+  <text x="36" y="48.99" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" text-anchor="start">
+    <tspan x="36" dy="0">Stored alignment and next-action supervision</tspan>
+  </text>
+  <text x="36" y="89.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="start">
+    <tspan x="36" dy="0">Example: forward, right, stop; the last frame is the observation after STOP</tspan>
+  </text>
+  <rect x="45" y="135" width="185" height="95" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="137.5" y="167.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="137.5" dy="0">o0</tspan>
+  </text>
+  <text x="137.5" y="207.08" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="137.5" dy="0">001.jpg</tspan>
+  </text>
+  <rect x="45" y="315" width="185" height="90" rx="12" fill="#FFF6E8" stroke="#B87623" stroke-width="2" />
+  <text x="137.5" y="347.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="137.5" dy="0">INIT = −1</tspan>
+  </text>
+  <polyline points="137,230 137,250" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <polyline points="137,294 137,315" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <rect x="320" y="135" width="185" height="95" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="412.5" y="167.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="412.5" dy="0">o1</tspan>
+  </text>
+  <text x="412.5" y="207.08" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="412.5" dy="0">002.jpg</tspan>
+  </text>
+  <rect x="320" y="315" width="185" height="90" rx="12" fill="#FFF6E8" stroke="#B87623" stroke-width="2" />
+  <text x="412.5" y="347.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="412.5" dy="0">FORWARD = 1</tspan>
+  </text>
+  <polyline points="412,230 412,250" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <polyline points="412,294 412,315" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <rect x="595" y="135" width="185" height="95" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="687.5" y="167.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="687.5" dy="0">o2</tspan>
+  </text>
+  <text x="687.5" y="207.08" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="687.5" dy="0">003.jpg</tspan>
+  </text>
+  <rect x="595" y="315" width="185" height="90" rx="12" fill="#FFF6E8" stroke="#B87623" stroke-width="2" />
+  <text x="687.5" y="347.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="687.5" dy="0">RIGHT = 3</tspan>
+  </text>
+  <polyline points="687,230 687,250" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <polyline points="687,294 687,315" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <rect x="870" y="135" width="185" height="95" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="962.5" y="167.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="962.5" dy="0">o3</tspan>
+  </text>
+  <text x="962.5" y="207.08" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="962.5" dy="0">004.jpg</tspan>
+  </text>
+  <rect x="870" y="315" width="185" height="90" rx="12" fill="#FFF6E8" stroke="#B87623" stroke-width="2" />
+  <text x="962.5" y="347.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="962.5" dy="0">STOP = 0</tspan>
+  </text>
+  <polyline points="962,230 962,250" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <polyline points="962,294 962,315" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <polyline points="230,181 320,181" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <text x="275.0" y="116.65" fill="#2475A5" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" font-weight="400" text-anchor="middle">
+    <tspan x="275.0" dy="0">a₁: FORWARD</tspan>
+  </text>
+  <polyline points="505,181 595,181" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <text x="550.0" y="116.65" fill="#2475A5" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" font-weight="400" text-anchor="middle">
+    <tspan x="550.0" dy="0">a₂: RIGHT</tspan>
+  </text>
+  <polyline points="780,181 870,181" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <text x="825.0" y="116.65" fill="#2475A5" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" font-weight="400" text-anchor="middle">
+    <tspan x="825.0" dy="0">a₃: STOP</tspan>
+  </text>
+  <text x="550.0" y="278.51" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" text-anchor="middle">
+    <tspan x="550.0" dy="0">Same column: actions[i] records the action that produced images[i]</tspan>
+  </text>
+  <rect x="45" y="449" width="1010" height="75" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="550.0" y="481.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="550.0" dy="0">Training pairs: o₀ → a₁     o₁ → a₂     o₂ → a₃   |   4 frames = 3 actions + 1</tspan>
+  </text>
+</svg>

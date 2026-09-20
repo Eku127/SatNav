@@ -4,6 +4,8 @@
 CMA，以及 StreamVLN、NaVILA、Uni-NaVid、OpenFly 都通过同一个
 `satnav.evaluation` rollout/result contract 运行。
 
+Success、Oracle Success、SPL 和离开再返回规则的图解见[任务与评测原理](../concepts/TASKS_AND_METRICS.md)。
+
 ## 1. 评测流程
 
 统一评测层负责：
@@ -18,6 +20,8 @@ CMA，以及 StreamVLN、NaVILA、Uni-NaVid、OpenFly 都通过同一个
 每个 baseline 负责初始化自己的模型、tokenizer 或 processor，并通过 `PolicyAdapter`
 接入统一评测层。这样可以让 Classic 与不同依赖环境中的 VLM 共用相同的 Episode 选择、
 rollout 和结果格式。
+
+![逐步闭环与模型动作队列的关系。](../../assets/concepts/diagrams/episode-loop.zh-CN.svg)
 
 ## 2. 快速开始
 
@@ -259,6 +263,8 @@ python scripts/evaluation/aggregate.py \
 聚合器读取输出目录中存在的 `rank_XXXXX` 子目录。启动脚本应等待所有 worker 成功结束后
 再聚合；聚合器本身不会推断缺少了哪个 rank。
 
+![全局选择、各 rank 日志与汇总流程。](../../assets/concepts/diagrams/distributed-results.zh-CN.svg)
+
 ## 8. 错误策略
 
 默认情况下，单个 Episode 异常会被持久化为 `status=error`，其余 Episode 继续执行。
@@ -340,7 +346,6 @@ from satnav.evaluation import (
     PolicyStep,
 )
 
-
 class StopPolicy(PolicyAdapter):
     def reset(self, context):
         self.context = context
@@ -350,7 +355,6 @@ class StopPolicy(PolicyAdapter):
 
     def close(self):
         pass
-
 
 summary = Evaluator(
     environment=env,

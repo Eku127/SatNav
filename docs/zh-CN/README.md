@@ -6,6 +6,13 @@
 如果是第一次使用 SatNav，建议从[环境安装](getting-started/INSTALLATION.md)开始，并先使用仓库示例完成一次
 环境交互。训练与正式评测需要额外准备 SatNav-v0.1 Episode、GeoTIFF 场景和模型资源。
 
+## 系统原理
+
+- [系统全景与运行闭环](concepts/OVERVIEW.md)
+- [SatSim 观测原理](concepts/SATSIM.md)
+- [任务与评测原理](concepts/TASKS_AND_METRICS.md)
+- [专家轨迹原理](concepts/EXPERT_TRAJECTORIES.md)
+
 ## 1. 第一次运行 SatNav
 
 按照以下顺序完成安装并运行最小示例：

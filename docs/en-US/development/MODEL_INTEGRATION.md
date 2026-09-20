@@ -4,6 +4,8 @@ This guide explains how to connect a new navigation model to SatNav and run Epis
 
 Before starting, read [Core API](../core/CORE_API.md) and [Evaluation](../evaluation/README.md). The first describes observations, actions, and `Env`; the second covers Episode selection, result files, and aggregation.
 
+See [architecture](../concepts/OVERVIEW.md) for environment, policy, and evaluator responsibilities and their interaction loop.
+
 ## 1. Prepare the environment
 
 Install SatNav Core in the model's own Python environment:
@@ -55,7 +57,7 @@ class PolicyAdapter:
 | `act(observation)` | Before each environment step | Return one SatNav primitive action |
 | `close()` | When the worker finishes | Release the model, file handles, or external connections |
 
-`PolicyAdapter` is a Python Protocol rather than a required base class. Any object with these three methods can be passed to `Evaluator`.
+`PolicyAdapter` is a Python Protocol. Any object implementing these three methods can be passed to `Evaluator`.
 
 ## 3. Minimal adapter
 

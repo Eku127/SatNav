@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="650" viewBox="0 0 1100 650" role="img" aria-labelledby="title desc">
+  <title id="title">From data to the navigation loop</title>
+  <desc id="desc">Blue: environment   Green: offline training   Purple: policy interface</desc>
+  <defs>
+    <marker id="2475A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#2475A5" />
+    </marker>
+    <marker id="29836A" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#29836A" />
+    </marker>
+    <marker id="B87623" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#B87623" />
+    </marker>
+    <marker id="7958A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#7958A5" />
+    </marker>
+    <marker id="52677C" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#52677C" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1100" height="650" rx="0" fill="#FFFFFF" stroke="none" stroke-width="2" />
+  <text x="36" y="48.99" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" text-anchor="start">
+    <tspan x="36" dy="0">From data to the navigation loop</tspan>
+  </text>
+  <text x="36" y="89.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="start">
+    <tspan x="36" dy="0">Blue: environment   Green: offline training   Purple: policy interface</tspan>
+  </text>
+  <rect x="40" y="130" width="260" height="120" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="170.0" y="162.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="170.0" dy="0">Episode</tspan>
+  </text>
+  <text x="170.0" y="202.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="170.0" dy="0">Instruction · start · goal</tspan>
+    <tspan x="170.0" dy="24.839999999999996">reference_path · scene_id</tspan>
+  </text>
+  <rect x="40" y="300" width="260" height="105" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="170.0" y="332.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="170.0" dy="0">GeoTIFF</tspan>
+  </text>
+  <text x="170.0" y="377.08" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="170.0" dy="0">Georeferenced imagery</tspan>
+  </text>
+  <rect x="390" y="130" width="300" height="120" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="540.0" y="162.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="540.0" dy="0">Env + VLNTask</tspan>
+  </text>
+  <text x="540.0" y="202.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="540.0" dy="0">Episode lifecycle</tspan>
+    <tspan x="540.0" dy="24.839999999999996">Sensors · actions · measures</tspan>
+  </text>
+  <rect x="390" y="300" width="300" height="105" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="540.0" y="332.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="540.0" dy="0">SatSimWrapper → SatSim</tspan>
+  </text>
+  <text x="540.0" y="377.08" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="540.0" dy="0">Update pose · render RGB</tspan>
+  </text>
+  <rect x="800" y="130" width="260" height="120" rx="12" fill="#F5F0FA" stroke="#7958A5" stroke-width="2" />
+  <text x="930.0" y="162.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="930.0" dy="0">PolicyAdapter</tspan>
+  </text>
+  <text x="930.0" y="202.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="930.0" dy="0">Preprocessing · history</tspan>
+    <tspan x="930.0" dy="24.839999999999996">Inference · action queue</tspan>
+  </text>
+  <rect x="800" y="300" width="260" height="105" rx="12" fill="#F5F0FA" stroke="#7958A5" stroke-width="2" />
+  <text x="930.0" y="332.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="930.0" dy="0">Evaluator</tspan>
+  </text>
+  <text x="930.0" y="364.66" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="930.0" dy="0">Select episodes · run loop</tspan>
+    <tspan x="930.0" dy="24.839999999999996">Write and aggregate results</tspan>
+  </text>
+  <polyline points="300,190 390,190" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="300,350 390,350" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="540,250 540,300" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="690,165 800,165" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <text x="745.0" y="142.46" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" font-weight="400" text-anchor="middle">
+    <tspan x="745.0" dy="0">obs</tspan>
+  </text>
+  <polyline points="800,218 690,218" fill="none" stroke="#7958A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#7958A5)" />
+  <text x="745.0" y="241.96" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" font-weight="400" text-anchor="middle">
+    <tspan x="745.0" dy="0">action</tspan>
+  </text>
+  <polyline points="930,300 930,250" fill="none" stroke="#7958A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#7958A5)" />
+  <polyline points="800,350 735,350 735,280 660,280 660,250" fill="none" stroke="#7958A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#7958A5)" stroke-dasharray="7 5" />
+  <rect x="40" y="500" width="310" height="100" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="195.0" y="532.8199999999999" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="195.0" dy="0">Expert path following</tspan>
+  </text>
+  <text x="195.0" y="574.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="195.0" dy="0">Episode + SatSim → RGB / actions</tspan>
+  </text>
+  <rect x="410" y="500" width="280" height="100" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="550.0" y="532.8199999999999" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="550.0" dy="0">Offline training</tspan>
+  </text>
+  <text x="550.0" y="574.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="550.0" dy="0">Classic / VLM</tspan>
+  </text>
+  <rect x="800" y="500" width="260" height="100" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="930.0" y="532.8199999999999" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="930.0" dy="0">Checkpoint</tspan>
+  </text>
+  <text x="930.0" y="574.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="930.0" dy="0">Loaded by PolicyAdapter</tspan>
+  </text>
+  <polyline points="350,550 410,550" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+  <polyline points="690,550 800,550" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+</svg>

@@ -7,6 +7,8 @@
 | `free` | 在单个 GeoTIFF 场景中自由移动，查看坐标、朝向和高度 |
 | `task` | 按 Episode 查看 RGB observation、指令、waypoint、top-down map 和评测指标 |
 
+相机高度、视场角、朝向和画面之间的关系见[SatSim 观测原理](../concepts/SATSIM.md)，其中包含真实卫星场景的参数对比图。
+
 ## 1. 准备环境
 
 先完成[环境安装](../getting-started/INSTALLATION.md)。如需查看真实场景或 Episode，还需完成 [Episode 数据下载](../dataset/DATA_DOWNLOAD.md)和[卫星场景下载](MAP_DOWNLOAD.md)。
@@ -31,7 +33,7 @@ python -m applications.satsim_viewer free
 
 ![Free viewer：显示当前 observation、坐标、高度和朝向](../../assets/viewer/free_viewer.png)
 
-*Free viewer 使用合成 GeoTIFF 渲染 observation，并在画面中显示 WGS84、Web Mercator、相机高度和朝向。*
+<p class="figure-caption" align="center"><em>Free viewer 使用合成 GeoTIFF 渲染 observation，并在画面中显示 WGS84、Web Mercator、相机高度和朝向。</em></p>
 
 查看 VLN Episode：
 
@@ -41,7 +43,7 @@ python -m applications.satsim_viewer task
 
 ![Task viewer：同时显示 RGB observation、top-down map 和任务信息](../../assets/viewer/task_viewer.png)
 
-*Task viewer 左侧显示 RGB observation，右侧显示 agent、waypoint 和 reference path，底部显示指令及距离。*
+<p class="figure-caption" align="center"><em>Task viewer 左侧显示 RGB observation，右侧显示 agent、waypoint 和 reference path，底部显示指令及距离。</em></p>
 
 不指定模式时默认进入 `free`：
 
@@ -123,7 +125,7 @@ python -m applications.satsim_viewer task \
 
 ![真实 Episode 示例：Amsterdam-1 场景中的 RGB observation、reference path 和 waypoint](../../assets/viewer/real_episode_viewer.png)
 
-*真实 Episode 示例（Amsterdam-1，Episode 2144）：左侧为当前 RGB observation，右侧为完整 reference path 和 waypoint，底部为导航指令及距离。*
+<p class="figure-caption" align="center"><em>真实 Episode 示例（Amsterdam-1，Episode 2144）：左侧为当前 RGB observation，右侧为完整 reference path 和 waypoint，底部为导航指令及距离。</em></p>
 
 场景文件需使用 `<scene_id>.tif` 命名。task viewer 会显示当前指令、距离、RGB observation 和 top-down map；执行 `STOP` 后显示 Success、SPL、Distance to Goal 和 Path Length，并加载下一个 Episode。
 

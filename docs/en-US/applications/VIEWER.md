@@ -8,6 +8,8 @@ episodes interactively.
 | `free` | Move freely in one GeoTIFF and inspect coordinates, heading, and altitude |
 | `task` | Inspect RGB, instructions, waypoints, top-down maps, and metrics by episode |
 
+See [SatSim observations](../concepts/SATSIM.md) for altitude, field of view, heading, and real-scene camera comparisons.
+
 ## 1. Prepare the environment
 
 Complete [Installation](../getting-started/INSTALLATION.md). Real scenes and

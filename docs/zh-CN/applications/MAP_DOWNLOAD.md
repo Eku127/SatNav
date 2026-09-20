@@ -4,6 +4,8 @@
 
 > 地图下载器只提供技术能力，不授予地图内容的下载、存储、分发或机器学习使用许可。请在使用前确认服务商的最新条款及你的授权范围。
 
+GeoTIFF 如何通过坐标变换和局部裁剪生成 RGB，见[SatSim 观测原理](../concepts/SATSIM.md)。
+
 ## 1. 准备环境
 
 先完成[环境安装](../getting-started/INSTALLATION.md)，然后在 SatNav 仓库根目录安装 applications 依赖并设置数据路径：

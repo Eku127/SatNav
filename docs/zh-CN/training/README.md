@@ -6,6 +6,8 @@ Quickstart 会生成离线轨迹、训练 Seq2Seq 和 CMA、保存 checkpoint，
 开始前建议先阅读[环境安装](../getting-started/INSTALLATION.md)和[数据格式](../dataset/DATASET_FORMAT.md)。如果只需要将
 已有模型接入在线评测，请直接阅读[模型接入](../development/MODEL_INTEGRATION.md)。
 
+训练与在线评测的关系见[系统全景](../concepts/OVERVIEW.md)，专家动作与 RGB 的监督对齐见[专家轨迹原理](../concepts/EXPERT_TRAJECTORIES.md)。
+
 ## 1. 训练流程
 
 SatNav 将训练和在线评测分为两个阶段：
@@ -145,8 +147,7 @@ Tiny example 的作用是确认以下链路能够在当前环境中正常工作�
 - checkpoint 保存与重新加载；
 - Seq2Seq、CMA 在线 rollout 和指标输出。
 
-示例数据规模很小，只用于检查训练链路。其 loss 和导航指标不代表模型在
-SatNav-v0.1 benchmark 上的性能。
+示例用于检查训练链路。评估模型性能时，使用 SatNav-v0.1 的完整训练和评测 split。
 
 ## 5. 准备 Quickstart 环境
 
@@ -287,5 +288,5 @@ Tiny example 使用固定的 `output/quickstart_baselines/` 配置路径，适�
 
 ### 为什么 tiny example 的 Success 或 SPL 很低？
 
-示例只有两个 Episode，训练样本和 optimizer update 数量都很少。它用于验证代码、数据、
-checkpoint 和 rollout 链路，不用于衡量模型质量。
+示例包含两个 Episode，训练样本和 optimizer update 数量较少，主要用于检查数据读取、
+checkpoint 保存和在线 rollout。模型性能评测使用完整数据和相应的训练配置。

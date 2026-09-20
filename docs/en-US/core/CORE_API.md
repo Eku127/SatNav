@@ -10,6 +10,8 @@ If the environment or data is not ready, begin with
 [Examples](../getting-started/EXAMPLES.md). To connect a new navigation model,
 read [Model Integration](../development/MODEL_INTEGRATION.md).
 
+For illustrated explanations of the components, camera geometry, and measures, see [architecture](../concepts/OVERVIEW.md), [SatSim observations](../concepts/SATSIM.md), and [tasks and metrics](../concepts/TASKS_AND_METRICS.md).
+
 ## 1. Core objects
 
 The runtime stack contains Dataset, Environment, Task, and Simulator:
@@ -37,8 +39,8 @@ SatNavDataset
 | `Simulator` | Define scene loading, state, actions, and observations |
 | `SatSimWrapper` | Adapt built-in SatSim to the public `Simulator` interface |
 
-Most users interact only with `Env`. Applications and baselines must not use
-private members such as `env._dataset`, `env._task`, or `env._sim`.
+Applications and baselines use the public `Env` interface to read Episodes,
+execute actions, and retrieve metrics.
 
 ## 2. Minimal example
 
@@ -131,8 +133,8 @@ DATASET:
 
 Use `configs/satnav_eval_task.yaml` for online evaluation. Its success radii
 are 10 m for Boundary, 30 m for LandmarkSet, and 10 m for Road. The 3 m
-LandmarkSet value in trajectory generation is an expert-waypoint tolerance,
-not an online evaluation threshold.
+LandmarkSet value in trajectory generation determines when the expert follower
+reaches a waypoint.
 
 Keep real paths out of public configs. Copy to ignored `configs/local_*.yaml`
 or inject paths through local environment variables.
@@ -236,8 +238,8 @@ Default `VLNTask` returns these after reset and every step:
 | `instruction` | `dict` | `{"text": str}` | Current natural-language instruction |
 | `agent_pose` | `numpy.ndarray` | `(4,)`, `float32` | Ego-frame pose relative to episode start |
 
-RGB resolution comes from `SIMULATOR.RGB_SENSOR.WIDTH` and `HEIGHT`. Never
-hard-code 224 or 448 in an application or adapter.
+RGB resolution comes from `SIMULATOR.RGB_SENSOR.WIDTH` and `HEIGHT`.
+Applications and adapters can read the actual dimensions from `observation["rgb"].shape`.
 
 ### 6.1 Agent pose
 
@@ -264,10 +266,9 @@ does not depend on absolute scene orientation.
 print(env.observation_space)
 ```
 
-This is a lightweight descriptive dictionary, not `gym.Space`. It emphasizes
-RGB shape and instruction structure. Actual observations also contain
-`agent_pose`; generic adapters should inspect keys returned by `reset()` or
-`step()`.
+`observation_space` is a dictionary describing RGB shape and instruction
+structure. Observations returned by `reset()` and `step()` also include
+`agent_pose`; generic adapters can read each field from the returned dictionary.
 
 ## 7. Actions
 
@@ -298,8 +299,8 @@ SatSim keeps the full camera footprint inside the scene. A forward move that
 would leave the GeoTIFF is blocked but still consumes one step. Turning does
 not change position.
 
-> Offline action `-1` aligns the initial observation; it is not accepted by
-> `Env.step()`.
+Offline action `-1` aligns the initial observation; `Env.step()` accepts the
+four actions listed above.
 
 ## 8. `step()` return values
 
@@ -358,8 +359,8 @@ finally:
     env.close()
 ```
 
-Evaluation must not rely on JSON order or use `episode_id` alone. Use
-`episode_key` for stable identity across scenes and splits.
+Evaluation associates results through `episode_key`, which provides a stable
+identity across scenes and splits.
 
 ## 10. Metrics
 
@@ -382,16 +383,16 @@ For a normal episode:
 STOP was executed and distance_to_goal < success_distance
 ```
 
-For a Boundary episode whose start equals its goal, SatNav uses
-leave-and-return semantics: the agent must first move farther than
-`2 × success_distance`, return inside the radius, and STOP. This prevents an
-immediate STOP from succeeding.
+When the start-to-first-goal distance is less than `success_distance`, SatNav
+uses leave-and-return semantics: the agent must first move farther than
+`2 × success_distance` from the start, return inside the goal radius, and STOP.
+Boundary loops commonly meet this condition. See [tasks and metrics](../concepts/TASKS_AND_METRICS.md) for illustrated cases.
 
 ### 10.2 Oracle Success
 
 Oracle Success records whether the agent ever reached the goal region; STOP is
-not required. Once 1, it remains 1 for the rest of the episode. Boundary
-episodes still require leaving before returning.
+not required. Once 1, it remains 1 for the rest of the episode. Episodes with
+start-to-goal distance below the success radius also require leaving before returning.
 
 ### 10.3 SPL
 
