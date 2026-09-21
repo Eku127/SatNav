@@ -1,4 +1,4 @@
-name: Deploy documentation
+name: Deploy website and Wiki
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
     paths:
       - "docs/**"
       - "scripts/build_docs.py"
+      - "scripts/assemble_pages.py"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -21,6 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Fetch private project website
+        uses: actions/checkout@v6
+        with:
+          repository: Eku127/SatNav-website
+          ref: main
+          path: _website
+          ssh-key: ${{ secrets.WEBSITE_DEPLOY_KEY }}
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -30,6 +39,10 @@ jobs:
         run: python -m pip install -r docs/requirements.txt
       - name: Build English and Chinese documentation
         run: python scripts/build_docs.py
+      - name: Build project website
+        run: python _website/build_site.py
+      - name: Assemble website and Wiki
+        run: python scripts/assemble_pages.py --website _website/_site
       - uses: actions/upload-pages-artifact@v4
         with:
           path: docs/_build/html
@@ -46,6 +59,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/configure-pages@v5
-      - name: Publish documentation
+      - name: Publish website and Wiki
         id: deployment
         uses: actions/deploy-pages@v4
