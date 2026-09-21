@@ -1,8 +1,10 @@
 # SatNav Core API
 
-本文从使用者视角介绍 SatNav 的核心运行接口。重点不是逐个罗列源码，而是解释一个 Episode 如何被加载、渲染、执行和评测，以及应用或模型应该在哪一层与 SatNav 交互。
+本文介绍 SatNav 的核心运行接口，说明 Episode 的加载、渲染、执行和评测过程，以及应用和模型与各层接口的交互方式。
 
 如果尚未准备环境和数据，请先阅读[环境安装](../getting-started/INSTALLATION.md)、[数据格式](../dataset/DATASET_FORMAT.md)和[示例程序](../getting-started/EXAMPLES.md)。需要接入新的导航模型时，参阅[模型接入](../development/MODEL_INTEGRATION.md)。
+
+系统组件、相机几何和指标定义的图解见[系统全景](../concepts/OVERVIEW.md)、[SatSim 观测原理](../concepts/SATSIM.md)和[任务与评测原理](../concepts/TASKS_AND_METRICS.md)。
 
 ## 1. 核心对象
 
@@ -31,7 +33,7 @@ SatNavDataset
 | `Simulator` | 定义场景加载、状态设置、动作执行和 observation 获取接口 |
 | `SatSimWrapper` | 将内置 SatSim 适配到公共 `Simulator` 接口 |
 
-大多数用户只需要直接使用 `Env`。应用和 baseline 不应访问 `env._dataset`、`env._task` 或 `env._sim` 等私有成员。
+应用和 baseline 通过 `Env` 的公开接口读取 Episode、执行动作和获取指标。
 
 ## 2. 最小示例
 
@@ -119,7 +121,7 @@ DATASET:
 | `DATASET.DATA_PATH` | Episode JSON 或 JSON.GZ 路径，支持 `{split}` 占位符 |
 | `DATASET.SCENES_DIR` | `<scene_id>.tif` 所在目录 |
 
-在线评测应使用 `configs/satnav_eval_task.yaml`。该配置中 Boundary、LandmarkSet 和 Road 的成功半径分别为 10 米、30 米和 10 米。轨迹生成配置中的 LandmarkSet 3 米是 expert waypoint 到达半径，不是在线评测阈值。
+在线评测使用 `configs/satnav_eval_task.yaml`，其中 Boundary、LandmarkSet 和 Road 的成功半径分别为 10 米、30 米和 10 米。轨迹生成配置中的 LandmarkSet 3 米用于判断专家跟随器何时到达 waypoint。
 
 真实数据路径不应写入公共配置。建议复制配置到 ignored 的 `configs/local_*.yaml`，或通过本地环境变量注入。
 
@@ -223,7 +225,7 @@ env.close()
 | `instruction` | `dict` | `{"text": str}` | 当前 Episode 的自然语言指令 |
 | `agent_pose` | `numpy.ndarray` | `(4,)`, `float32` | 相对 Episode 起点的 ego-frame pose |
 
-RGB 尺寸由 `SIMULATOR.RGB_SENSOR.WIDTH` 和 `HEIGHT` 决定，不应在应用或模型中硬编码为 224 或 448。
+RGB 尺寸由 `SIMULATOR.RGB_SENSOR.WIDTH` 和 `HEIGHT` 决定。应用和模型可通过 `observation["rgb"].shape` 读取实际尺寸。
 
 ### 6.1 Agent pose
 
@@ -251,7 +253,7 @@ Episode 刚 reset 时，其值为：
 print(env.observation_space)
 ```
 
-`observation_space` 是便于应用读取的轻量描述字典，不是 `gym.Space`。当前描述重点提供 RGB shape 和 instruction 结构；实际 task observation 还包含 `agent_pose`，因此编写通用 adapter 时应以 `reset()` 或 `step()` 返回的 key 为准。
+`observation_space` 是描述 RGB shape 和 instruction 结构的字典。`reset()` 和 `step()` 返回的观测还包含 `agent_pose`；通用 adapter 可从返回的观测字典读取各项数据。
 
 ## 7. Action
 
@@ -281,7 +283,7 @@ print(env.action_space["actions"])
 
 SatSim 会保证完整相机视野位于场景范围内。如果一次前进会让相机 footprint 越出 GeoTIFF，agent 会停留在原位；该动作仍会消耗一个 step。转向不会改变位置。
 
-> 离线 trajectory 中的 `-1` 是初始 observation 的对齐标记，不是可以传给 `Env.step()` 的动作。
+离线 trajectory 中的 `-1` 用于对齐初始 observation；`Env.step()` 接收上表中的四种动作。
 
 ## 8. `step()` 返回值
 
@@ -342,7 +344,7 @@ finally:
     env.close()
 ```
 
-真实评测不应依赖 Episode 在 JSON 中的原始顺序，也不应只用 `episode_id` 关联结果。请使用 `episode_key` 作为跨场景、跨 split 的稳定 identity。
+评测使用 `episode_key` 关联结果，保持跨场景、跨 split 的稳定 identity。
 
 ## 10. Metrics
 
@@ -365,11 +367,11 @@ finally:
 STOP 已执行，并且 distance_to_goal < success_distance
 ```
 
-对于起点与目标重合的 Boundary Episode，SatNav 使用 leave-and-return 逻辑：agent 必须先离开起点超过 `2 × success_distance`，再返回成功半径并执行 STOP。这样可以避免 agent 原地 STOP 获得成功。
+当起点到首个目标的距离小于 `success_distance` 时，SatNav 使用 leave-and-return 逻辑：agent 必须先离开起点超过 `2 × success_distance`，再返回目标成功半径内并执行 STOP。Boundary 环路通常满足这一触发条件。示意图见[任务与评测原理](../concepts/TASKS_AND_METRICS.md)。
 
 ### 10.2 Oracle Success
 
-Oracle Success 衡量 agent 是否曾经到达目标区域，不要求最终在该处 STOP。一旦变为 1，在当前 Episode 剩余步骤中保持为 1。Boundary Episode 同样必须先离开起点区域再返回。
+Oracle Success 衡量 agent 是否曾经到达目标区域，不要求最终在该处 STOP。一旦变为 1，在当前 Episode 剩余步骤中保持为 1。起点到目标距离小于成功半径时，同样先执行离开再返回的判定。
 
 ### 10.3 SPL
 

@@ -10,6 +10,8 @@ SatNav-Episodes-v0.1 scenes are defined in `scenes_list.yaml`; complete
 > learning. Verify the provider's current terms and your authorization before
 > use.
 
+See [SatSim observations](../concepts/SATSIM.md) for how geographic transforms and local raster crops produce RGB.
+
 ## 1. Prepare the environment
 
 Complete [Installation](../getting-started/INSTALLATION.md), then install the

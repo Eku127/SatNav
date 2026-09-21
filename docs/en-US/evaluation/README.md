@@ -2,6 +2,8 @@
 
 SatNav provides one online evaluation interface for the Classic Random, ReferenceFollower, Seq2Seq, and CMA baselines, as well as StreamVLN, NaVILA, Uni-NaVid, and OpenFly. All of them use the same `satnav.evaluation` rollout and result contract.
 
+For illustrated definitions of Success, Oracle Success, SPL, and leave-and-return, see [tasks and metrics](../concepts/TASKS_AND_METRICS.md).
+
 ## 1. Evaluation workflow
 
 The shared evaluation layer:
@@ -14,6 +16,8 @@ The shared evaluation layer:
 - aggregates scalar metrics into `summary.json`.
 
 Each baseline initializes its model, tokenizer, or processor and connects it through a `PolicyAdapter`. This lets Classic methods and VLMs in separate dependency environments share the same Episode selection, rollout behavior, and result format.
+
+![The stepwise loop and model action queue.](../../assets/concepts/diagrams/episode-loop.en-US.svg)
 
 ## 2. Quickstart
 
@@ -244,6 +248,8 @@ python scripts/evaluation/aggregate.py \
 
 The aggregator reads the `rank_XXXXX` directories that exist under the output directory. Launchers must wait for every worker to finish successfully before aggregation; the aggregator does not infer which rank directory is missing.
 
+![Global selection, per-rank logs, and aggregation.](../../assets/concepts/diagrams/distributed-results.en-US.svg)
+
 ## 8. Error handling
 
 By default, an Episode exception is persisted as `status=error`, and evaluation continues with the remaining Episodes.
@@ -321,7 +327,6 @@ from satnav.evaluation import (
     PolicyStep,
 )
 
-
 class StopPolicy(PolicyAdapter):
     def reset(self, context):
         self.context = context
@@ -331,7 +336,6 @@ class StopPolicy(PolicyAdapter):
 
     def close(self):
         pass
-
 
 summary = Evaluator(
     environment=env,

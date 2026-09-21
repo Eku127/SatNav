@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="700" viewBox="0 0 1100 700" role="img" aria-labelledby="title desc">
+  <title id="title">Episode 分片、恢复与汇总</title>
+  <desc id="desc">先做全局选择，再按 rank 分片；每个 worker 保存自己的 Episode 记录</desc>
+  <defs>
+    <marker id="2475A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#2475A5" />
+    </marker>
+    <marker id="29836A" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#29836A" />
+    </marker>
+    <marker id="B87623" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#B87623" />
+    </marker>
+    <marker id="7958A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#7958A5" />
+    </marker>
+    <marker id="52677C" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#52677C" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1100" height="700" rx="0" fill="#FFFFFF" stroke="none" stroke-width="2" />
+  <text x="36" y="48.99" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" text-anchor="start">
+    <tspan x="36" dy="0">Episode 分片、恢复与汇总</tspan>
+  </text>
+  <text x="36" y="89.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="start">
+    <tspan x="36" dy="0">先做全局选择，再按 rank 分片；每个 worker 保存自己的 Episode 记录</tspan>
+  </text>
+  <rect x="220" y="125" width="660" height="95" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="550.0" y="157.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="550.0" dy="0">按 episode_key 排序 → offset → limit</tspan>
+  </text>
+  <text x="550.0" y="197.08" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="550.0" dy="0">selected = [0, 1, 2, 3, 4, 5, 6]</tspan>
+  </text>
+  <rect x="35" y="305" width="310" height="130" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="190.0" y="337.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="190.0" dy="0">rank 0</tspan>
+  </text>
+  <text x="190.0" y="382.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="190.0" dy="0">Episode 0, 3, 6</tspan>
+    <tspan x="190.0" dy="24.839999999999996">episodes.jsonl + done.json</tspan>
+  </text>
+  <polyline points="550,220 550,263 190,263 190,305" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="190,435 190,485 550,485 550,535" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+  <rect x="395" y="305" width="310" height="130" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="550.0" y="337.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="550.0" dy="0">rank 1</tspan>
+  </text>
+  <text x="550.0" y="382.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="550.0" dy="0">Episode 1, 4</tspan>
+    <tspan x="550.0" dy="24.839999999999996">episodes.jsonl + done.json</tspan>
+  </text>
+  <polyline points="550,220 550,263 550,263 550,305" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="550,435 550,485 550,485 550,535" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+  <rect x="755" y="305" width="310" height="130" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="910.0" y="337.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="910.0" dy="0">rank 2</tspan>
+  </text>
+  <text x="910.0" y="382.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="910.0" dy="0">Episode 2, 5</tspan>
+    <tspan x="910.0" dy="24.839999999999996">episodes.jsonl + done.json</tspan>
+  </text>
+  <polyline points="550,220 550,263 910,263 910,305" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="910,435 910,485 550,485 550,535" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+  <rect x="220" y="535" width="660" height="80" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="550.0" y="567.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="550.0" dy="0">等待全部 worker → aggregate → summary.json</tspan>
+  </text>
+  <text x="550.0" y="661.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="550.0" dy="0">resume：读取各 rank 已有 key，继续剩余 Episode</tspan>
+  </text>
+</svg>

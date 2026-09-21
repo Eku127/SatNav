@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="630" viewBox="0 0 1100 630" role="img" aria-labelledby="title desc">
+  <title id="title">地理坐标、像素坐标与相对位姿</title>
+  <desc id="desc">heading 从正北顺时针增加；相对位移坐标轴固定在 Episode 起始朝向</desc>
+  <defs>
+    <marker id="2475A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#2475A5" />
+    </marker>
+    <marker id="29836A" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#29836A" />
+    </marker>
+    <marker id="B87623" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#B87623" />
+    </marker>
+    <marker id="7958A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#7958A5" />
+    </marker>
+    <marker id="52677C" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#52677C" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1100" height="630" rx="0" fill="#FFFFFF" stroke="none" stroke-width="2" />
+  <text x="36" y="48.99" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" text-anchor="start">
+    <tspan x="36" dy="0">地理坐标、像素坐标与相对位姿</tspan>
+  </text>
+  <text x="36" y="89.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="start">
+    <tspan x="36" dy="0">heading 从正北顺时针增加；相对位移坐标轴固定在 Episode 起始朝向</tspan>
+  </text>
+  <rect x="35" y="125" width="310" height="105" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="190.0" y="157.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="190.0" dy="0">WGS84</tspan>
+  </text>
+  <text x="190.0" y="189.66" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="190.0" dy="0">经度 λ · 纬度 φ · 高度 h</tspan>
+    <tspan x="190.0" dy="24.839999999999996">公共 position 接口</tspan>
+  </text>
+  <rect x="395" y="125" width="310" height="105" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="550.0" y="157.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="550.0" dy="0">EPSG:3857</tspan>
+  </text>
+  <text x="550.0" y="189.66" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="550.0" dy="0">投影 x / y</tspan>
+    <tspan x="550.0" dy="24.839999999999996">移动与渲染窗口</tspan>
+  </text>
+  <rect x="755" y="125" width="310" height="105" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="910.0" y="157.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="910.0" dy="0">影像像素</tspan>
+  </text>
+  <text x="910.0" y="189.66" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="910.0" dy="0">col 向右 · row 向下</tspan>
+    <tspan x="910.0" dy="24.839999999999996">GeoTIFF affine transform</tspan>
+  </text>
+  <polyline points="345,178 395,178" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="705,178 755,178" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="170,520 170,300" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#52677C)" />
+  <text x="170.0" y="286.51" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" text-anchor="middle">
+    <tspan x="170.0" dy="0">N / 0°</tspan>
+  </text>
+  <polyline points="170,520 370,520" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#52677C)" />
+  <text x="395.0" y="556.51" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" text-anchor="middle">
+    <tspan x="395.0" dy="0">E / 90°</tspan>
+  </text>
+  <polyline points="170,520 325,365" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <text x="375.0" y="339.01" fill="#2475A5" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" text-anchor="middle">
+    <tspan x="375.0" dy="0">forward / θ₀</tspan>
+  </text>
+  <polyline points="170,520 255,605" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+  <text x="355.0" y="598.89" fill="#29836A" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" font-weight="400" text-anchor="middle">
+    <tspan x="355.0" dy="0">right / θ₀ + 90°</tspan>
+  </text>
+  <ellipse cx="170.0" cy="520.0" rx="9.0" ry="9.0" fill="#2475A5" stroke="#2475A5" stroke-width="2" />
+  <text x="101.5" y="559.77" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="400" text-anchor="middle">
+    <tspan x="101.5" dy="0">Episode 起点</tspan>
+  </text>
+  <rect x="540" y="290" width="500" height="145" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="790.0" y="322.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="790.0" dy="0">agent_pose</tspan>
+  </text>
+  <text x="790.0" y="362.24" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="790.0" dy="0">沿起始 forward / right 的位移</tspan>
+    <tspan x="790.0" dy="24.839999999999996">sin(Δheading), cos(Δheading)</tspan>
+    <tspan x="790.0" dy="24.839999999999996">reset → [0, 0, 0, 1]</tspan>
+  </text>
+  <rect x="540" y="475" width="500" height="105" rx="12" fill="#F5F0FA" stroke="#7958A5" stroke-width="2" />
+  <text x="790.0" y="507.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="790.0" dy="0">动作更新</tspan>
+  </text>
+  <text x="790.0" y="539.66" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="790.0" dy="0">LEFT: θ − 15°     RIGHT: θ + 15°</tspan>
+    <tspan x="790.0" dy="24.839999999999996">FORWARD: 10 m</tspan>
+  </text>
+</svg>

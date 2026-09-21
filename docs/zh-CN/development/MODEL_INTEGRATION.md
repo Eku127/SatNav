@@ -7,6 +7,8 @@
 开始前建议先阅读 [Core API](../core/CORE_API.md) 和 [Evaluation](../evaluation/README.md)。前者介绍
 observation、action 与 `Env`，后者介绍 Episode 选择、结果格式和聚合方式。
 
+环境、策略和评测器的职责及交互闭环见[系统全景](../concepts/OVERVIEW.md)。
+
 ## 1. 准备环境
 
 在模型自己的 Python 环境中安装 SatNav Core：
@@ -109,7 +111,7 @@ class ForwardThenStopAdapter:
         self._episode_key = None
 ```
 
-Episode 结束不代表 adapter 对象被销毁。同一个 adapter 会继续处理后续 Episode，因此所有
+同一个 adapter 会连续处理多个 Episode，因此所有
 Episode 级状态都应在 `reset()` 中重新初始化。
 
 ## 4. `EpisodeContext`

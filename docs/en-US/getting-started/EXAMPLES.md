@@ -54,7 +54,7 @@ output/examples/reference_follower/
 
 ![Reference Path Follower top-down map](../../assets/examples/topdown_map_example.png)
 
-*Top-down map produced by Reference Path Follower.*
+<p class="figure-caption" align="center"><em>Top-down map produced by Reference Path Follower.</em></p>
 
 Choose another output directory with:
 
@@ -141,4 +141,4 @@ scenes.
 `ReferencePathFollower` receives the full reference path and follows it in one
 episode. `SatNavPathFollower` receives one waypoint at a time, computes actions
 from simulator state, and supports multiple episodes, structured metrics, and
-video output. Both are deterministic navigation utilities, not learned models.
+video output. Both determine navigation actions from predefined rules and simulator state.

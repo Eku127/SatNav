@@ -52,7 +52,7 @@ output/examples/reference_follower/
 
 ![Reference Path Follower top-down map](../../assets/examples/topdown_map_example.png)
 
-*Reference Path Follower 的 top-down map 输出。*
+<p class="figure-caption" align="center"><em>Reference Path Follower 的 top-down map 输出。</em></p>
 
 指定输出目录：
 
@@ -100,7 +100,7 @@ output/examples/satnav_path_follower/
   <source src="../../assets/examples/episode_1602_video.mp4" type="video/mp4">
 </video>
 
-*SatNavPathFollower 视频示例（NewYork-3，Episode 1602）：左侧为 RGB observation，右侧为 top-down map，底部为导航指令。*
+<p class="figure-caption" align="center"><em>SatNavPathFollower 视频示例（NewYork-3，Episode 1602）：左侧为 RGB observation，右侧为 top-down map，底部为导航指令。</em></p>
 
 如果当前文档页面不支持内嵌播放，可以[下载或观看 MP4 视频](../../assets/examples/episode_1602_video.mp4)。
 
@@ -133,4 +133,4 @@ python examples/satnav_path_follower_example.py \
 
 `ReferencePathFollower` 直接接收完整 reference path，并在单个 Episode 中跟随路径；`SatNavPathFollower` 接收当前 waypoint，根据模拟器状态实时计算下一步动作，并支持批量 Episode、结构化指标和视频输出。
 
-这两个 follower 都是确定性的导航辅助工具，不是需要训练或加载 checkpoint 的学习模型。
+这两个 follower 都根据预设规则和模拟器状态确定导航动作。

@@ -4,6 +4,8 @@ This guide introduces the common SatNav training workflow and uses the repositor
 
 Before starting, read [Installation](../getting-started/INSTALLATION.md) and [Dataset Format](../dataset/DATASET_FORMAT.md). If you only need to connect an existing model to online evaluation, go directly to [Model Integration](../development/MODEL_INTEGRATION.md).
 
+See [architecture](../concepts/OVERVIEW.md) for training versus online evaluation, and [expert trajectories](../concepts/EXPERT_TRAJECTORIES.md) for RGB/action supervision alignment.
+
 ## 1. Training workflow
 
 SatNav separates offline training from online evaluation:
@@ -127,7 +129,7 @@ The tiny example verifies that the following pipeline works in your environment:
 - checkpoint saving and strict reload;
 - online Seq2Seq and CMA rollouts with metric output.
 
-This dataset is intentionally small and only validates the training pipeline. Its loss and navigation metrics do not represent performance on the SatNav-v0.1 benchmark.
+The example validates the training pipeline. Use the complete SatNav-v0.1 training and evaluation splits to assess model performance.
 
 ## 5. Prepare the quickstart environment
 
@@ -264,4 +266,4 @@ The tiny example uses the fixed `output/quickstart_baselines/` location so it ca
 
 ### Why are Success or SPL low on the tiny example?
 
-The example has only two Episodes and very few optimizer updates. It validates code, data, checkpoint, and rollout behavior; it is not a model-quality benchmark.
+The example contains two Episodes and a small number of optimizer updates. It checks data loading, checkpoint saving, and online rollouts. Assess model performance with the complete dataset and corresponding training configuration.

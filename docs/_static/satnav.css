@@ -9,6 +9,7 @@
 .rst-content p, .rst-content li { line-height: 1.65; }
 .rst-content h1, .rst-content h2, .rst-content h3 { color: #20364c; }
 .rst-content img, .rst-content video { max-width: 100%; height: auto; }
+.rst-content .figure-caption { text-align: center; }
 .rst-content .docutils td { white-space: normal; vertical-align: top; }
 .rst-content .wy-table-responsive { margin-bottom: 1.5rem; }
 .rst-content pre { overflow-x: auto; }

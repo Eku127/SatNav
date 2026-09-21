@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="660" viewBox="0 0 1100 660" role="img" aria-labelledby="title desc">
+  <title id="title">把参考路径转换为专家动作</title>
+  <desc id="desc">中间路径点到达后继续跟随；最终目标到达后执行 STOP</desc>
+  <defs>
+    <marker id="2475A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#2475A5" />
+    </marker>
+    <marker id="29836A" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#29836A" />
+    </marker>
+    <marker id="B87623" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#B87623" />
+    </marker>
+    <marker id="7958A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#7958A5" />
+    </marker>
+    <marker id="52677C" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#52677C" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1100" height="660" rx="0" fill="#FFFFFF" stroke="none" stroke-width="2" />
+  <text x="36" y="48.99" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" text-anchor="start">
+    <tspan x="36" dy="0">把参考路径转换为专家动作</tspan>
+  </text>
+  <text x="36" y="89.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="start">
+    <tspan x="36" dy="0">中间路径点到达后继续跟随；最终目标到达后执行 STOP</tspan>
+  </text>
+  <rect x="35" y="130" width="295" height="110" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="182.5" y="162.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="182.5" dy="0">reference_path[1:]</tspan>
+  </text>
+  <text x="182.5" y="197.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="182.5" dy="0">必要时追加最终 goal</tspan>
+    <tspan x="182.5" dy="24.839999999999996">按顺序选择目标点</tspan>
+  </text>
+  <rect x="405" y="130" width="295" height="110" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="552.5" y="162.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="552.5" dy="0">距离 d 与朝向误差 Δθ</tspan>
+  </text>
+  <text x="552.5" y="197.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="552.5" dy="0">读取当前位姿</tspan>
+    <tspan x="552.5" dy="24.839999999999996">计算目标方位角</tspan>
+  </text>
+  <rect x="775" y="130" width="290" height="110" rx="12" fill="#FFF6E8" stroke="#B87623" stroke-width="2" />
+  <text x="920.0" y="162.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="920.0" dy="0">到达当前目标点？</tspan>
+  </text>
+  <text x="920.0" y="209.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="920.0" dy="0">d ≤ goal_radius</tspan>
+  </text>
+  <polyline points="330,185 405,185" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="700,185 775,185" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <rect x="775" y="330" width="290" height="115" rx="12" fill="#F5F0FA" stroke="#7958A5" stroke-width="2" />
+  <text x="920.0" y="362.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="920.0" dy="0">尚未到达：选择动作</tspan>
+  </text>
+  <text x="920.0" y="399.66" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="920.0" dy="0">对准 → 前进</tspan>
+    <tspan x="920.0" dy="24.839999999999996">偏右 / 偏左 → 相应转向</tspan>
+  </text>
+  <polyline points="920,240 920,330" fill="none" stroke="#7958A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#7958A5)" />
+  <rect x="405" y="330" width="295" height="115" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="552.5" y="362.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="552.5" dy="0">Env.step(action)</tspan>
+  </text>
+  <text x="552.5" y="399.66" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="552.5" dy="0">保存动作与执行后的 RGB</tspan>
+    <tspan x="552.5" dy="24.839999999999996">更新当前位置</tspan>
+  </text>
+  <polyline points="775,387 700,387" fill="none" stroke="#7958A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#7958A5)" />
+  <polyline points="550,330 550,240" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+  <rect x="35" y="330" width="295" height="115" rx="12" fill="#FFF6E8" stroke="#B87623" stroke-width="2" />
+  <text x="182.5" y="362.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="182.5" dy="0">已到达中间点</tspan>
+  </text>
+  <text x="182.5" y="399.66" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="182.5" dy="0">切换到下一个路径点</tspan>
+    <tspan x="182.5" dy="24.839999999999996">继续计算动作</tspan>
+  </text>
+  <polyline points="920,240 920,277 180,277 180,330" fill="none" stroke="#B87623" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#B87623)" />
+  <polyline points="180,330 180,295 405,295 405,220" fill="none" stroke="#B87623" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#B87623)" />
+  <rect x="370" y="535" width="695" height="85" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="717.5" y="567.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="717.5" dy="0">已到达最终目标 → 执行 STOP → 保存最终帧</tspan>
+  </text>
+  <polyline points="1065,185 1080,185 1080,578 1065,578" fill="none" stroke="#29836A" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#29836A)" />
+  <text x="182.5" y="538.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="182.5" dy="0">转向容差随距离与上一动作调整</tspan>
+    <tspan x="182.5" dy="24.839999999999996">减少前进 / 转向反复切换</tspan>
+  </text>
+</svg>

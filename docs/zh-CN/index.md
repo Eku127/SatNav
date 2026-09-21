@@ -10,6 +10,7 @@ SatNav 将场景准备、轨迹生成、模型训练与在线评测整合到同�
 
 | 你的目标 | 使用指南 |
 | --- | --- |
+| 理解系统原理 | [系统全景与运行闭环](concepts/OVERVIEW.md) · [SatSim 观测原理](concepts/SATSIM.md) · [任务与评测原理](concepts/TASKS_AND_METRICS.md) · [专家轨迹原理](concepts/EXPERT_TRAJECTORIES.md) |
 | 运行第一个导航 Episode | [安装](getting-started/INSTALLATION.md) · [运行示例](getting-started/EXAMPLES.md) |
 | 准备场景与 Episodes | [数据集](dataset/DATA_DOWNLOAD.md) · [卫星地图](applications/MAP_DOWNLOAD.md) |
 | 训练导航策略 | [训练指南](training/README.md) |
@@ -35,6 +36,17 @@ SatNav 将场景准备、轨迹生成、模型训练与在线评测整合到同�
 安装 <getting-started/INSTALLATION>
 运行示例 <getting-started/EXAMPLES>
 使用流程 <README>
+```
+
+```{toctree}
+:hidden:
+:maxdepth: 2
+:caption: 系统原理
+
+系统全景与运行闭环 <concepts/OVERVIEW>
+SatSim 观测原理 <concepts/SATSIM>
+任务与评测原理 <concepts/TASKS_AND_METRICS>
+专家轨迹原理 <concepts/EXPERT_TRAJECTORIES>
 ```
 
 ```{toctree}

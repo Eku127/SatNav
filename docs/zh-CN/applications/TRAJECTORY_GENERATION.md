@@ -2,6 +2,8 @@
 
 本文介绍如何使用 `applications/trajectory_generation` 生成 VLM-based VLN 方法所需的离线训练数据。生成器按照每个 Episode 的 `reference_path` 驱动 SatSim，并保存 RGB 帧、动作序列和指令标注。
 
+路径跟随算法、目标点切换和帧—动作对齐的图解见[专家轨迹原理](../concepts/EXPERT_TRAJECTORIES.md)。
+
 ## 1. 准备环境
 
 开始前请完成[环境安装](../getting-started/INSTALLATION.md)、[Episode 数据下载](../dataset/DATA_DOWNLOAD.md)和[卫星场景下载](MAP_DOWNLOAD.md)，然后在 SatNav 仓库根目录执行：

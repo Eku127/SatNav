@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="580" viewBox="0 0 1100 580" role="img" aria-labelledby="title desc">
+  <title id="title">高度与视场角决定地面覆盖</title>
+  <desc id="desc">平面俯视模型；右侧展示 GeoTIFF 到 RGB 的实际处理顺序</desc>
+  <defs>
+    <marker id="2475A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#2475A5" />
+    </marker>
+    <marker id="29836A" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#29836A" />
+    </marker>
+    <marker id="B87623" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#B87623" />
+    </marker>
+    <marker id="7958A5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#7958A5" />
+    </marker>
+    <marker id="52677C" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L9 4.5 L0 9 Z" fill="#52677C" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1100" height="580" rx="0" fill="#FFFFFF" stroke="none" stroke-width="2" />
+  <text x="36" y="48.99" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" text-anchor="start">
+    <tspan x="36" dy="0">高度与视场角决定地面覆盖</tspan>
+  </text>
+  <text x="36" y="89.58" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="start">
+    <tspan x="36" dy="0">平面俯视模型；右侧展示 GeoTIFF 到 RGB 的实际处理顺序</tspan>
+  </text>
+  <polyline points="80,425 500,425" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" />
+  <polyline points="290,145 105,425 475,425 290,145" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" />
+  <polyline points="290,145 290,425" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <ellipse cx="290.0" cy="145.0" rx="13.0" ry="13.0" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <polyline points="257,195 268,202 279,206 290,208 301,206 312,202 323,195" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" />
+  <text x="137.5" y="201.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="400" text-anchor="middle">
+    <tspan x="137.5" dy="0">HFOV = α</tspan>
+  </text>
+  <polyline points="215,195 242,195 257,195" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" />
+  <polyline points="310,145 530,145" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <polyline points="475,425 530,425" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="7 5" />
+  <polyline points="520,285 520,145" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#52677C)" />
+  <polyline points="520,285 520,425" fill="none" stroke="#52677C" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#52677C)" />
+  <text x="572.5" y="278.16" fill="#52677C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" text-anchor="middle">
+    <tspan x="572.5" dy="0">高度</tspan>
+    <tspan x="572.5" dy="24.839999999999996">h</tspan>
+  </text>
+  <polyline points="105,459 475,459" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <text x="295.0" y="498.13" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" font-weight="700" text-anchor="middle">
+    <tspan x="295.0" dy="0">Lx = 2h tan(α / 2)</tspan>
+  </text>
+  <rect x="620" y="125" width="420" height="80" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="830.0" y="157.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="830.0" dy="0">1  计算覆盖与旋转后的边界</tspan>
+  </text>
+  <rect x="620" y="235" width="420" height="80" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="830.0" y="267.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="830.0" dy="0">2  读取扩大后的影像窗口</tspan>
+  </text>
+  <rect x="620" y="345" width="420" height="80" rx="12" fill="#EDF6FC" stroke="#2475A5" stroke-width="2" />
+  <text x="830.0" y="377.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="830.0" dy="0">3  按 heading 旋转、中心裁剪</tspan>
+  </text>
+  <rect x="620" y="455" width="420" height="80" rx="12" fill="#EDF8F3" stroke="#29836A" stroke-width="2" />
+  <text x="830.0" y="487.82" fill="#20364C" font-family="Arial, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" text-anchor="middle">
+    <tspan x="830.0" dy="0">4  缩放为 W × H RGB</tspan>
+  </text>
+  <polyline points="830,205 830,235" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="830,315 830,345" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+  <polyline points="830,425 830,455" fill="none" stroke="#2475A5" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#2475A5)" />
+</svg>
