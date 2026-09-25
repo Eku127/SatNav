@@ -1,5 +1,7 @@
 # SatNav Documentation
 
+**[SatNav](https://openreview.net/forum?id=hOEniyN6hl) is accepted at NeurIPS 2026, Evaluations & Datasets Track (Poster).**
+
 **Continuous-State Vision-and-Language Navigation via Satellite Maps**
 
 SatNav provides scene preparation, trajectory generation, model training, and online evaluation for language-guided navigation over satellite maps. Its SatSim environment renders RGB observations as agents move through continuous geographic space.
