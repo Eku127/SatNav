@@ -5,7 +5,7 @@
 </h2>
 
 <p align="center">
-  <strong>NeurIPS 2026 E&amp;D</strong>
+  <strong>NeurIPS 2026 Evaluations &amp; Datasets</strong>
 </p>
 
 <p align="center">
