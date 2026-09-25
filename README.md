@@ -1,10 +1,8 @@
 <h1 align="center">SatNav</h1>
 
-<p align="center">
-  <strong>
-    SatNav: A Scalable Benchmark for Long-Horizon UAV Vision-Language Navigation from Satellite Imagery
-  </strong>
-</p>
+<h2 align="center">
+  SatNav: A Scalable Benchmark for Long-Horizon UAV Vision-Language Navigation from Satellite Imagery
+</h2>
 
 <p align="center">
   <strong>NeurIPS 2026 E&amp;D</strong>
