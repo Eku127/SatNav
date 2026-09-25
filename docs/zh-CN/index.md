@@ -1,7 +1,5 @@
 # SatNav 文档
 
-**[SatNav 论文](https://openreview.net/forum?id=hOEniyN6hl)已被 NeurIPS 2026 Evaluations & Datasets Track 录取，展示形式为 Poster。**
-
 **基于卫星地图的连续状态视觉语言导航**
 
 SatNav 将场景准备、轨迹生成、模型训练与在线评测整合到同一导航平台。核心环境 SatSim 根据智能体在连续地理空间中的位置与朝向，渲染对应的 RGB 观测。

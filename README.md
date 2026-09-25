@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>NeurIPS 2026 · Evaluations &amp; Datasets Track · Poster</strong>
+  <strong>NeurIPS 2026 E&amp;D</strong>
 </p>
 
 <p align="center">
