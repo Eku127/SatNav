@@ -23,9 +23,11 @@ own credentials. Google Maps, Mapbox, and their associated imagery, tiles,
 logos, trademarks, and attribution requirements remain governed by their
 respective provider terms.
 
-The authors do not redistribute, sublicense, or grant rights to Google Maps or
-Mapbox imagery. Generated local GeoTIFF scene files are user-prepared assets and
-are not covered by the SatNav source-code license.
+Prepared benchmark GeoTIFF scenes are available through SatNav-Scenes-v0.1:
+https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1
+The dataset card describes access and use terms. Users can also generate local
+GeoTIFFs through the downloader with their own imagery-provider credentials.
+Imagery rights and attribution follow the applicable provider agreements.
 
 Bundled Synthetic Example Map
 -----------------------------

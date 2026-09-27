@@ -66,14 +66,12 @@ export SATNAV_SCENES_DIR=/path/to/satnav_scenes
 GeoTIFF files named by scene id, for example `Amsterdam-1.tif` for
 `scene_id: Amsterdam-1`.
 
-If the scene GeoTIFF files are not prepared yet, use the map downloader app to
-download and build them first:
+Prepare the scene GeoTIFFs using either option:
 
-```bash
-python -m applications.map_downloader
-```
+- [Request and download SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1); access is approved automatically after submitting the form and accepting the terms.
+- Register for an imagery API and generate scenes with your own credentials using `applications/map_downloader`.
 
-See `applications/map_downloader/README.md` for downloader configuration.
+See [Satellite Scene Download](../../docs/en-US/applications/MAP_DOWNLOAD.md) for both workflows and path configuration.
 
 Then run:
 

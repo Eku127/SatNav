@@ -29,7 +29,7 @@
 训练模型或运行正式评测时，按照以下顺序准备数据：
 
 1. [Episode 数据下载](dataset/DATA_DOWNLOAD.md)：下载 train、`val_seen`、`val_unseen` 和场景列表；
-2. [卫星场景下载](applications/MAP_DOWNLOAD.md)：根据场景列表生成 SatSim 使用的 GeoTIFF；
+2. [卫星场景下载](applications/MAP_DOWNLOAD.md)：申请下载现成 GeoTIFF，或使用自己的 API 凭据生成场景；
 3. [SatSim Viewer](applications/VIEWER.md)：检查场景、Episode 起点和 reference path；
 4. [轨迹数据生成](applications/TRAJECTORY_GENERATION.md)：为离线训练生成 RGB frame 与 expert action；
 5. [数据格式](dataset/DATASET_FORMAT.md)：检查 Episode 与 trajectory 字段是否符合公开格式。

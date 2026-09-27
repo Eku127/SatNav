@@ -10,12 +10,7 @@ metadata. Satellite scenes are prepared separately; see
 | --- | --- | --- | --- |
 | SatNav-Episodes-v0.1 | Episode metadata | [Hugging Face](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1) | Instructions, starts, goals, waypoints, reference paths, and splits |
 
-The dataset contains episode JSON files, train/evaluation splits,
-`scenes_list.yaml`, and documentation. The scene list records geographic
-bounds only; it contains no imagery.
-
-The release does not include raw OpenStreetMap data, satellite imagery, map
-tiles, GeoTIFF scenes, or offline training trajectories.
+The Episodes dataset contains episode JSON files, train/evaluation splits, scene bounds in `scenes_list.yaml`, and documentation. Obtain the companion GeoTIFFs by requesting [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1), or generate them using your own imagery API credentials. See [Satellite Scene Download](../applications/MAP_DOWNLOAD.md) for both workflows.
 
 ## 2. Download and configure
 
@@ -76,8 +71,7 @@ documentation is released under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See
 [DATA_LICENSE.md](../../../DATA_LICENSE.md) for the complete terms.
 
-Satellite imagery is not part of SatNav-Episodes-v0.1 and is not sublicensed
-by SatNav.
+Companion scenes use the access terms on [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1). API-generated scenes follow the corresponding imagery provider terms.
 
 ## 5. Next step
 

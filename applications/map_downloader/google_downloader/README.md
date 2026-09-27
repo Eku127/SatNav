@@ -1,5 +1,7 @@
 # Google Map Tiles Downloader
 
+For the 59 benchmark scenes, you can [request and download prepared GeoTIFFs](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) after completing the access form and accepting the terms. The API workflow below generates scenes with your own provider credentials.
+
 Download Google Map Tiles API imagery and export EPSG:3857 GeoTIFF files for SatNav scenes.
 SatNav episode scenes are generated at zoom level `19`.
 

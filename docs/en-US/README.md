@@ -38,8 +38,8 @@ For training or full evaluation, prepare data in this order:
 
 1. [Episode Download](dataset/DATA_DOWNLOAD.md): download train, `val_seen`,
    `val_unseen`, and the scene list;
-2. [Satellite Scene Download](applications/MAP_DOWNLOAD.md): create the
-   GeoTIFFs used by SatSim;
+2. [Satellite Scene Download](applications/MAP_DOWNLOAD.md): request prepared
+   GeoTIFFs or generate them with your own API credentials;
 3. [SatSim Viewer](applications/VIEWER.md): inspect scenes, episode starts, and
    reference paths;
 4. [Trajectory Generation](applications/TRAJECTORY_GENERATION.md): generate

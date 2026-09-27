@@ -1,12 +1,41 @@
 # SatNav 卫星场景下载
 
-本文介绍如何使用 `applications/map_downloader` 将地图瓦片拼接为 SatSim 可读取的 GeoTIFF 场景。SatNav-Episodes-v0.1 所需的 59 个场景范围定义在 `scenes_list.yaml` 中；如尚未准备该文件，请先完成 [Episode 数据下载](../dataset/DATA_DOWNLOAD.md)。
+SatSim 使用 59 个 GeoTIFF 场景。可以选择下载已准备好的场景，或使用自己的地图服务 API 凭据，通过 SatNav 脚本生成场景。
 
-> 地图下载器只提供技术能力，不授予地图内容的下载、存储、分发或机器学习使用许可。请在使用前确认服务商的最新条款及你的授权范围。
+| 获取方式 | 步骤 |
+| --- | --- |
+| 方式一：下载现成场景 | 在 [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) 填写申请表并同意使用条款，自动获批后下载 |
+| 方式二：通过 API 生成 | 注册 Google Map Tiles API 或 Mapbox，配置凭据后运行地图下载脚本 |
 
-GeoTIFF 如何通过坐标变换和局部裁剪生成 RGB，见[SatSim 观测原理](../concepts/SATSIM.md)。
+场景范围定义在 Episodes 数据集的 `scenes_list.yaml` 中，见 [Episode 数据下载](../dataset/DATA_DOWNLOAD.md)。GeoTIFF 如何生成 RGB observation，见 [SatSim 观测原理](../concepts/SATSIM.md)。
 
-## 1. 准备环境
+## 方式一：申请并下载现成场景
+
+打开 [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1)，登录 Hugging Face，填写姓名、机构、机构邮箱和研究用途，勾选声明并提交。系统自动授予该账号下载权限。
+
+使用同一账号登录命令行，在 SatNav 仓库根目录下载场景和校验清单（共 64.79 GB）：
+
+```bash
+pip install -U huggingface_hub
+hf auth login
+hf download Eku127/SatNav-Scenes-v0.1 --repo-type dataset \
+  --include "scenes/*.tif" --include SHA256SUMS \
+  --local-dir "$PWD/data/satnav_datasets"
+```
+
+设置数据路径，并校验下载的 GeoTIFF：
+
+```bash
+export SATNAV_DATA_ROOT="$PWD/data/satnav_datasets/SatNav-v0.1"
+export SATNAV_SCENES_DIR="$PWD/data/satnav_datasets/scenes"
+(cd "$PWD/data/satnav_datasets" && sha256sum -c SHA256SUMS)
+```
+
+完成后直接进入下方“校验数据配置”。
+
+## 方式二：使用自己的 API 凭据生成场景
+
+### 1. 准备环境
 
 先完成[环境安装](../getting-started/INSTALLATION.md)，然后在 SatNav 仓库根目录安装 applications 依赖并设置数据路径：
 
@@ -20,11 +49,11 @@ mkdir -p "$SATNAV_SCENES_DIR"
 
 如数据位于其他磁盘，请将环境变量改为对应的绝对路径。
 
-## 2. 配置服务凭据
+### 2. 配置服务凭据
 
-只需配置实际使用的服务商。建议使用google的api来进行tile的下载
+选择实际使用的服务商。Google Map Tiles API 支持按场景清单批量生成；Mapbox 支持单场景生成。
 
-### Google Map Tiles API
+#### Google Map Tiles API
 
 1. 创建或选择已启用结算的 Google Cloud 项目。
 2. 启用 [Map Tiles API](https://console.cloud.google.com/apis/library/tile.googleapis.com)。
@@ -37,7 +66,7 @@ export GOOGLE_MAPS_API_KEY="your-api-key"
 
 参考 [Google 官方配置指南](https://developers.google.com/maps/documentation/tile/get-api-key)。
 
-### Mapbox
+#### Mapbox
 
 1. 创建 Mapbox 账户。
 2. 在 [Access Tokens](https://console.mapbox.com/account/access-tokens/) 页面创建 token。
@@ -49,7 +78,7 @@ export MAPBOX_ACCESS_TOKEN="your-access-token"
 
 参考 [Mapbox token 文档](https://docs.mapbox.com/accounts/guides/tokens/)。不要将真实凭据写入脚本或提交到 Git。
 
-## 3. 批量生成 59 个场景
+### 3. 批量生成 59 个场景
 
 `--scene-config` 批量模式目前仅支持 Google。请先执行 dry run，检查场景配置和输出路径；该命令不会下载瓦片：
 
@@ -78,7 +107,7 @@ python -m applications.map_downloader google \
 
 下载前请确认 API 配额、费用和可用磁盘空间。
 
-## 4. 下载单个场景
+### 4. 下载单个场景
 
 Google 和 Mapbox 均支持单场景下载。以下示例使用两个 WGS84 角点定义区域：
 
@@ -144,10 +173,8 @@ python -m pip install -e '.[applications]'
 除配额和区域覆盖外，绑定 EEA 账单地址的项目无法获取 2D satellite tiles。根据命令返回的
 错误码检查 [Google 错误说明](https://developers.google.com/maps/documentation/tile/error_handling)。
 
-## 7. 使用条款
+## 7. 数据来源与使用条款
 
-Google Map Tiles API 当前政策限制未经授权的预取、存储和离线使用，并将图像分析、机器解释等列为不可使用的非可视化场景。除非你的协议另有许可，否则不要将其输出用于离线训练或评测。使用前请阅读 [Google Map Tiles API 政策](https://developers.google.com/maps/documentation/tile/policies)和[计费说明](https://developers.google.com/maps/documentation/tile/usage-and-billing)。
-
-Mapbox 用户请阅读 [Raster Tiles API 文档](https://docs.mapbox.com/api/maps/raster-tiles/)及对应服务条款。SatNav 不分发第三方卫星影像，也不替用户获得或转授地图内容许可。
+现成场景的申请和使用条件见 [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1)。通过 API 获取影像时，使用自己的账号凭据，并按服务商协议确定存储和研究使用范围。服务文档：[Google Map Tiles API 政策](https://developers.google.com/maps/documentation/tile/policies)、[计费说明](https://developers.google.com/maps/documentation/tile/usage-and-billing)、[Mapbox Raster Tiles API](https://docs.mapbox.com/api/maps/raster-tiles/)。
 
 场景准备完成后，可使用 [SatSim Viewer](VIEWER.md)检查 GeoTIFF，或按照[轨迹数据生成](TRAJECTORY_GENERATION.md)生成离线训练数据。

@@ -29,24 +29,16 @@ as well as separate SatNav-Episodes dataset releases.
 
 ## Satellite and Map Imagery
 
-The bundled `applications/resources/map.tif` is an exception to the following
-third-party-imagery warning because it is not imagery from a map provider. It
-is generated entirely from deterministic coordinate formulas by
-`scripts/generate_synthetic_example_map.py` and is dedicated to the public
-domain under CC0 1.0. Its GeoTIFF tags and
-`applications/resources/README.md` record this provenance.
+The bundled `applications/resources/map.tif` is generated from deterministic
+coordinate formulas by `scripts/generate_synthetic_example_map.py` and is
+released under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+Its GeoTIFF tags and `applications/resources/README.md` record the provenance.
 
-https://creativecommons.org/publicdomain/zero/1.0/
-
-Google Maps, Mapbox, and other third-party satellite or map imagery are not
-included in the SatNav-Episodes dataset release and are not sublicensed by the
-authors. The map downloader utilities are provided only to help users prepare
-local scene assets with their own provider credentials. Users are responsible
-for complying with the terms of the imagery provider they choose, including any
-restrictions on caching, redistribution, and ML/AI use.
-
-Do not assume imagery downloaded through SatNav utilities is covered by the MIT
-license, CC BY 4.0, or ODbL-1.0.
+The 59 benchmark GeoTIFF scenes are available through
+[SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1); its dataset card describes access and use terms.
+Users can also generate scenes with their own imagery-provider credentials
+using the map downloader. Provider agreements govern imagery storage,
+attribution, redistribution, and research use.
 
 ## Third-Party Notices
 

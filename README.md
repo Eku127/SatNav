@@ -83,13 +83,13 @@ Start with local scenes and episodes, generate training trajectories, and evalua
 
 **[SatNav-Episodes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1)** provides **118,494 VLN episodes across 59 scenes**, covering boundary, landmark, and route navigation. Each episode pairs a language instruction with a scene, starting pose, goals, waypoints, and a reference path. The release includes `train`, `val_seen`, and `val_unseen` splits.
 
-Use the JSON files under `episodes/` with SatNav, or explore the same annotations through the Hugging Face Dataset Viewer and Parquet files under `data/`. Prepare the corresponding GeoTIFF scenes with the map tools below.
+Use the JSON files under `episodes/` with SatNav, or explore the same annotations through the Hugging Face Dataset Viewer and Parquet files under `data/`. For GeoTIFF scenes, [request and download SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1), or [generate scenes with your own API credentials](docs/en-US/applications/MAP_DOWNLOAD.md).
 
 | Resource | Where to start |
 | --- | --- |
 | Episodes and splits | [Download on Hugging Face](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1/tree/main/episodes) |
 | Dataset preview and loading | [Dataset Card](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1) |
-| Satellite scenes | [Prepare GeoTIFF maps](docs/en-US/applications/MAP_DOWNLOAD.md) |
+| Satellite scenes | [Request prepared GeoTIFFs](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) · [Download options and API setup](docs/en-US/applications/MAP_DOWNLOAD.md) |
 | Training trajectories | [Generate observation-action data](docs/en-US/applications/TRAJECTORY_GENERATION.md) |
 | Episode format | [Read the dataset specification](docs/en-US/dataset/DATASET_FORMAT.md) |
 | Released VLM checkpoints | [Browse the SatNav Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo) |

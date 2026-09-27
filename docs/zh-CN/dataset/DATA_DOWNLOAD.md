@@ -8,9 +8,7 @@
 | --- | --- | --- | --- |
 | SatNav-Episodes-v0.1 | Episode 元数据 | [Hugging Face](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1) | 指令、起点、目标、waypoint、reference path 和数据划分 |
 
-数据集包含 Episode JSON、train/evaluation 划分、`scenes_list.yaml` 和数据说明。`scenes_list.yaml` 仅记录场景范围，不包含卫星影像。
-
-数据集不包含原始 OpenStreetMap 数据、卫星影像、地图瓦片、GeoTIFF 场景或离线训练 trajectory。
+Episodes 数据集包含 Episode JSON、train/evaluation 划分、场景范围 `scenes_list.yaml` 和数据说明。配套 GeoTIFF 有两种获取方式：在 [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) 填表申请并下载，或使用自己的地图 API 凭据通过脚本生成。操作步骤见[卫星场景下载](../applications/MAP_DOWNLOAD.md)。
 
 ## 2. 下载与配置
 
@@ -66,7 +64,7 @@ cd -
 
 Episode JSON 和相关 benchmark 参数文件按 [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) 发布，数据说明文档按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 发布。完整说明参阅[数据许可](../../../DATA_LICENSE.md)。
 
-卫星影像不属于 SatNav-Episodes-v0.1，也未由 SatNav 转授许可。
+配套场景的使用条件见 [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) 页面；API 生成场景遵循对应影像服务商的条款。
 
 ## 5. 下一步
 
