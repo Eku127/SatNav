@@ -4,14 +4,14 @@ SatSim 使用 59 个 GeoTIFF 场景。可以选择下载已准备好的场景，
 
 | 获取方式 | 步骤 |
 | --- | --- |
-| 方式一：下载现成场景 | 在 [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) 填写申请表并同意使用条款，自动获批后下载 |
+| 方式一：下载现成场景 | 在 [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) 填写申请表并同意使用条款，申请通过系统检查后下载 |
 | 方式二：通过 API 生成 | 注册 Google Map Tiles API 或 Mapbox，配置凭据后运行地图下载脚本 |
 
 场景范围定义在 Episodes 数据集的 `scenes_list.yaml` 中，见 [Episode 数据下载](../dataset/DATA_DOWNLOAD.md)。GeoTIFF 如何生成 RGB observation，见 [SatSim 观测原理](../concepts/SATSIM.md)。
 
 ## 方式一：申请并下载现成场景
 
-打开 [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1)，登录 Hugging Face，填写姓名、机构、机构邮箱和研究用途，勾选声明并提交。系统自动授予该账号下载权限。
+打开 [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1)，登录 Hugging Face，填写姓名、机构、机构邮箱和研究用途，勾选声明并提交。申请通过系统检查后，该账号将获得下载权限。
 
 使用同一账号登录命令行，在 SatNav 仓库根目录下载场景和校验清单（共 64.79 GB）：
 

@@ -4,14 +4,14 @@ SatSim uses 59 GeoTIFF scenes. Choose either prepared scene downloads or the Sat
 
 | Option | Workflow |
 | --- | --- |
-| Option 1: Download prepared scenes | Complete the [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) access form, accept the terms, and download after automatic approval |
+| Option 1: Download prepared scenes | Complete the [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) access form, accept the terms, and download after your request passes the system checks |
 | Option 2: Generate scenes through an API | Register for Google Map Tiles API or Mapbox, configure your credentials, and run the map downloader |
 
 The Episodes dataset provides scene bounds in `scenes_list.yaml`; see [Episode Download](../dataset/DATA_DOWNLOAD.md). See [SatSim observations](../concepts/SATSIM.md) for how GeoTIFF scenes produce RGB observations.
 
 ## Option 1: Request and download prepared scenes
 
-Open [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1), sign in to Hugging Face, enter your name, institution, institutional email, and research purpose, then accept the terms and submit. Access is granted automatically to that account.
+Open [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1), sign in to Hugging Face, enter your name, institution, institutional email, and research purpose, then accept the terms and submit. Access is granted to that account after your request passes the system checks.
 
 Authenticate with the same account and download the scenes and checksum manifest from the SatNav repository root (64.79 GB total):
 

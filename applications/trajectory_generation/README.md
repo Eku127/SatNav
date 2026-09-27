@@ -68,7 +68,7 @@ GeoTIFF files named by scene id, for example `Amsterdam-1.tif` for
 
 Prepare the scene GeoTIFFs using either option:
 
-- [Request and download SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1); access is approved automatically after submitting the form and accepting the terms.
+- [Request and download SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1); submit the form and accept the terms to receive access once your request passes the system checks.
 - Register for an imagery API and generate scenes with your own credentials using `applications/map_downloader`.
 
 See [Satellite Scene Download](../../docs/en-US/applications/MAP_DOWNLOAD.md) for both workflows and path configuration.
