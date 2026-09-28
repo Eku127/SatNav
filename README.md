@@ -24,6 +24,7 @@
 <p align="center">
   <a href="https://arxiv.org/abs/2609.31507"><img src="https://img.shields.io/badge/Paper-arXiv-B31B1B" alt="Paper on arXiv"></a>
   <a href="https://openreview.net/forum?id=hOEniyN6hl"><img src="https://img.shields.io/badge/Paper-OpenReview-8C1B13" alt="SatNav paper on OpenReview"></a>
+  <a href="https://eku127.github.io/SatNav/"><img src="https://img.shields.io/badge/Website-Project%20Page-2A8C82" alt="SatNav project website"></a>
   <a href="https://eku127.github.io/SatNav/wiki/"><img src="https://img.shields.io/badge/Wiki-Documentation-2878D0" alt="SatNav Wiki"></a>
   <a href="https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1"><img src="https://img.shields.io/badge/Dataset-Hugging%20Face-FFD21E" alt="Dataset on Hugging Face"></a>
   <a href="https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo"><img src="https://img.shields.io/badge/Models-Hugging%20Face-FFD21E" alt="Models on Hugging Face"></a>
