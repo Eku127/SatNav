@@ -1,5 +1,7 @@
 # SatNav Map Downloader
 
+For the 59 benchmark scenes, you can [request and download prepared GeoTIFFs](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) after completing the access form and accepting the terms. The API workflow below generates scenes with your own provider credentials.
+
 Download satellite GeoTIFF scenes required by SatNav episodes for training and evaluation.
 SatNav episode data uses scenes downloaded at zoom level `19`.
 

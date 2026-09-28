@@ -12,7 +12,7 @@ See [tasks and metrics](../concepts/TASKS_AND_METRICS.md) for task families and 
 | --- | --- | --- |
 | Episodes | `episodes/**/all_episodes.json` | Instructions, starts, goals, waypoints, and reference paths |
 | Scene list | `scenes_list.yaml` | Logical names and geographic bounds for 59 scenes; no imagery |
-| GeoTIFF scenes | `<scene_id>.tif` | User-provided imagery used by SatSim |
+| GeoTIFF scenes | `<scene_id>.tif` | [Prepared scene downloads](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) or API-generated GeoTIFFs used by SatSim |
 | Offline trajectories | `annotations.json` and `images/` | Training data generated from train episodes and GeoTIFFs |
 
 See [Episode Download](DATA_DOWNLOAD.md),

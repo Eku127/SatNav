@@ -1,9 +1,11 @@
 <h1 align="center">SatNav</h1>
 
+<h2 align="center">
+  SatNav: A Scalable Benchmark for Long-Horizon UAV Vision-Language Navigation from Satellite Imagery
+</h2>
+
 <p align="center">
-  <strong>
-    SatNav: A Scalable Benchmark for Long-Horizon UAV Vision-Language Navigation from Satellite Imagery
-  </strong>
+  <strong>NeurIPS 2026 Evaluations &amp; Datasets</strong>
 </p>
 
 <p align="center">
@@ -20,7 +22,7 @@
 </p>
 
 <p align="center">
-  <a href="https://openreview.net/forum?id=hOEniyN6hl"><img src="https://img.shields.io/badge/Paper-OpenReview-B31B1B" alt="Paper on OpenReview"></a>
+  <a href="https://arxiv.org/abs/2609.31507"><img src="https://img.shields.io/badge/Paper-arXiv-B31B1B" alt="Paper on arXiv"></a>
   <a href="https://eku127.github.io/SatNav/wiki/"><img src="https://img.shields.io/badge/Wiki-Documentation-2878D0" alt="SatNav Wiki"></a>
   <a href="https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1"><img src="https://img.shields.io/badge/Dataset-Hugging%20Face-FFD21E" alt="Dataset on Hugging Face"></a>
   <a href="https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo"><img src="https://img.shields.io/badge/Models-Hugging%20Face-FFD21E" alt="Models on Hugging Face"></a>
@@ -81,13 +83,13 @@ Start with local scenes and episodes, generate training trajectories, and evalua
 
 **[SatNav-Episodes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1)** provides **118,494 VLN episodes across 59 scenes**, covering boundary, landmark, and route navigation. Each episode pairs a language instruction with a scene, starting pose, goals, waypoints, and a reference path. The release includes `train`, `val_seen`, and `val_unseen` splits.
 
-Use the JSON files under `episodes/` with SatNav, or explore the same annotations through the Hugging Face Dataset Viewer and Parquet files under `data/`. Prepare the corresponding GeoTIFF scenes with the map tools below.
+Use the JSON files under `episodes/` with SatNav, or explore the same annotations through the Hugging Face Dataset Viewer and Parquet files under `data/`. For GeoTIFF scenes, [request and download SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1), or [generate scenes with your own API credentials](docs/en-US/applications/MAP_DOWNLOAD.md).
 
 | Resource | Where to start |
 | --- | --- |
 | Episodes and splits | [Download on Hugging Face](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1/tree/main/episodes) |
 | Dataset preview and loading | [Dataset Card](https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1) |
-| Satellite scenes | [Prepare GeoTIFF maps](docs/en-US/applications/MAP_DOWNLOAD.md) |
+| Satellite scenes | [Request prepared GeoTIFFs](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) · [Download options and API setup](docs/en-US/applications/MAP_DOWNLOAD.md) |
 | Training trajectories | [Generate observation-action data](docs/en-US/applications/TRAJECTORY_GENERATION.md) |
 | Episode format | [Read the dataset specification](docs/en-US/dataset/DATASET_FORMAT.md) |
 | Released VLM checkpoints | [Browse the SatNav Model Zoo](https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo) |
@@ -139,6 +141,21 @@ docs/         English and Chinese documentation
 ```
 
 </details>
+
+## Citation
+
+If you use SatNav in your research, please cite:
+
+```bibtex
+@inproceedings{jiang2026satnav,
+  title = {{SatNav}: A Scalable Benchmark for Long-Horizon {UAV} Vision-Language Navigation from Satellite Imagery},
+  author = {Jiang, Jiajun and Hua, Chunliang and Chen, Zichun and Wu, Yanxing and Yang, Zeyuan and Song, Jie and Hu, Xiao},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year = {2026},
+  note = {Track on Evaluations and Datasets; accepted, to appear},
+  url = {https://arxiv.org/abs/2609.31507}
+}
+```
 
 ## License
 

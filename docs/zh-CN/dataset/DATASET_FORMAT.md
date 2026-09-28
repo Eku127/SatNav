@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | Episode | `episodes/**/all_episodes.json` | 指令、起点、目标、waypoint 和 reference path |
 | 场景列表 | `scenes_list.yaml` | 59 个场景的逻辑名称和经纬度范围，不包含影像 |
-| GeoTIFF 场景 | `<scene_id>.tif` | 用户自行下载，用于 SatSim 渲染 observation |
+| GeoTIFF 场景 | `<scene_id>.tif` | [申请下载现成场景](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1)或通过 API 生成，用于 SatSim 渲染 observation |
 | 离线 trajectory | `annotations.json` 和 `images/` | 根据 train Episode 和 GeoTIFF 生成，用于模型训练 |
 
 Episode 下载参阅[Episode 数据下载](DATA_DOWNLOAD.md)，场景和 trajectory 的生成分别参阅[卫星场景下载](../applications/MAP_DOWNLOAD.md)和[轨迹数据生成](../applications/TRAJECTORY_GENERATION.md)。

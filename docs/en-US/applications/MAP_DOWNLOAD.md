@@ -1,18 +1,41 @@
 # Download Satellite Scenes
 
-This guide uses `applications/map_downloader` to mosaic map tiles into
-GeoTIFF scenes readable by SatSim. The geographic bounds for the 59
-SatNav-Episodes-v0.1 scenes are defined in `scenes_list.yaml`; complete
-[Episode Download](../dataset/DATA_DOWNLOAD.md) first if you do not have it.
+SatSim uses 59 GeoTIFF scenes. Choose either prepared scene downloads or the SatNav map downloader with your own imagery-provider API credentials.
 
-> The downloader provides technical functionality only. It does not grant
-> permission to download, store, distribute, or use map content for machine
-> learning. Verify the provider's current terms and your authorization before
-> use.
+| Option | Workflow |
+| --- | --- |
+| Option 1: Download prepared scenes | Complete the [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1) access form, accept the terms, and download after your request passes the system checks |
+| Option 2: Generate scenes through an API | Register for Google Map Tiles API or Mapbox, configure your credentials, and run the map downloader |
 
-See [SatSim observations](../concepts/SATSIM.md) for how geographic transforms and local raster crops produce RGB.
+The Episodes dataset provides scene bounds in `scenes_list.yaml`; see [Episode Download](../dataset/DATA_DOWNLOAD.md). See [SatSim observations](../concepts/SATSIM.md) for how GeoTIFF scenes produce RGB observations.
 
-## 1. Prepare the environment
+## Option 1: Request and download prepared scenes
+
+Open [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1), sign in to Hugging Face, enter your name, institution, institutional email, and research purpose, then accept the terms and submit. Access is granted to that account after your request passes the system checks.
+
+Authenticate with the same account and download the scenes and checksum manifest from the SatNav repository root (64.79 GB total):
+
+```bash
+pip install -U huggingface_hub
+hf auth login
+hf download Eku127/SatNav-Scenes-v0.1 --repo-type dataset \
+  --include "scenes/*.tif" --include SHA256SUMS \
+  --local-dir "$PWD/data/satnav_datasets"
+```
+
+Set the data paths and verify the downloaded GeoTIFFs:
+
+```bash
+export SATNAV_DATA_ROOT="$PWD/data/satnav_datasets/SatNav-v0.1"
+export SATNAV_SCENES_DIR="$PWD/data/satnav_datasets/scenes"
+(cd "$PWD/data/satnav_datasets" && sha256sum -c SHA256SUMS)
+```
+
+Continue with "Validate the data configuration" below.
+
+## Option 2: Generate scenes with your own API credentials
+
+### 1. Prepare the environment
 
 Complete [Installation](../getting-started/INSTALLATION.md), then install the
 application dependencies and configure paths from the repository root:
@@ -27,12 +50,12 @@ mkdir -p "$SATNAV_SCENES_DIR"
 
 Use absolute paths when the data is stored on another volume.
 
-## 2. Configure provider credentials
+### 2. Configure provider credentials
 
 Configure only the provider you will use. Google Map Tiles API is recommended
 for the batch scene workflow.
 
-### Google Map Tiles API
+#### Google Map Tiles API
 
 1. Create or select a billing-enabled Google Cloud project.
 2. Enable the [Map Tiles API](https://console.cloud.google.com/apis/library/tile.googleapis.com).
@@ -45,7 +68,7 @@ export GOOGLE_MAPS_API_KEY="your-api-key"
 
 See the [official Google setup guide](https://developers.google.com/maps/documentation/tile/get-api-key).
 
-### Mapbox
+#### Mapbox
 
 1. Create a Mapbox account.
 2. Create a token under [Access Tokens](https://console.mapbox.com/account/access-tokens/).
@@ -58,7 +81,7 @@ export MAPBOX_ACCESS_TOKEN="your-access-token"
 See the [Mapbox token guide](https://docs.mapbox.com/accounts/guides/tokens/).
 Never commit real credentials.
 
-## 3. Build all 59 scenes
+### 3. Build all 59 scenes
 
 `--scene-config` batch mode currently supports Google only. Start with a dry
 run; it validates the scene configuration and output paths without downloading
@@ -90,7 +113,7 @@ interrupted download. Common options:
 
 Check API quotas, cost, and available disk space before downloading.
 
-## 4. Download one scene
+### 4. Download one scene
 
 Google and Mapbox both support single-scene download. This example defines an
 area with two WGS84 corners:
@@ -164,19 +187,8 @@ In addition to quota and coverage limits, projects with an EEA billing address
 cannot request 2D satellite tiles. Check the returned error against Google's
 [error guide](https://developers.google.com/maps/documentation/tile/error_handling).
 
-## 7. Terms of use
+## 7. Data sources and terms
 
-Google Map Tiles API policies restrict unauthorized prefetching, storage, and
-offline use, and classify image analysis and machine interpretation as
-disallowed non-visualization uses. Unless your agreement grants additional
-rights, do not use its output for offline training or evaluation. Read the
-[Map Tiles API policies](https://developers.google.com/maps/documentation/tile/policies)
-and [billing guide](https://developers.google.com/maps/documentation/tile/usage-and-billing).
+Prepared scenes use the access terms on [SatNav-Scenes-v0.1](https://huggingface.co/datasets/Eku127/SatNav-Scenes-v0.1). For API downloads, use your own provider account and follow its agreement for storage and research use. Provider documentation: [Google Map Tiles API policies](https://developers.google.com/maps/documentation/tile/policies), [billing](https://developers.google.com/maps/documentation/tile/usage-and-billing), and [Mapbox Raster Tiles API](https://docs.mapbox.com/api/maps/raster-tiles/).
 
-Mapbox users should read the
-[Raster Tiles API documentation](https://docs.mapbox.com/api/maps/raster-tiles/)
-and applicable service terms. SatNav distributes no third-party satellite
-imagery and does not obtain or sublicense map-content rights for users.
-
-After preparing scenes, inspect them with [SatSim Viewer](VIEWER.md) or generate
-offline training data with [Trajectory Generation](TRAJECTORY_GENERATION.md).
+After preparing scenes, inspect them with [SatSim Viewer](VIEWER.md) or generate offline training data with [Trajectory Generation](TRAJECTORY_GENERATION.md).
