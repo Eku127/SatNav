@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <a href="https://openreview.net/forum?id=hOEniyN6hl"><img src="https://img.shields.io/badge/Paper-OpenReview-B31B1B" alt="Paper on OpenReview"></a>
+  <a href="https://arxiv.org/abs/2609.31507"><img src="https://img.shields.io/badge/Paper-arXiv-B31B1B" alt="Paper on arXiv"></a>
   <a href="https://eku127.github.io/SatNav/wiki/"><img src="https://img.shields.io/badge/Wiki-Documentation-2878D0" alt="SatNav Wiki"></a>
   <a href="https://huggingface.co/datasets/Eku127/SatNav-Episodes-v0.1"><img src="https://img.shields.io/badge/Dataset-Hugging%20Face-FFD21E" alt="Dataset on Hugging Face"></a>
   <a href="https://huggingface.co/collections/Eku127/satnav-baseline-model-zoo"><img src="https://img.shields.io/badge/Models-Hugging%20Face-FFD21E" alt="Models on Hugging Face"></a>
@@ -141,6 +141,21 @@ docs/         English and Chinese documentation
 ```
 
 </details>
+
+## Citation
+
+If you use SatNav in your research, please cite:
+
+```bibtex
+@inproceedings{jiang2026satnav,
+  title = {{SatNav}: A Scalable Benchmark for Long-Horizon {UAV} Vision-Language Navigation from Satellite Imagery},
+  author = {Jiang, Jiajun and Hua, Chunliang and Chen, Zichun and Wu, Yanxing and Yang, Zeyuan and Song, Jie and Hu, Xiao},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year = {2026},
+  note = {Track on Evaluations and Datasets; accepted, to appear},
+  url = {https://arxiv.org/abs/2609.31507}
+}
+```
 
 ## License
 
