@@ -1,0 +1,58 @@
+# SatNav task configuration using the persistent-GPU point-cloud renderer.
+#
+# SatSim and the GeoTIFF remain authoritative for movement, navigability,
+# metrics, and TOP_DOWN_MAP. PCDSim OpenGL renders RGB with ModernGL, retains PLY
+# buffers on the GPU, and evicts a buffer after ten consecutive local views in
+# which that PLY does not intersect the camera footprint.
+
+ENVIRONMENT:
+  MAX_EPISODE_STEPS: 500
+
+SIMULATOR:
+  TYPE: pcdsim_opengl
+  CLASS: satnav.sims.pcdsim_opengl.PCDSimOpenGLWrapper
+  FORWARD_STEP_SIZE: 10
+  TURN_ANGLE: 15
+  RGB_SENSOR:
+    WIDTH: 224
+    HEIGHT: 224
+    HFOV: 90
+  PCDSIM:
+    CHUNK_POINTS: 2000000
+    POINT_SIZE: 3
+    NEAR_CLIP_METRES: 0.05
+    CACHE_PADDING_METRES: 25.0
+    GROUND_PERCENTILE: 2.0
+  PCDSIM_OPENGL:
+    RENDER_WIDTH: 2048
+    RENDER_HEIGHT: 2048
+    POINT_SHAPE: circle
+    MSAA_SAMPLES: 4
+    # null uses the median of all finite heights in the current scene grid.
+    DEFAULT_GROUND_HEIGHT_METRES: null
+    HEIGHT_GRID_FILENAME: ground_height_grid_20m.json
+    MAX_GPU_BUFFER_BYTES: 1900000000
+    REQUIRE_GL_VERSION: 330
+    UNUSED_VIEW_LIMIT: 10
+
+TASK:
+  TYPE: VLN
+  SUCCESS_DISTANCE:
+    DEFAULT: 10.0
+    Boundary: 10.0
+    LandmarkSet: 30.0
+    Road: 10.0
+  POSSIBLE_ACTIONS: [STOP, MOVE_FORWARD, TURN_LEFT, TURN_RIGHT]
+  MEASUREMENTS: [DISTANCE_TO_GOAL, SUCCESS, SPL, PATH_LENGTH, TOP_DOWN_MAP]
+  TOP_DOWN_MAP:
+    MAP_RESOLUTION: 1024
+    PADDING_METERS: 50.0
+    DRAW_REFERENCE_PATH: true
+    DRAW_SOURCE_AND_TARGET: true
+
+DATASET:
+  TYPE: SatNav
+  SPLIT: test
+  DATA_PATH: F:/test/VLN_episodes.json
+  SCENES_DIR: F:/gugudata
+  PCD_PATH: F:/episode_maker/pointclouds

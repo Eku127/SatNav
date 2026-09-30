@@ -128,6 +128,11 @@ data/scene_datasets/
 !applications/trajectory_generation/config/traj_gen_example.json
 !baselines/vlm/openfly/configs/zero2.json
 !baselines/vlm/uninavid/configs/zero1.json
+# PCDSim OpenGL runtime caches shipped with the Chinese setup guide.
+!docs/zh-CN/simulator/pcdsim_opengl/Cambridge/pcdsim_index.json
+!docs/zh-CN/simulator/pcdsim_opengl/Cambridge/ground_height_grid_20m.json
+!docs/zh-CN/simulator/pcdsim_opengl/Birmingham/pcdsim_index.json
+!docs/zh-CN/simulator/pcdsim_opengl/Birmingham/ground_height_grid_20m.json
 
 # Scene files (GeoTIFF)
 *.tif
